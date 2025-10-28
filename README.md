@@ -1,5 +1,3 @@
-![M8 GREEN](./M8_LLAMA.png)
-
 # The M8 Microprocessor C++ Implementation
 
 
