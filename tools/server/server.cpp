@@ -4449,6 +4449,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         m8p::M8System* M8, 
         std::vector<std::string> params);
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params);
+
 //
 // BEGIN IMPL
 //
@@ -4671,6 +4676,107 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         );
     }
 
+}
+
+std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params) 
+{
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize < 2) {
+        return std::make_pair(
+            m8p::errorf("llm_instancestatus requires at least 2 parameter (instance-name -> register-ouput)"),
+            M8->nilValue
+        );
+    }
+
+    // llm_instancestatus I001 <r2>
+    // r2 => 0|2
+    // r2 => <text>
+
+    std::map<std::string, instance_data> &LLMDB = LLMInstance_DB;
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+
+    std::string ins_name = params.at(1);// instance name
+    std::string rdest = params.at(2); // register
+    m8p::__trim(ins_name);
+
+    if (LLMDB.count(ins_name) > 0) {
+        instance_data &Ref = LLMDB[ins_name];
+        // LOG_VERBOSE("===============> GOT RESULT", Ref.arr);
+        // TODO: MEMOIZE
+        // LOG_INFO("=====================> INSTANCE_STATUS : ", {
+        //     {"Status", Ref.Status},
+        //     {"Array", Ref.arr}
+        // });
+        if (Ref.Status==1) {
+            // ::ALLOC::
+            std::stringstream ss;
+            if (Ref.arr.count("content")) {
+                ss << Ref.arr.at("content");
+            }
+            // ::ALLOC::
+            // LOG_INFO("=====================> CONTENTS : ", {
+            //     {"Contents", ss.str()},
+            // });
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, ss.str());
+
+        } else {
+            if (Ref.Status>=0 && Ref.Status<=10) {
+                switch(Ref.Status){
+                    case 0:
+                        REG[rdest]=M8->_0;
+                        break;
+                    case 1:
+                        REG[rdest]=M8->_1;
+                        break;
+                    case 2:
+                        REG[rdest]=M8->_2;
+                        break;
+                    case 3:
+                        REG[rdest]=M8->_3;
+                        break;
+                    case 4:
+                        REG[rdest]=M8->_4;
+                        break;
+                    case 5:
+                        REG[rdest]=M8->_5;
+                        break;
+                    case 6:
+                        REG[rdest]=M8->_6;
+                        break;
+                    case 7:
+                        REG[rdest]=M8->_7;
+                        break;
+                    case 8:
+                        REG[rdest]=M8->_8;
+                        break;
+                    case 9:
+                        REG[rdest]=M8->_9;
+                        break;
+                    case 10:
+                        REG[rdest]=M8->_10;
+                        break;
+                }
+            } else {
+                // this is mostly unlikely
+                // ::ALLOC::
+                REG[rdest] = m8p::m8_obj(M8, (int32_t)Ref.Status);
+            }
+        }
+
+    } else {
+        return std::make_pair(
+            m8p::errorf("Instance ["+ins_name+"] Not Found"),
+            M8->nilValue
+        );
+    }
+
+    return std::make_pair(
+        m8p::M8_Err_nil,
+        REG[rdest]
+    );
 }
 
 
