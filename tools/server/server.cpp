@@ -4459,9 +4459,83 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_DETOKENIZE(
         m8p::M8System* M8, 
         std::vector<std::string> params);
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_TOKENIZE(
+        server_context *server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params);
+
 //
 // BEGIN IMPL
 //
+
+std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_TOKENIZE(
+        server_context *server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params) {
+
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize!=2) {
+        return std::make_pair(
+            m8p::errorf("llm_tokenize requires 2 parameters"),
+            M8->nilValue
+        );
+    }
+
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+    std::string rname = params.at(1);// dont forget 0 is for the op_code
+    std::string rdest = params.at(2);
+
+    if (REG.count(rname)) {
+        m8p::M8_Obj *R = REG[rname];
+        if (R==nullptr){
+            return std::make_pair(
+                m8p::errorf("NULL_REGISTER["+rname+"]"),
+                M8->nilValue
+            );
+        }
+
+        // std::vector<server_tokens> inputs;
+        // const auto & prompt = data.at("prompt");
+        // inputs = tokenize_input_prompts(ctx_server.vocab, ctx_server.mctx, prompt, true, true);
+
+        if (!m8p::is_nil(M8, R) && R->Type==m8p::MP8_STRING && R->Value.size()>0) {
+            std::string contents = R->Value;
+            std::vector<llama_token> tokens;
+            // tokens = server->tokenize(contents, true);
+            tokens = tokenize_mixed(server->vocab, contents, false, false);
+
+            // ::ALLOC::
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+            // const json data = format_tokenizer_response(tokens);
+            // std::stringstream ss;
+            // ss << "[";
+            // for (std::vector<llama_token>::iterator i=tokens.begin(); i!=tokens.end(); ++i) {
+            //     ss << *i << ",";
+            // }
+            // ss << "]";
+            // std::cout << "string: " << ss.str() << "\n";
+            REG[rdest]->AR_F32.clear();
+            for (std::vector<llama_token>::iterator i=tokens.begin(); i!=tokens.end(); ++i) {
+                REG[rdest]->AR_F32.push_back((float)*i);
+            }
+            return std::make_pair(
+                m8p::M8_Err_nil,
+                REG[rdest]
+            );
+
+        } else {
+            return std::make_pair(
+                m8p::errorf("EMPTY_REGISTER["+rname+"]"),
+                M8->nilValue
+            );
+        }
+    } else {
+        return std::make_pair(
+            m8p::errorf("REGISTER_NOT_FOUND["+rname+"]"),
+            M8->nilValue
+        );
+    }
+}
 
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_DETOKENIZE(
         server_context *server,
@@ -5265,8 +5339,8 @@ public:
         if (opCode=="gpt_params") {
             return GPT_PARAMS(this->server_params, M8, params);
 
-        // } else if (opCode=="llm_tokenize") {
-        //     return LLM_TOKENIZE(this->ctx_server, M8, params);
+        } else if (opCode=="llm_tokenize") {
+            return LLM_TOKENIZE(this->ctx_server, M8, params);
 
         } else if (opCode=="llm_detokenize") {
             return LLM_DETOKENIZE(this->ctx_server, M8, params);
