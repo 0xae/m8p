@@ -46,7 +46,55 @@ using json = nlohmann::ordered_json;
 #define QUE_ERR(fmt, ...) LOG_ERR("que  %12.*s: " fmt, 12, __func__, __VA_ARGS__)
 #define QUE_DBG(fmt, ...) LOG_DBG("que  %12.*s: " fmt, 12, __func__, __VA_ARGS__)
 
+#ifndef SERVER_VERBOSE
+#define SERVER_VERBOSE 1
+#endif
+
+#if SERVER_VERBOSE != 1
+#define LOG_VERBOSE(MSG, ...)
+#else
+#define LOG_VERBOSE(MSG, ...)                                            \
+    do                                                                   \
+    {                                                                    \
+        if (server_verbose)                                              \
+        {                                                                \
+            server_log("VERB", __func__, __LINE__, MSG, __VA_ARGS__); \
+        }                                                                \
+    } while (0)
+#endif
+
+#define LOG_ERROR(MSG, ...) server_log("ERR",  __func__, __LINE__, MSG, __VA_ARGS__)
+#define LOG_WARNING(MSG, ...) server_log("WARN", __func__, __LINE__, MSG, __VA_ARGS__)
+#define LOG_INFO(MSG, ...) server_log("INFO", __func__, __LINE__, MSG, __VA_ARGS__)
+
+static inline void server_log(const char * level, const char * function, int line, const char * message, const json & extra);
+
 using raw_buffer = std::vector<uint8_t>;
+
+static inline void server_log(const char * level, const char * function, int line, const char * message, const json & extra) {
+    json log = json{
+        {"timestamp", time(nullptr)},
+    };
+    if (!extra.empty()) {
+        log.merge_patch(extra);
+    }
+
+    char buf[1024];
+    snprintf(buf, 1024, "%4s [%24s] %s", level, function, message);
+
+    std::stringstream ss;
+    ss << buf << " |";
+    for (const auto & el : log.items())
+    {
+        const std::string value = el.value().dump(-1, ' ', false, json::error_handler_t::replace);
+        ss << " " << el.key() << "=" << value;
+    }
+
+    const std::string str = ss.str();
+    printf("%.*s\n", (int)str.size(), str.data());
+
+    fflush(stdout);
+}
 
 template <typename T>
 static T json_value(const json & body, const std::string & key, const T & default_value) {
@@ -90,6 +138,8 @@ struct server_grammar_trigger {
         return out;
     }
 };
+
+
 
 //
 // tokenizer and input processing utils
@@ -1384,6 +1434,8 @@ static std::string fnv_hash(const uint8_t * data, size_t len) {
     }
     return std::to_string(hash);
 }
+
+
 
 static server_tokens process_mtmd_prompt(mtmd_context * mctx, std::string prompt, std::vector<raw_buffer> files) {
     mtmd::bitmaps bitmaps;

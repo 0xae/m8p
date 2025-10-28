@@ -4860,15 +4860,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         //     {"Array", Ref.arr}
         // });
         if (Ref.Status==1) {
+            LOG_INFO("=====================> INSTANCE RESPONSE : ", Ref.arr);
             // ::ALLOC::
             std::stringstream ss;
             if (Ref.arr.count("content")) {
                 ss << Ref.arr.at("content");
             }
             // ::ALLOC::
-            // LOG_INFO("=====================> CONTENTS : ", {
-            //     {"Contents", ss.str()},
-            // });
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, ss.str());
 
         } else {
@@ -5359,8 +5357,6 @@ public:
 
         // } else if (opCode=="llm_infill") {
         //     return LLM_INFILL(this->ctx_server, M8, params);
-
-
         // } else if (opCode=="llm_stat") {
         //     return LLM_GETSTAT(this->ctx_server, M8, params);
 
