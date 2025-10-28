@@ -12,6 +12,10 @@
 #include "speculative.h"
 #include "mtmd.h"
 
+#ifdef HNSW_VECTOR
+#include "hnswlib/hnswlib.h"
+#endif
+
 // mime type for sending response
 #define MIMETYPE_JSON "application/json; charset=utf-8"
 
@@ -6265,14 +6269,15 @@ std::string M8_BANNER =
     // clean up function, to be called before exit
     auto clean_up = [&virtualvm, &svr, &ctx_server]() {
         SRV_INF("%s: cleaning up before exit...\n", __func__);
+        svr->stop();
+        ctx_server.queue_results.terminate();
+        llama_backend_free();
+
         if (virtualvm!=nullptr) {
             // LLamaInstr *pointer = static_cast<LLamaInstr*>(virtualvm);
             delete virtualvm;
             virtualvm = nullptr;
         }
-        svr->stop();
-        ctx_server.queue_results.terminate();
-        llama_backend_free();
     };
 
     bool was_bound = false;
