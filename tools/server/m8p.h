@@ -54,6 +54,11 @@
 // #ifdef __AVX__
 #include <immintrin.h>
 #define AVX_V_SIZE 8
+
+#ifndef __AVX__
+#define __AVX__
+#endif
+
 // #else
 //   #warning No AVX support [matmul wont be available]
 // #endif
