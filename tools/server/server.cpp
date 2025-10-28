@@ -5575,7 +5575,7 @@ std::string M8_BANNER =
     //
     // M8 API
     //
-    const auto handle_create_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
+    const auto handle_create_Session = [&g_session, &GlobalSession, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
         std::string id_session = req.path_params.at("id_session");
@@ -5596,11 +5596,13 @@ std::string M8_BANNER =
         m8p::M8System *m8 = m8p::M8P_Instance(id_session);
 
         try {
-            m8p::RegisterVirtual(m8, "__all__", virtualvm);
+            // m8p::RegisterVirtual(m8, "__all__", virtualvm);
             GlobalSession[id_session].name = id_session;
             GlobalSession[id_session].exec_calls = 0;
             GlobalSession[id_session].m8 = m8;
-            LOG_VERBOSE("new persistent session", {{"id_session", id_session}});
+
+            LOG_INF("new persistent session %s", id_session);
+            // SRV_DBG("creating infill tasks, n_prompts = %d\n", (int) tokenized_prompts.size());
 
             json Resp;
             Resp["Status"] = "OK";
