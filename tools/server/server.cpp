@@ -5880,7 +5880,7 @@ std::string M8_BANNER =
         res_ok(res, Resp);
     };
 
-    const auto handle_destroy_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
+    const auto handle_destroy_Session = [&g_session, &GlobalSession, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
         std::string id_session = req.path_params.at("id_session");
@@ -5926,6 +5926,128 @@ std::string M8_BANNER =
         }
     };
 
+    // const auto handle_Run = [virtualvm, &res_error, &res_ok](
+    const auto handle_Run = [&res_error, &res_ok](
+        const httplib::Request &req, 
+        httplib::Response &res) {
+        json data = json::parse(req.body);
+        if (data.count("code")==0) {
+            res_error(res, format_error_response(".code property must contain valid code", ERROR_TYPE_INVALID_REQUEST));
+            return;
+        }
+
+        std::string code_buf = data.at("code");
+        if (code_buf.size()==0) {
+            res_error(res, format_error_response("Empty Code_Buf", ERROR_TYPE_INVALID_REQUEST));
+            return;
+        }
+
+        // res.set_header("Access-Control-Allow-Origin", "*");
+        m8p::M8System *m8 = m8p::M8P_Instance("http-session-m8");
+
+        try {
+            // will handle all custom instr
+            // m8p::RegisterVirtual(m8, "__all__", virtualvm);
+
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
+            std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
+
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            std::stringstream ss;
+            ss << " " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " [µs], "
+               << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << " [ns]";
+
+            if (Ret.first.Type!=m8p::M8_Err_nil.Type) {
+                json Resp;
+                Resp["Status"] = "FAILED";
+                Resp["Tms"] = ss.str();
+                Resp["Error"] = Ret.first.Details;
+                Resp["Type"] = "<error>";
+                // json Resp;
+                // Resp["Status"] = "FAILED";
+                // res_error(res, format_error_response("Execution Failed", ERROR_TYPE_INVALID_REQUEST));
+                // res_ok(res, Resp);
+                res.set_content(Resp.dump(-1, ' ', false, json::error_handler_t::replace), MIMETYPE_JSON);
+                res.status = 500;
+            } else {
+                json Resp;
+                Resp["Status"] = "OK";
+                Resp["Tms"] = ss.str();
+                if (Ret.second!=nullptr) {
+                    if (Ret.second->Type==m8p::MP8_I32) {
+                        Resp["R"] = Ret.second->I32;
+
+                    } else if (Ret.second->Type==m8p::MP8_F32) {
+                        Resp["R"] = Ret.second->F32;
+
+                    } else if (Ret.second->Type==m8p::MP8_DI32) {
+                        Resp["R"] = Ret.second->AR_I32;
+
+                    } else if (Ret.second->Type==m8p::MP8_DF32) {
+                        Resp["R"] = Ret.second->AR_F32;
+
+                    } else if (Ret.second->Type==m8p::MP8_OLIST) {
+                        json slots = json::array();
+                        std::vector<m8p::M8_Obj*>::iterator i=Ret.second->AR_OBJ.begin();
+                        for (; i!=Ret.second->AR_OBJ.end(); ++i) {
+                            m8p::M8_Obj *obj = *i;
+                            if (obj!=nullptr) {
+                                if (obj->Type==m8p::MP8_I32) {
+                                    slots.push_back(obj->I32);
+                                } else if (obj->Type==m8p::MP8_F32) {
+                                    slots.push_back(obj->F32);
+                                } else if (obj->Type==m8p::MP8_DI32) {
+                                    slots.push_back(obj->AR_I32);
+                                } else if (obj->Type==m8p::MP8_DF32) {
+                                    slots.push_back(obj->AR_F32);
+                                } else if (obj->Type==m8p::MP8_STRING) {
+                                    slots.push_back(obj->Value);
+                                } else {
+                                    slots.push_back(m8p::TypeStr(obj->Type));
+                                }
+                            }
+                        }
+                        Resp["R"] = slots;
+
+
+                    } else {
+                        Resp["R"] = Ret.second->Value;
+                    }
+
+                    Resp["Type"] = m8p::TypeStr(Ret.second->Type);
+                } 
+
+                res_ok(res, Resp);
+            }
+
+        } catch (std::exception & e) {
+            // message = e.what();
+            // json Resp;
+            // Resp["Status"] = "FAILED";
+            // Resp["R"] = "An error ocurred: on session execution";
+            // Resp["Trace"] = e.what();
+            // std::cout << "ERROR: " 
+            //     << e.what()
+            //     << std::endl;
+            // res_ok(res, Resp);
+        }
+
+        if (m8!=nullptr) {
+            m8p::DestroyMP8(m8);
+        }
+
+        // if (virtualvm!=nullptr){
+        //     delete virtualvm;
+        //     virtualvm=nullptr;
+        // }
+        // if (code_buf.size()>MAX_SIZE) {
+        //     res_error(res, format_error_response("TOO BIG Code_Buf"));
+        //     return;
+        // }
+    };
+
+    svr->Post("/api/v1/m8/dry-run",   handle_Run);
     svr->Post("/api/v1/m8/session-create/:id_session",  handle_create_Session);
     svr->Post("/api/v1/m8/session-run/:id_session",  handle_run_Session);
     svr->Post("/api/v1/m8/:id_session/session-run",  handle_run_Session);
@@ -5933,7 +6055,6 @@ std::string M8_BANNER =
     svr->Post("/api/v1/m8/session-destroy/:id_session",  handle_destroy_Session);
     // svr->Get("/api/v1/m8/session-stats/:id_session",  handle_stats_Session);
     // svr->Get("/api/v1/m8/session-activity",  handle_stats_Activity);
-    // svr->Post("/api/v1/m8/dry-run",   handle_Run);
 
     if (!params.webui) {
         LOG_INF("Web UI is disabled\n");
