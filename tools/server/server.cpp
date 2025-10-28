@@ -5572,6 +5572,51 @@ std::string M8_BANNER =
     // Router
     //
 
+    //
+    // M8 API
+    //
+    const auto handle_create_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
+        const httplib::Request &req, 
+        httplib::Response &res) {
+        std::string id_session = req.path_params.at("id_session");
+        m8p::__trim(id_session);
+
+        if (id_session.size()==0 || id_session.size()>50) {
+            res_error(res, format_error_response(".id_session property must be between (0,50) size", ERROR_TYPE_INVALID_REQUEST));
+            return;          
+        }
+
+        const std::lock_guard<std::mutex> lock(g_session);
+
+        if (GlobalSession.count(id_session)!=0) {
+            res_error(res, format_error_response("Session already exists", ERROR_TYPE_INVALID_REQUEST));
+            return;
+        }   
+
+        m8p::M8System *m8 = m8p::M8P_Instance(id_session);
+
+        try {
+            m8p::RegisterVirtual(m8, "__all__", virtualvm);
+            GlobalSession[id_session].name = id_session;
+            GlobalSession[id_session].exec_calls = 0;
+            GlobalSession[id_session].m8 = m8;
+            LOG_VERBOSE("new persistent session", {{"id_session", id_session}});
+
+            json Resp;
+            Resp["Status"] = "OK";
+            Resp["session_id"] = id_session;
+            res_ok(res, Resp);
+
+        } catch (std::exception &e) {
+            json Resp;
+            Resp["Status"] = "FAILED";
+            Resp["Error"] = e.what();
+            res_ok(res, Resp);
+        }
+    };
+
+    svr->Post("/api/v1/m8/session-create/:id_session",  handle_create_Session);
+
     if (!params.webui) {
         LOG_INF("Web UI is disabled\n");
     } else {
