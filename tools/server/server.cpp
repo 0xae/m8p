@@ -12,9 +12,7 @@
 #include "speculative.h"
 #include "mtmd.h"
 
-#ifdef HNSW_VECTOR
 #include "hnswlib/hnswlib.h"
-#endif
 
 // mime type for sending response
 #define MIMETYPE_JSON "application/json; charset=utf-8"
