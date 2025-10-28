@@ -5617,6 +5617,139 @@ std::string M8_BANNER =
         }
     };
 
+    const auto handle_run_Session = [&g_session, &GlobalSession, &res_error, &res_ok](
+        const httplib::Request &req, 
+        httplib::Response &res) {
+
+        std::string id_session = req.path_params.at("id_session");
+        m8p::__trim(id_session);
+
+        if (id_session.size()==0 || id_session.size()>50) {
+            res_error(res, format_error_response(".id_session property must be between (0,50) size", ERROR_TYPE_INVALID_REQUEST));
+            return;
+        }
+
+        json data = json::parse(req.body);
+        if (data.count("code")==0) {
+            res_error(res, format_error_response(".code property must contain valid code", ERROR_TYPE_INVALID_REQUEST));
+            return;
+        }
+
+        std::string code_buf = data.at("code");
+        if (code_buf.size()==0) {
+            res_error(res, format_error_response("Empty Code_Buf", ERROR_TYPE_INVALID_REQUEST));
+            return;
+        }
+
+        // XXX: LOC HERE
+        {
+            const std::lock_guard<std::mutex> lock(g_session);
+            if (GlobalSession.count(id_session)==0) {
+                res_error(res, format_error_response("Session not found", ERROR_TYPE_INVALID_REQUEST));
+                return;
+            }
+        }
+
+        M8Session &m8Session = GlobalSession.at(id_session);
+
+        const std::lock_guard<std::mutex> lock_vm(m8Session.rlock);
+        m8Session.IsLock=true;
+
+        try {
+            m8p::M8System *m8 = m8Session.m8;
+            if (m8==nullptr) {
+                res_error(res, format_error_response("Invalid session state. m8==nullptr", ERROR_TYPE_INVALID_REQUEST));
+                return;
+            }
+
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
+            std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
+
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            std::stringstream ss;
+            ss << " " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " [µs], "
+               << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << " [ns]";
+
+            if (Ret.first.Type!=m8p::M8_Err_nil.Type) {
+                json Resp;
+                Resp["Status"] = "FAILED";
+                Resp["Tms"] = ss.str();
+                Resp["Error"] = Ret.first.Details;
+                Resp["Type"] = "<error>";
+                // json Resp;
+                // Resp["Status"] = "FAILED";
+                // res_error(res, format_error_response("Execution Failed", ERROR_TYPE_INVALID_REQUEST));
+                // res_ok(res, Resp);
+                res.set_content(Resp.dump(-1, ' ', false, json::error_handler_t::replace), MIMETYPE_JSON);
+                res.status = 500;
+            } else {
+                json Resp;
+                Resp["Status"] = "OK";
+                Resp["Tms"] = ss.str();
+                if (Ret.second!=nullptr) {
+                    if (Ret.second->Type==m8p::MP8_I32) {
+                        Resp["R"] = Ret.second->I32;
+
+                    } else if (Ret.second->Type==m8p::MP8_F32) {
+                        Resp["R"] = Ret.second->F32;
+
+                    } else if (Ret.second->Type==m8p::MP8_DI32) {
+                        Resp["R"] = Ret.second->AR_I32;
+
+                    } else if (Ret.second->Type==m8p::MP8_OLIST) {
+                        json slots = json::array();
+                        std::vector<m8p::M8_Obj*>::iterator i=Ret.second->AR_OBJ.begin();
+                        for (; i!=Ret.second->AR_OBJ.end(); ++i) {
+                            m8p::M8_Obj *obj = *i;
+                            if (obj!=nullptr) {
+                                if (obj->Type==m8p::MP8_I32) {
+                                    slots.push_back(obj->I32);
+                                } else if (obj->Type==m8p::MP8_F32) {
+                                    slots.push_back(obj->F32);
+                                } else if (obj->Type==m8p::MP8_DI32) {
+                                    slots.push_back(obj->AR_I32);
+                                } else if (obj->Type==m8p::MP8_DF32) {
+                                    slots.push_back(obj->AR_F32);
+                                } else if (obj->Type==m8p::MP8_STRING) {
+                                    slots.push_back(obj->Value);
+                                } else {
+                                    slots.push_back(m8p::TypeStr(obj->Type));
+                                }
+                            }
+                        }
+                        Resp["R"] = slots;
+
+                    } else if (Ret.second->Type==m8p::MP8_DF32) {
+                        Resp["R"] = Ret.second->AR_F32;
+
+                    } else {
+                        Resp["R"] = Ret.second->Value;
+                    }
+
+                    Resp["Type"] = m8p::TypeStr(Ret.second->Type);
+                } 
+
+                res_ok(res, Resp);
+            }
+
+            GlobalSession[id_session].exec_calls += 1;
+        } catch (std::exception &e) {
+            // message = e.what();
+            json Resp;
+            Resp["Status"] = "FAILED";
+            Resp["R"] = "An error ocurred: on session execution";
+            Resp["Trace"] = e.what();
+            std::cout << "ERROR: " 
+                << e.what()
+                << std::endl;
+            res_ok(res, Resp);
+            // res_error(res, format_error_response("Internal Error ocurred: ", ERROR_TYPE_INVALID_REQUEST));
+        }
+
+        m8Session.IsLock=false;
+    };
+
     svr->Post("/api/v1/m8/session-create/:id_session",  handle_create_Session);
 
     if (!params.webui) {
