@@ -4394,11 +4394,353 @@ struct M8Session {
 
 class LLamaInstr;
 struct M8MemorySession;
+struct vectordb_index;
 
 std::pair<m8p::M8_Error, m8p::M8_Obj*> GPT_PARAMS(
     common_params *gpt_params,
     m8p::M8System* M8, 
     std::vector<std::string> params);
+
+    std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params);
+
+// #ifdef HNSW_VECTOR
+    struct vectordb_index {
+        int Status=2; // 1=OK, 0=FAILED, 2=PENDING
+        hnswlib::HierarchicalNSW<float>* store;
+        hnswlib::L2Space *space;
+        size_t dim=256;
+        int max_elements=100;
+        int M = 16;
+        int ef_construction = 200;
+        float* rowstore = nullptr;
+        int lastIndex = 0;
+    };
+    std::map<std::string, vectordb_index> G_Vector_DB;
+
+
+    // std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
+    //     server_context *ctx_server,
+    //     m8p::M8System* M8, 
+    //     std::vector<std::string> params) 
+    // {
+    //     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    //     if (psize < 2) {
+    //         return std::make_pair(
+    //             m8p::errorf("vdb_add requires at least 2 parameters (instance name, DIF32 register)"),
+    //             M8->nilValue
+    //         );
+    //     }
+
+    //     // mat8 <r1> 10 20 30 40 50 60 70 80
+    //     // mat8 <r2> 15 20 30 40 50 60 70 80
+    //     // vdb_instance V0001 dim=8 ...
+    //     // vdb_add V0001 <r1>
+    //     // vdb_add V0001 <r2>
+    //     // vdb_search V0001 <r2>
+
+    //     std::string ins_name = params.at(1);
+    //     m8p::__trim(ins_name);
+    //     std::string rsource = params.at(2);
+    //     m8p::__trim(rsource);
+
+    //     // dif32_ary
+    //     std::map<std::string, vectordb_index> &VectorDB = G_Vector_DB;
+    //     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+
+    //     if (VectorDB.count(ins_name)==0) {
+    //         return std::make_pair(
+    //             m8p::errorf("Vectordb Instance ["+ins_name+"] not found!"),
+    //             M8->nilValue
+    //         );
+    //     }
+
+    //     hnswlib::HierarchicalNSW<float>* alg_hnsw = VectorDB[ins_name].store;
+    //     if (alg_hnsw==nullptr) {
+    //         return std::make_pair(
+    //             m8p::errorf("Vectordb ["+ins_name+"] with null store (hnswlib::HierarchicalNSW)"),
+    //             M8->nilValue
+    //         );
+    //     }
+
+    //     m8p::M8_Obj *R = REG[rsource];
+    //     if (R==nullptr){
+    //         return std::make_pair(
+    //             m8p::errorf("NULL_REGISTER["+rsource+"]"),
+    //             M8->nilValue
+    //         );
+    //     }
+
+    //     if (!m8p::is_nil(M8, R) && R->Type==m8p::MP8_DF32) {
+    //         int dim = VectorDB[ins_name].dim;
+    //         if (R->AR_F32.size()!=dim) {
+    //             return std::make_pair(
+    //                 m8p::errorf("IMCOMPATIBLE_DIMENSION_ON["+ins_name+","+rsource+"]"),
+    //                 M8->nilValue
+    //             );
+    //         }
+
+    //         if (VectorDB[ins_name].lastIndex < VectorDB[ins_name].max_elements) {
+    //             int i = VectorDB[ins_name].lastIndex;
+    //             float *src_data = R->AR_F32.data();
+    //             float *rowstore = VectorDB[ins_name].rowstore+i*dim;
+
+    //             for (int j=0; j<dim; j++) {
+    //                 int idx=j+(i*dim);
+    //                 std::cout << "data[" << idx << "] = " 
+    //                           << src_data[j] << ",\n";
+    //                 rowstore[j] = src_data[j];
+    //             }
+
+    //             std::cout << "\n";
+    //             alg_hnsw->addPoint(src_data, i);
+    //             VectorDB[ins_name].lastIndex += 1;
+
+    //             return std::make_pair(
+    //                 m8p::M8_Err_nil,
+    //                 M8->true_
+    //             );
+
+    //         } else {
+    //             return std::make_pair(
+    //                 m8p::errorf("VECTOR_MAX_SIZE_REACHED["+rsource+"]"),
+    //                 M8->nilValue
+    //             );
+    //         }
+
+    //     } else {
+    //         return std::make_pair(
+    //             m8p::errorf("NULL_REGISTER["+rsource+"]"),
+    //             M8->nilValue
+    //         );
+    //     }
+
+    //     return std::make_pair(
+    //         m8p::M8_Err_nil,
+    //         M8->nilValue
+    //     );
+    // }
+
+    // std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
+    //     server_context *ctx_server,
+    //     m8p::M8System* M8, 
+    //     std::vector<std::string> params) 
+    // {
+    //     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    //     if (psize < 3) {
+    //         return std::make_pair(
+    //             m8p::errorf("vdb_add requires at least 3 parameters (instance name, DIF32 register, output register)"),
+    //             M8->nilValue
+    //         );
+    //     }
+
+    //     // mat8 <r1> 10 20 30 40 50 60 70 80
+    //     // mat8 <r2> 15 20 30 40 50 60 70 80
+    //     // vdb_instance V0001 dim=8 ...
+    //     // vdb_add V0001 <r1>
+    //     // vdb_add V0001 <r2>
+    //     // vdb_search V0001 <r2> <rout>
+
+    //     std::string ins_name = params.at(1);
+    //     m8p::__trim(ins_name);
+    //     std::string rsource = params.at(2);
+    //     m8p::__trim(rsource);
+    //     std::string rdest = params.at(3);
+    //     m8p::__trim(rdest);
+
+    //     // dim32_ary
+    //     std::map<std::string, vectordb_index> &VectorDB = G_Vector_DB;
+    //     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+
+    //     if (VectorDB.count(ins_name)==0) {
+    //         return std::make_pair(
+    //             m8p::errorf("Vectordb Instance ["+ins_name+"] not found!"),
+    //             M8->nilValue
+    //         );
+    //     }
+
+    //     hnswlib::HierarchicalNSW<float>* alg_hnsw = VectorDB[ins_name].store;
+    //     if (alg_hnsw==nullptr) {
+    //         return std::make_pair(
+    //             m8p::errorf("Vectordb ["+ins_name+"] with null store (hnswlib::HierarchicalNSW)"),
+    //             M8->nilValue
+    //         );
+    //     }
+
+    //     m8p::M8_Obj *R = REG[rsource];
+    //     if (R==nullptr){
+    //         return std::make_pair(
+    //             m8p::errorf("NULL_REGISTER["+rsource+"]"),
+    //             M8->nilValue
+    //         );
+    //     }
+
+    //     if (!m8p::is_nil(M8, R) && R->Type==m8p::MP8_DF32) {
+    //         if (R->AR_F32.size()!=VectorDB[ins_name].dim) {
+    //             return std::make_pair(
+    //                 m8p::errorf("IMCOMPATIBLE_DIMENSION_ON["+ins_name+","+rsource+"]"),
+    //                 M8->nilValue
+    //             );
+    //         }
+
+    //         // 
+
+    //         if (VectorDB[ins_name].lastIndex>=0) {
+    //             // float *data = VectorDB[ins_name].rowstore;
+    //             float *data = R->AR_F32.data();
+    //             int dim = VectorDB[ins_name].dim;
+    //             int max_elements = VectorDB[ins_name].max_elements;
+    //             // int max_elements = 5;
+
+    //             std::cout << "query_data = [";
+    //             for (int i = 0; i<dim; i++) {
+    //                 std::cout << data[i] << ",";
+    //             }
+    //             std::cout << "]\n";
+
+    //             float min_dist = 0;
+    //             int matches = 0;
+    //             hnswlib::labeltype flabel = -1;
+    //             for (int i = 0; i < 1; i++) {
+    //                 // int i = 0;
+    //                 std::priority_queue<std::pair<float, hnswlib::labeltype>> result = alg_hnsw->searchKnn(data, 3);
+    //                 std::cout << "\n search_results = [ ";
+    //                 while (!result.empty()) {
+    //                     hnswlib::labeltype label = result.top().second;
+    //                     float dist = result.top().first;
+    //                     if (min_dist==0 || dist<min_dist) {
+    //                         min_dist = dist;
+    //                         flabel = label;
+    //                     }
+    //                     std::cout << "{distance=" << dist << ", label=" << label << "}, ";
+    //                     result.pop();
+    //                     matches += 1;
+    //                 }
+
+    //                 std::cout << "]\n" << std::endl;
+    //                 std::cout << "{min_dist=" << min_dist << ", flabel=" << flabel << "}, ";
+
+    //                 if (matches>0) {
+    //                     float *nn_vector = VectorDB[ins_name].rowstore + flabel*dim;
+    //                     auto v = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+    //                     for (int i = 0; i<dim; ++i){
+    //                         v->AR_F32.push_back(nn_vector[i]);
+    //                     }
+    //                     REG[rdest] = v;
+    //                     return std::make_pair(m8p::M8_Err_nil, v);
+    //                 }
+    //             }
+    //         }
+
+    //         return std::make_pair(
+    //             m8p::M8_Err_nil,
+    //             M8->nilValue
+    //         );
+
+    //     } else {
+    //         if (R->Type!=m8p::MP8_DF32) {
+    //             return std::make_pair(
+    //                 m8p::errorf("INVALID_TYPE["+rsource+"], required float32 array"),
+    //                 M8->nilValue
+    //             );
+    //         }
+
+    //         return std::make_pair(
+    //             m8p::errorf("NULL_REGISTER["+rsource+"]"),
+    //             M8->nilValue
+    //         );
+    //     }
+    // }
+
+    std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params) 
+    {
+        // vdb_instance MY_STORE dim=10
+        int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+        if (psize < 1) {
+            return std::make_pair(
+                m8p::errorf("vdb_instance requires at least 1 parameter (instance name, Register)"),
+                M8->nilValue
+            );
+        }
+
+        std::map<std::string, vectordb_index> &VectorDB = G_Vector_DB;
+        std::string ins_name = params.at(1); // instance name
+        m8p::__trim(ins_name);
+
+        // int dim = 16;               // Dimension of the elements
+        int dim = 16;               // Dimension of the elements
+        int max_elements = 500;   // Maximum number of elements, should be known beforehand
+        int M = 16;                 // Tightly connected with internal dimensionality of the data
+                                    // strongly affects the memory consumption
+        int ef_construction = 200;  // Controls index search speed/build speed tradeoff
+
+        if (VectorDB.count(ins_name) > 0) {
+            // instance_data &Ref = LLMDB[ins_name];
+            // instance_data &Ref = LLMDB[ins_name];
+            // REG[rdest] = m8_obj(M8, (int32_t)Ref.Status);
+            return std::make_pair(
+                m8p::M8_Err_nil,
+                M8->true_
+            );
+
+        } else {
+            hnswlib::L2Space *space = new hnswlib::L2Space(dim);
+            hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(space, max_elements, M, ef_construction);
+
+            std::mt19937 rng;
+            rng.seed(47);
+            std::uniform_real_distribution<> distrib_real;
+
+            float* data = new float[dim*max_elements];
+            for (int i = 0; i < dim*max_elements; i++) {
+                data[i] = distrib_real(rng);
+                // data[i] = -1;
+            }
+
+            for (int i=0; i<max_elements; i++) {
+                alg_hnsw->addPoint(data + (i*dim), i);
+            }
+
+            float correct = 0;
+            for (int i = 0; i < max_elements; i++) {
+                // float *idx = data + i * dim;
+                // std::cout << "idx = [";
+                // for (int j=0; j<dim; j++) {
+                //     std::cout << idx[j] << ",";
+                // }
+                // std::cout << "]\n";
+                std::priority_queue<std::pair<float, hnswlib::labeltype>> result = alg_hnsw->searchKnn(data + i * dim, 1);
+                hnswlib::labeltype label = result.top().second;
+                if (label == i) correct++;
+            }
+
+            float recall = correct / max_elements;
+            std::cout << "Recall: " << recall << "\n";
+
+            VectorDB[ins_name].Status=1;
+            VectorDB[ins_name].space = space;
+            VectorDB[ins_name].dim = dim;
+            VectorDB[ins_name].max_elements = max_elements;
+            VectorDB[ins_name].M = M;
+            VectorDB[ins_name].lastIndex = 0;
+            VectorDB[ins_name].store = alg_hnsw;
+            VectorDB[ins_name].rowstore = data;
+
+            return std::make_pair(
+                m8p::M8_Err_nil,
+                M8->_1
+            );
+        }
+
+    }
+
+// #endif
+
 
 std::pair<m8p::M8_Error, m8p::M8_Obj*> GPT_PARAMS(
     common_params *gpt_params,
@@ -4533,6 +4875,8 @@ public:
 // std::string piped_output(gpt_params *params, std::string query);
 
 std::map<std::string, M8Session> GlobalSession;
+
+
 
 int main(int argc, char ** argv) {
 
