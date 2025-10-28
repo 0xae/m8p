@@ -4603,7 +4603,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                     // error_data["n_prompt_tokens"] = n_prompt_tokens;
                     // error_data["n_ctx"] = n_ctx_slot;
                     // res_error(res, error_data);
-                    return;
+                    return std::make_pair(
+                        m8p::errorf("the request exceeds the available context size, try increasing it"),
+                        M8->nilValue
+                    );
                 }
 
                 server_task task = server_task(type);
@@ -4622,16 +4625,19 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                 task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
                 task.params.oaicompat_cmpl_id = completion_id;
                 // oaicompat_model is already populated by params_from_json_cmpl
+                tasks.push_back(std::move(task));
             }
 
-            tasks.push_back(std::move(task));
             task_ids = server_task::get_list_id(tasks);
-             ctx_server->queue_results.add_waiting_tasks(tasks);
-             ctx_server->queue_tasks.post(std::move(tasks));
+            ctx_server->queue_results.add_waiting_tasks(tasks);
+            ctx_server->queue_tasks.post(std::move(tasks));
 
         } catch (const std::exception &e) {
             LLMDB[ins_name].Status = 0; // an error ocurred
-            return;
+            return std::make_pair(
+                m8p::errorf("An error ocurred during execution"),
+                M8->nilValue
+            );
         //     LOG_ERROR("=====================> ERROR: ", error_data);
             // LLMDB[ins_name].arr = format_error_response(e.what(), ERROR_TYPE_INVALID_REQUEST);
         }
@@ -4657,7 +4663,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
             LLMDB[ins_name].arr = error_data;
         }, is_connection_closed);
 
-         ctx_server->queue_results.remove_waiting_task_ids(task_ids);
+        ctx_server->queue_results.remove_waiting_task_ids(task_ids);
 
         return std::make_pair(
             m8p::M8_Err_nil,
@@ -4666,7 +4672,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
     }
 
 }
-
 
 
 
