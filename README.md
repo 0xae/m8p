@@ -36,9 +36,10 @@ and developed in tandem with the golang codebase.
 This implementations is based off llama.cpp and ships the whole llama runtime inside the M8 interpreter/VM.
 
 The vm codebase is in [m8p core](./m8p).
-The server is [here](./examples/m8p-server)
+The server is [here](./tools/m8p-server)
 
 ## Build
+BUILD README IS [here](./docs/build.md)
 We use the same build toolchain as llama, then type:
 
 ```make llama-server```
