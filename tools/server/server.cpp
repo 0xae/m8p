@@ -5103,6 +5103,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
         }
 
         // 
+        REG[rdest] = M8->nilValue;
 
         if (VectorDB[ins_name].lastIndex>=0) {
             // float *data = VectorDB[ins_name].rowstore;
@@ -5164,7 +5165,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
 
         return std::make_pair(
             m8p::M8_Err_nil,
-            M8->nilValue
+            REG[rdest]
         );
 
     } else {
