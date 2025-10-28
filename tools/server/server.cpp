@@ -1,6 +1,8 @@
 #include "chat.h"
 #include "utils.hpp"
 
+#include "m8p.h"
+
 #include "arg.h"
 #include "common.h"
 #include "json-schema-to-grammar.h"
@@ -4361,10 +4363,9 @@ static void log_server_request(const httplib::Request & req, const httplib::Resp
 
     // reminder: this function is not covered by httplib's exception handler; if someone does more complicated stuff, think about wrapping it in try-catch
 
-    SRV_INF("request: %s %s %s %d\n", req.method.c_str(), req.path.c_str(), req.remote_addr.c_str(), res.status);
-
-    SRV_DBG("request:  %s\n", req.body.c_str());
-    SRV_DBG("response: %s\n", res.body.c_str());
+    SRV_INF("[llama] request: %s %s %s %d\n", req.method.c_str(), req.path.c_str(), req.remote_addr.c_str(), res.status);
+    SRV_DBG("[llama] request:  %s\n", req.body.c_str());
+    SRV_DBG("[llama] response: %s\n", res.body.c_str());
 }
 
 std::function<void(int)> shutdown_handler;
@@ -4381,7 +4382,52 @@ inline void signal_handler(int signal) {
     shutdown_handler(signal);
 }
 
+struct M8Session {
+    std::string name;
+    int32_t exec_calls;
+    std::mutex rlock;
+    bool IsLock = false;
+    m8p::M8System *m8;
+};
+
+class LLamaInstr;
+struct M8MemorySession;
+
+// std::string piped_output(gpt_params *params, std::string query);
+
+std::map<std::string, M8Session> GlobalSession;
+
 int main(int argc, char ** argv) {
+
+std::string M8_BANNER = 
+"           _________________________________________\n"
+"          |_________________________________________|\n"
+"__________|                                         |__________\n"
+"__________|                                         |__________\n"
+"__________|                                         |__________\n"
+"__________|       /$$      /$$  /$$$$$$             |__________\n"
+"__________|      | $$$    /$$$ /$$__  $$            |__________\n"
+"__________|      | $$$$  /$$$$| $$  \\ $$            |__________\n"
+"__________|      | $$ $$/$$ $$|  $$$$$$/            |__________\n"
+"__________|      | $$  $$$| $$ >$$__  $$            |__________\n"
+"__________|      | $$\\  $ | $$| $$  \\ $$            |__________\n"
+"__________|      | $$ \\/  | $$|  $$$$$$/            |__________\n"
+"__________|      |__/     |__/ \\______/             |__________\n"
+"__________|                                         |__________\n"
+"__________|           LLM MICROPROCESSOR            |__________\n"
+"__________|              LLAMA.Cpp                  |__________\n"
+"__________|_________________________________________|__________\n"
+"          |_________________________________________|\n"
+;
+
+    std::cout << M8_BANNER << std::endl;
+
+#ifdef __AVX__
+    std::cout << "============> [INFO]    <=================" << std::endl;
+    std::cout << "==========>  [avx] is available <=========" << std::endl;
+    std::cout << "==========================================" << std::endl;
+#endif
+
     // own arguments required by this example
     common_params params;
 
@@ -4401,6 +4447,9 @@ int main(int argc, char ** argv) {
     LOG_INF("\n");
     LOG_INF("%s\n", common_params_get_system_info(params).c_str());
     LOG_INF("\n");
+
+    // m8p::VInstr* virtualvm = new LLamaInstr(&ctx_server, &params);
+    std::mutex g_session; // lock used for GlobalSession
 
     std::unique_ptr<httplib::Server> svr;
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
@@ -4423,7 +4472,7 @@ int main(int argc, char ** argv) {
 
     std::atomic<server_state> state{SERVER_STATE_LOADING_MODEL};
 
-    svr->set_default_headers({{"Server", "llama.cpp"}});
+    svr->set_default_headers({{"Server", "M8 llama.cpp Server"}});
     svr->set_logger(log_server_request);
 
     auto res_error = [](httplib::Response & res, const json & error_data) {

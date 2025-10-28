@@ -1,24 +1,37 @@
-# Build llama.cpp locally
+# Build M8 Processor (llama.cpp implementation) 
 
 The main product of this project is the `llama` library. Its C-style interface can be found in [include/llama.h](../include/llama.h).
-
 The project also includes many example programs and tools using the `llama` library. The examples range from simple, minimal code snippets to sophisticated sub-projects such as an OpenAI-compatible HTTP server.
 
 **To get the Code:**
-
-```bash
-git clone https://github.com/ggml-org/llama.cpp
-cd llama.cpp
-```
 
 The following sections describe how to build with different backends and options.
 
 ## CPU Build
 
-Build llama.cpp using `CMake`:
+Ativate python env to get `CMake`:
 
 ```bash
+source ~/app-env/bin/activate
+```
+
+If necessary:
+
+```bash
+pip install cmake
+```
+
+Build (requires LIBCURL)
+```bash
 cmake -B build
+```
+
+OR without LIBCURL:
+```bash
+cmake -B build -DLLAMA_CURL=OFF
+```
+
+```bash
 cmake --build build --config Release
 ```
 
