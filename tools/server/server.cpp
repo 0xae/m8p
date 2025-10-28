@@ -5880,11 +5880,57 @@ std::string M8_BANNER =
         res_ok(res, Resp);
     };
 
+    const auto handle_destroy_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
+        const httplib::Request &req, 
+        httplib::Response &res) {
+        std::string id_session = req.path_params.at("id_session");
+        m8p::__trim(id_session);
+
+        if (id_session.size()==0 || id_session.size()>50) {
+            res_error(res, format_error_response(".id_session property must be between (0,50) size", ERROR_TYPE_INVALID_REQUEST));
+            return;          
+        }
+
+        const std::lock_guard<std::mutex> lock(g_session);
+
+        if (GlobalSession.count(id_session)==0) { // not found, consider ok
+            json Resp;
+            Resp["Status"] = "OK";
+            Resp["session_id"] = id_session;
+            res_ok(res, Resp);
+
+        } else {
+            M8Session &m8Session = GlobalSession.at(id_session);
+            if (m8Session.IsLock) {
+                json Resp;
+                Resp["Status"] = "FAILED";
+                Resp["session_id"] = id_session;
+                Resp["Msg"] = "SESSION_NOT_AVAILABLE";
+                res_ok(res, Resp);
+                return;
+            }
+
+            const std::lock_guard<std::mutex> lock_vm(m8Session.rlock);
+            m8p::M8System *m8 = m8Session.m8;
+            if (m8!=nullptr) {
+                m8p::DestroyMP8(m8);
+            }
+
+            m8Session.m8=nullptr;
+            GlobalSession.erase(id_session);
+
+            json Resp;
+            Resp["Status"] = "OK";
+            Resp["session_id"] = id_session;
+            res_ok(res, Resp);
+        }
+    };
+
     svr->Post("/api/v1/m8/session-create/:id_session",  handle_create_Session);
     svr->Post("/api/v1/m8/session-run/:id_session",  handle_run_Session);
     svr->Post("/api/v1/m8/:id_session/session-run",  handle_run_Session);
     svr->Post("/api/v1/m8/session-check/:id_session",  handle_check_Session);
-    // svr->Post("/api/v1/m8/session-destroy/:id_session",  handle_destroy_Session);
+    svr->Post("/api/v1/m8/session-destroy/:id_session",  handle_destroy_Session);
     // svr->Get("/api/v1/m8/session-stats/:id_session",  handle_stats_Session);
     // svr->Get("/api/v1/m8/session-activity",  handle_stats_Activity);
     // svr->Post("/api/v1/m8/dry-run",   handle_Run);
