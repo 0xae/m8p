@@ -51,12 +51,12 @@
 #include <faiss/index_io.h>
 #endif
 
-#ifdef __AVX__
-  #include <immintrin.h>
-  #define AVX_V_SIZE 8
-#else
-  #warning No AVX support [matmul wont be available]
-#endif
+// #ifdef __AVX__
+#include <immintrin.h>
+#define AVX_V_SIZE 8
+// #else
+//   #warning No AVX support [matmul wont be available]
+// #endif
 
 // #include "m8p-train.h"
 
