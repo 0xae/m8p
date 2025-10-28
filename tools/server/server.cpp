@@ -5750,7 +5750,144 @@ std::string M8_BANNER =
         m8Session.IsLock=false;
     };
 
+    const auto handle_check_Session = [&g_session, &GlobalSession, &res_error, &res_ok](
+        const httplib::Request &req, 
+        httplib::Response &res) {
+        std::string id_session = req.path_params.at("id_session");
+        m8p::__trim(id_session);
+
+        if (id_session.size()==0 || id_session.size()>50) {
+            res_error(res, format_error_response(".id_session property must be between (0,50) size", ERROR_TYPE_INVALID_REQUEST));
+            return;
+        }
+
+        const std::lock_guard<std::mutex> lock(g_session);
+        m8p::M8System *m8 = nullptr;
+
+        if (GlobalSession.count(id_session)==0) { // create the session then
+            m8 = m8p::M8P_Instance(id_session);
+            try {
+                // m8p::RegisterVirtual(m8, "__all__", virtualvm);
+                GlobalSession[id_session].name = id_session;
+                GlobalSession[id_session].exec_calls = 0;
+                GlobalSession[id_session].m8 = m8;
+                GlobalSession[id_session].IsLock = false;
+                // LOG_VERBOSE("========> new persistent session", {{"id_session", id_session}});
+            } catch (std::exception &e) {
+                // message = e.what();
+                res_error(res, format_error_response("Exception in runtime execution", ERROR_TYPE_INVALID_REQUEST));
+                return;
+            }
+
+            json data = json::parse(req.body);
+            if (data.count("code")>0) {
+                std::string code_buf = data.at("code");
+                if (code_buf.size()==0) {
+                    res_error(res, format_error_response("Empty Code_Buf", ERROR_TYPE_INVALID_REQUEST));
+                    return;
+                }
+
+                try {
+                    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                    std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
+
+                    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                    std::stringstream ss;
+                    ss << " " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " [µs], "
+                       << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << " [ns]";
+
+                    if (Ret.first.Type!=m8p::M8_Err_nil.Type) {
+                        json Resp;
+                        Resp["Status"] = "FAILED";
+                        Resp["Tms"] = ss.str();
+                        Resp["Error"] = Ret.first.Details;
+                        Resp["Type"] = "<error>";
+                        // json Resp;
+                        // Resp["Status"] = "FAILED";
+                        // res_error(res, format_error_response("Execution Failed", ERROR_TYPE_INVALID_REQUEST));
+                        // res_ok(res, Resp);
+                        res.set_content(Resp.dump(-1, ' ', false, json::error_handler_t::replace), MIMETYPE_JSON);
+                        res.status = 500;
+                    } else {
+                        json Resp;
+                        Resp["Status"] = "OK";
+                        Resp["Tms"] = ss.str();
+                        if (Ret.second!=nullptr) {
+                            if (Ret.second->Type==m8p::MP8_I32) {
+                                Resp["R"] = Ret.second->I32;
+
+                            } else if (Ret.second->Type==m8p::MP8_F32) {
+                                Resp["R"] = Ret.second->F32;
+
+                            } else if (Ret.second->Type==m8p::MP8_DI32) {
+                                Resp["R"] = Ret.second->AR_I32;
+
+                            } else if (Ret.second->Type==m8p::MP8_OLIST) {
+                                json slots = json::array();
+                                std::vector<m8p::M8_Obj*>::iterator i=Ret.second->AR_OBJ.begin();
+                                for (; i!=Ret.second->AR_OBJ.end(); ++i) {
+                                    m8p::M8_Obj *obj = *i;
+                                    if (obj!=nullptr) {
+                                        if (obj->Type==m8p::MP8_I32) {
+                                            slots.push_back(obj->I32);
+                                        } else if (obj->Type==m8p::MP8_F32) {
+                                            slots.push_back(obj->F32);
+                                        } else if (obj->Type==m8p::MP8_DI32) {
+                                            slots.push_back(obj->AR_I32);
+                                        } else if (obj->Type==m8p::MP8_DF32) {
+                                            slots.push_back(obj->AR_F32);
+                                        } else if (obj->Type==m8p::MP8_STRING) {
+                                            slots.push_back(obj->Value);
+                                        } else {
+                                            slots.push_back(m8p::TypeStr(obj->Type));
+                                        }
+                                    }
+                                }
+                                Resp["R"] = slots;
+
+
+                            } else if (Ret.second->Type==m8p::MP8_DF32) {
+                                Resp["R"] = Ret.second->AR_F32;
+
+                            } else {
+                                Resp["R"] = Ret.second->Value;
+                            }
+
+                            Resp["Type"] = m8p::TypeStr(Ret.second->Type);
+                        } 
+
+                        res_ok(res, Resp);
+                    }
+
+                    GlobalSession[id_session].exec_calls += 1;
+                } catch (std::exception &e) {
+                    // message = e.what();
+                    json Resp;
+                    Resp["Status"] = "FAILED";
+                    Resp["Tms"] = e.what();
+                    Resp["Type"] = "<error>";
+                    res.set_content(Resp.dump(-1, ' ', false, json::error_handler_t::replace), MIMETYPE_JSON);
+                    res.status = 500;
+                }
+
+                return;
+            }
+        }
+
+        json Resp;
+        Resp["Status"] = "OK";
+        Resp["session_id"] = id_session;
+        res_ok(res, Resp);
+    };
+
     svr->Post("/api/v1/m8/session-create/:id_session",  handle_create_Session);
+    svr->Post("/api/v1/m8/session-run/:id_session",  handle_run_Session);
+    svr->Post("/api/v1/m8/:id_session/session-run",  handle_run_Session);
+    svr->Post("/api/v1/m8/session-check/:id_session",  handle_check_Session);
+    // svr->Post("/api/v1/m8/session-destroy/:id_session",  handle_destroy_Session);
+    // svr->Get("/api/v1/m8/session-stats/:id_session",  handle_stats_Session);
+    // svr->Get("/api/v1/m8/session-activity",  handle_stats_Activity);
+    // svr->Post("/api/v1/m8/dry-run",   handle_Run);
 
     if (!params.webui) {
         LOG_INF("Web UI is disabled\n");
