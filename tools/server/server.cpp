@@ -6263,7 +6263,7 @@ std::string M8_BANNER =
     svr->new_task_queue = [&params] { return new httplib::ThreadPool(params.n_threads_http); };
 
     // clean up function, to be called before exit
-    auto clean_up = [virtualvm, &svr, &ctx_server]() {
+    auto clean_up = [&virtualvm, &svr, &ctx_server]() {
         SRV_INF("%s: cleaning up before exit...\n", __func__);
         if (virtualvm!=nullptr) {
             // LLamaInstr *pointer = static_cast<LLamaInstr*>(virtualvm);
