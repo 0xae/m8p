@@ -4855,10 +4855,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         instance_data &Ref = LLMDB[ins_name];
         // LOG_VERBOSE("===============> GOT RESULT", Ref.arr);
         // TODO: MEMOIZE
-        // LOG_INFO("=====================> INSTANCE_STATUS : ", {
-        //     {"Status", Ref.Status},
-        //     {"Array", Ref.arr}
-        // });
+        LOG_INFO("=====================> INSTANCE_STATUS : ", {
+            {"Status", Ref.Status},
+            {"Array", Ref.arr}
+        });
+
         if (Ref.Status==1) {
             LOG_INFO("=====================> INSTANCE RESPONSE : ", Ref.arr);
             // ::ALLOC::
@@ -4868,6 +4869,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
             }
             // ::ALLOC::
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, ss.str());
+
+        } else if (Ref.Status==2) {
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, "LLM Instance processing...");
+
+        } else if (Ref.Status==0) {
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, "LLM Instance finished with error");
 
         } else {
             if (Ref.Status>=0 && Ref.Status<=10) {
