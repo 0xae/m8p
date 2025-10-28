@@ -4482,7 +4482,7 @@ public:
         std::string opCode = params.at(0);
 
         if (opCode=="gpt_params") {
-            return GPT_PARAMS(this->params, M8, params);
+            return GPT_PARAMS(this->server_params, M8, params);
 
         // } else if (opCode=="llm_tokenize") {
         //     return LLM_TOKENIZE(this->ctx_server, M8, params);
@@ -6263,7 +6263,7 @@ std::string M8_BANNER =
     svr->new_task_queue = [&params] { return new httplib::ThreadPool(params.n_threads_http); };
 
     // clean up function, to be called before exit
-    auto clean_up = [&svr, &ctx_server]() {
+    auto clean_up = [virtualvm, &svr, &ctx_server]() {
         SRV_INF("%s: cleaning up before exit...\n", __func__);
         if (virtualvm!=nullptr) {
             // LLamaInstr *pointer = static_cast<LLamaInstr*>(virtualvm);
