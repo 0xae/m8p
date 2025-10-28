@@ -4393,6 +4393,141 @@ struct M8Session {
 class LLamaInstr;
 struct M8MemorySession;
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> GPT_PARAMS(
+    common_params *gpt_params,
+    m8p::M8System* M8, 
+    std::vector<std::string> params);
+
+std::pair<m8p::M8_Error, m8p::M8_Obj*> GPT_PARAMS(
+    common_params *gpt_params,
+    m8p::M8System* M8, 
+    std::vector<std::string> params) {
+
+    // std::cout << "LLAMA VIRTUAL\n";
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+
+    if (psize<1) {
+        return std::make_pair(
+            m8p::errorf("virtual requires a register to output to!"),
+            M8->nilValue
+        );
+    }
+
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+    std::string rsource = params.at(1);// dont forget 0 is for the op_code
+    std::string pipe_query = "";
+
+    if (gpt_params != nullptr) {
+        std::stringstream ss;
+        ss  << "hostname=" << gpt_params->hostname << ", "
+            << "port=" << gpt_params->port << ", "
+            << "n_predict=" << gpt_params->n_predict << ", "
+            << "n_gpu_layers=" << gpt_params->n_gpu_layers << ", "
+            << "model=" << gpt_params->model_alias << ", " ;
+        
+        std::string value = ss.str();
+
+        // ::ALLOC::
+        REG[rsource] = m8p::m8_obj(M8, m8p::MP8_STRING, value);
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            REG[rsource]
+        );
+
+    } else {
+        return std::make_pair(
+            m8p::errorf("null params"),
+            M8->nilValue
+        );
+    }
+
+    return std::make_pair(
+        m8p::errorf("empty params"),
+        M8->nilValue
+    );
+}
+
+
+class LLamaInstr : public m8p::VInstr {
+private:
+    server_context *ctx_server = nullptr;
+    common_params *server_params = nullptr;
+
+public:
+    LLamaInstr(server_context *server, common_params *pms) 
+        : ctx_server(server), 
+        server_params(pms) {
+#ifdef FAISS_INCL
+    std::cout << "LLamaInstr()" << "faiss is included. \n" << std::endl;
+#endif
+#ifdef HNSW_VECTOR
+    std::cout << "LLamaInstr()" << "HNSW_VECTOR is included. \n" << std::endl;
+#endif
+    }
+
+    virtual ~LLamaInstr() {
+    }
+
+    virtual std::pair<m8p::M8_Error, m8p::M8_Obj*> Call(
+        m8p::M8System* M8, 
+        std::vector<std::string> params) 
+    {
+        if (params.size()==0) {
+            return std::make_pair(
+                m8p::errorf("empty params"),
+                M8->nilValue
+            );
+        }
+
+        std::string opCode = params.at(0);
+
+        if (opCode=="gpt_params") {
+            return GPT_PARAMS(this->params, M8, params);
+
+        // } else if (opCode=="llm_tokenize") {
+        //     return LLM_TOKENIZE(this->ctx_server, M8, params);
+
+        // } else if (opCode=="llm_detokenize") {
+        //     return LLM_DETOKENIZE(this->ctx_server, M8, params);
+
+        // } else if (opCode=="llm_instance") {
+        //     return LLM_INSTANCE(this->ctx_server, M8, params);
+// #ifdef HNSW_VECTOR
+//         } else if (opCode=="vdb_instance") {
+//             return VECTOR_INSTANCE(this->ctx_server, M8, params);
+//         } else if (opCode=="vdb_add") {
+//             return VECTOR_ADD_POINT(this->ctx_server, M8, params);
+//         } else if (opCode=="vdb_search") {
+//             return VECTOR_SEARCH(this->ctx_server, M8, params);
+// #endif
+
+        // } else if (opCode=="llm_infill") {
+        //     return LLM_INFILL(this->ctx_server, M8, params);
+
+        // } else if (opCode=="llm_instancestatus") {
+        //     return LLM_INSTANCE_STATUS(this->ctx_server, M8, params);
+
+        // } else if (opCode=="llm_stat") {
+        //     return LLM_GETSTAT(this->ctx_server, M8, params);
+
+        // } else if (opCode=="llm_esim") {
+        //     return LLM_ESIM(this->ctx_server, M8, params);
+
+        // } else if (opCode=="llm_taskstats") {
+        //     return LLM_TASKSTATS(this->ctx_server, M8, params);
+
+        // } else if (opCode=="llm_modelstats") {
+        //     return LLM_MODELSTATS(this->ctx_server, this->params, M8, params);
+
+        } else {
+            return std::make_pair(
+                m8p::errorf("Invalid instruction: "+opCode),
+                M8->nilValue
+            );
+        }
+    };
+};
+
 // std::string piped_output(gpt_params *params, std::string query);
 
 std::map<std::string, M8Session> GlobalSession;
@@ -4448,7 +4583,7 @@ std::string M8_BANNER =
     LOG_INF("%s\n", common_params_get_system_info(params).c_str());
     LOG_INF("\n");
 
-    // m8p::VInstr* virtualvm = new LLamaInstr(&ctx_server, &params);
+    m8p::VInstr* virtualvm = new LLamaInstr(&ctx_server, &params);
     std::mutex g_session; // lock used for GlobalSession
 
     std::unique_ptr<httplib::Server> svr;
@@ -5575,7 +5710,7 @@ std::string M8_BANNER =
     //
     // M8 API
     //
-    const auto handle_create_Session = [&g_session, &GlobalSession, &res_error, &res_ok](
+    const auto handle_create_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
         std::string id_session = req.path_params.at("id_session");
@@ -5596,7 +5731,7 @@ std::string M8_BANNER =
         m8p::M8System *m8 = m8p::M8P_Instance(id_session);
 
         try {
-            // m8p::RegisterVirtual(m8, "__all__", virtualvm);
+            m8p::RegisterVirtual(m8, "__all__", virtualvm);
             GlobalSession[id_session].name = id_session;
             GlobalSession[id_session].exec_calls = 0;
             GlobalSession[id_session].m8 = m8;
@@ -5617,7 +5752,7 @@ std::string M8_BANNER =
         }
     };
 
-    const auto handle_run_Session = [&g_session, &GlobalSession, &res_error, &res_ok](
+    const auto handle_run_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
 
@@ -5750,7 +5885,7 @@ std::string M8_BANNER =
         m8Session.IsLock=false;
     };
 
-    const auto handle_check_Session = [&g_session, &GlobalSession, &res_error, &res_ok](
+    const auto handle_check_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
         std::string id_session = req.path_params.at("id_session");
@@ -5767,7 +5902,7 @@ std::string M8_BANNER =
         if (GlobalSession.count(id_session)==0) { // create the session then
             m8 = m8p::M8P_Instance(id_session);
             try {
-                // m8p::RegisterVirtual(m8, "__all__", virtualvm);
+                m8p::RegisterVirtual(m8, "__all__", virtualvm);
                 GlobalSession[id_session].name = id_session;
                 GlobalSession[id_session].exec_calls = 0;
                 GlobalSession[id_session].m8 = m8;
@@ -5880,7 +6015,7 @@ std::string M8_BANNER =
         res_ok(res, Resp);
     };
 
-    const auto handle_destroy_Session = [&g_session, &GlobalSession, &res_error, &res_ok](
+    const auto handle_destroy_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
         std::string id_session = req.path_params.at("id_session");
@@ -5926,8 +6061,7 @@ std::string M8_BANNER =
         }
     };
 
-    // const auto handle_Run = [virtualvm, &res_error, &res_ok](
-    const auto handle_Run = [&res_error, &res_ok](
+    const auto handle_Run = [virtualvm, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
         json data = json::parse(req.body);
@@ -5947,7 +6081,7 @@ std::string M8_BANNER =
 
         try {
             // will handle all custom instr
-            // m8p::RegisterVirtual(m8, "__all__", virtualvm);
+            m8p::RegisterVirtual(m8, "__all__", virtualvm);
 
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
@@ -6131,6 +6265,11 @@ std::string M8_BANNER =
     // clean up function, to be called before exit
     auto clean_up = [&svr, &ctx_server]() {
         SRV_INF("%s: cleaning up before exit...\n", __func__);
+        if (virtualvm!=nullptr) {
+            // LLamaInstr *pointer = static_cast<LLamaInstr*>(virtualvm);
+            delete virtualvm;
+            virtualvm = nullptr;
+        }
         svr->stop();
         ctx_server.queue_results.terminate();
         llama_backend_free();
