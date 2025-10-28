@@ -5601,7 +5601,7 @@ std::string M8_BANNER =
             GlobalSession[id_session].exec_calls = 0;
             GlobalSession[id_session].m8 = m8;
 
-            LOG_INF("new persistent session %s", id_session);
+            LOG_INF("new persistent session %s", id_session.c_str());
             // SRV_DBG("creating infill tasks, n_prompts = %d\n", (int) tokenized_prompts.size());
 
             json Resp;
