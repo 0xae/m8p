@@ -4552,18 +4552,18 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
     if (LLMDB.count(ins_name) > 0 && force=="false") {
         // instance_data &Ref = LLMDB[ins_name];
         // instance_data &Ref = LLMDB[ins_name];
-        REG[rdest] = m8_obj(M8, (int32_t)Ref.Status);
+        // REG[rdest] = m8_obj(M8, (int32_t)Ref.Status);
         return std::make_pair(
             m8p::M8_Err_nil,
-            REG[rdest]
+            M8->true_
         );
 
     } else {
         // ::ALLOC::
         json data = {
-            // { "system_prompt",               ctx_server.system_prompt.c_str() },
-            // { "default_generation_settings", ctx_server.default_generation_settings_for_props },
-            // { "total_slots",                 ctx_server.params.n_parallel },
+            // { "system_prompt",                ctx_server->system_prompt.c_str() },
+            // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
+            // { "total_slots",                  ctx_server->params.n_parallel },
             // int32_t n_keep =  0; // number of tokens to keep from initial prompt
             // int32_t n_discard =  0; // number of tokens after n_keep that may be discarded when shifting context, 0 defaults to half
             {"prompt", prompt},
@@ -4572,6 +4572,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         };
 
         // // ::ALLOC::
+        // server_task_cmpl_type cmpl_type = SERVER_TASK_CMPL_TYPE_NORMAL;
+        // std::vector<server_task> tasks = ctx_server->create_tasks_cmpl(data, cmpl_type);
+        // ctx_server->queue_results.add_waiting_tasks(tasks);
+        // ctx_server->queue_tasks.post(tasks);
+
+        // // const auto task_ids = server_task::get_list_id(tasks);
+        // std::unordered_set<int> task_ids;
+
         // LLMDB[ins_name].tasks = task_ids;
         LLMDB[ins_name].Status = 2; // IN PROCESSING
         LLMDB[ins_name].prompt = prompt;
@@ -4583,8 +4591,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         try {
             std::vector<server_task> tasks;
             std::vector<server_tokens> inputs;
-            inputs = tokenize_input_prompts(ctx_server.vocab, ctx_server.mctx, prompt, true, true);
-            const size_t n_ctx_slot = ctx_server.n_ctx / ctx_server.params_base.n_parallel;
+            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, prompt, true, true);
+            const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
             tasks.reserve(inputs.size());
             for (size_t i = 0; i < inputs.size(); i++) {
                 auto n_prompt_tokens = inputs[i].size();
@@ -4600,13 +4608,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
 
                 server_task task = server_task(type);
 
-                task.id = ctx_server.queue_tasks.get_new_id();
+                task.id =  ctx_server->queue_tasks.get_new_id();
                 task.index = i;
 
                 task.tokens = std::move(inputs[i]);
                 task.params = server_task::params_from_json_cmpl(
-                        ctx_server.ctx,
-                        ctx_server.params_base,
+                         ctx_server->ctx,
+                         ctx_server->params_base,
                         data);
                 task.id_slot = json_value(data, "id_slot", -1);
 
@@ -4618,21 +4626,21 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
 
             tasks.push_back(std::move(task));
             task_ids = server_task::get_list_id(tasks);
-            ctx_server.queue_results.add_waiting_tasks(tasks);
-            ctx_server.queue_tasks.post(std::move(tasks));
+             ctx_server->queue_results.add_waiting_tasks(tasks);
+             ctx_server->queue_tasks.post(std::move(tasks));
 
         } catch (const std::exception &e) {
             LLMDB[ins_name].Status = 0; // an error ocurred
-            // LLMDB[ins_name].arr = format_error_response(e.what(), ERROR_TYPE_INVALID_REQUEST);
-            //     LOG_ERROR("=====================> ERROR: ", error_data);
             return;
+        //     LOG_ERROR("=====================> ERROR: ", error_data);
+            // LLMDB[ins_name].arr = format_error_response(e.what(), ERROR_TYPE_INVALID_REQUEST);
         }
 
         auto is_connection_closed = []() -> bool {
             return false; // fool it thinking this is a connection
         };
 
-        ctx_server.receive_multi_results(task_ids, [&LLMDB, &ins_name](std::vector<server_task_result_ptr> &results) {
+         ctx_server->receive_multi_results(task_ids, [&LLMDB, &ins_name](std::vector<server_task_result_ptr> &results) {
             LLMDB[ins_name].Status = 1; // success
             if (results.size() == 1) {
                 LLMDB[ins_name].arr = results[0]->to_json();
@@ -4649,7 +4657,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
             LLMDB[ins_name].arr = error_data;
         }, is_connection_closed);
 
-        ctx_server.queue_results.remove_waiting_task_ids(task_ids);
+         ctx_server->queue_results.remove_waiting_task_ids(task_ids);
 
         return std::make_pair(
             m8p::M8_Err_nil,
@@ -4658,6 +4666,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
     }
 
 }
+
 
 
 
