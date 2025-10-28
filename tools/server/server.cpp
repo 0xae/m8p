@@ -4857,14 +4857,13 @@ public:
 
         // } else if (opCode=="llm_instance") {
         //     return LLM_INSTANCE(this->ctx_server, M8, params);
-// #ifdef HNSW_VECTOR
-//         } else if (opCode=="vdb_instance") {
-//             return VECTOR_INSTANCE(this->ctx_server, M8, params);
-//         } else if (opCode=="vdb_add") {
-//             return VECTOR_ADD_POINT(this->ctx_server, M8, params);
-//         } else if (opCode=="vdb_search") {
-//             return VECTOR_SEARCH(this->ctx_server, M8, params);
-// #endif
+
+        } else if (opCode=="vdb_instance") {
+            return VECTOR_INSTANCE(this->ctx_server, M8, params);
+        } else if (opCode=="vdb_add") {
+            return VECTOR_ADD_POINT(this->ctx_server, M8, params);
+        } else if (opCode=="vdb_search") {
+            return VECTOR_SEARCH(this->ctx_server, M8, params);
 
         // } else if (opCode=="llm_infill") {
         //     return LLM_INFILL(this->ctx_server, M8, params);
