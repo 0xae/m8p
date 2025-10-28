@@ -4776,7 +4776,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                 task.id_slot = json_value(data, "id_slot", -1);
 
                 // OAI-compat
-                task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
+                task.params.oaicompat = OAICOMPAT_TYPE_NONE;
                 task.params.oaicompat_cmpl_id = completion_id;
                 // oaicompat_model is already populated by params_from_json_cmpl
                 tasks.push_back(std::move(task));
@@ -4861,7 +4861,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         });
 
         if (Ref.Status==1) {
-            LOG_INFO("=====================> INSTANCE RESPONSE : ", Ref.arr);
+            // LOG_INFO("=====================> INSTANCE RESPONSE : ", Ref.arr);
             // ::ALLOC::
             std::stringstream ss;
             if (Ref.arr.count("content")) {
@@ -4871,10 +4871,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, ss.str());
 
         } else if (Ref.Status==2) {
-            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, "LLM Instance processing...");
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, "processing...");
 
         } else if (Ref.Status==0) {
-            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, "LLM Instance finished with error");
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, "finished-error");
 
         } else {
             if (Ref.Status>=0 && Ref.Status<=10) {
