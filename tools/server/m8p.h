@@ -2104,6 +2104,8 @@ namespace m8p {
             );
         }
 
+        std::cout << "AVX_V_SIZE: " << AVX_V_SIZE << std::endl;
+
         std::map<std::string, M8_Obj*> &REG = M8->Registers;
         string rsource = params.at(1);
         string rdest = params.at(2);// dont forget 0 is for the op_code
@@ -2113,7 +2115,7 @@ namespace m8p {
 
         if (tokens.size()!=AVX_V_SIZE) {
             return std::make_pair(
-                errorf("tokens must contain 8 floats"),
+                errorf("tokens must contain "+std::to_string(AVX_V_SIZE)+" floats"),
                 M8->nilValue
             );
         }
