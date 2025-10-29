@@ -4971,8 +4971,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
     std::string str_def =  "<__0NONE>";
     if (psize > 2) {
         // str_def = params.at(3);
-        for (uint32_t i=3; i<params.size(); ++i) {
-            string v = params.at(i);
+        for (size_t i=3; i<params.size(); ++i) {
+            std::string v = params.at(i);
             str_def = str_def + " " + v;
         }
 
