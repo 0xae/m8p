@@ -4545,7 +4545,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
             };
 
             // get the result
-            ctx_server.receive_multi_results(task_ids, [M8, &REG, &rdest](std::vector<server_task_result_ptr> &results) {
+            server->receive_multi_results(task_ids, [M8, &REG, &rdest](std::vector<server_task_result_ptr> &results) {
                 REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
                 REG[rdest]->AR_F32.clear();
                 json responses = json::array();
@@ -4561,9 +4561,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
 
             }, [&](const json & error_data) {
                 error = true;
+                LOG_ERROR("=====================> EMBEEDING FAILED ", error_data);
             }, is_connection_closed);
 
-            ctx_server.queue_results.remove_waiting_task_ids(task_ids);
+            server->queue_results.remove_waiting_task_ids(task_ids);
+
             if (error) {
                 return std::make_pair(
                     m8p::errorf("ERROR OCURRED DURING EMBEEDING"),
