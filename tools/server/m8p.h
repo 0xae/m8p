@@ -2324,7 +2324,7 @@ namespace m8p {
         }
 
         // // ::ALLOC::
-        REG[rdest] = m8_obj(M8, total);
+        REG[rdest] = m8_obj(M8, sqrtf(total));
 
         return std::make_pair(
             M8_Err_nil,
