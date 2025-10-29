@@ -2316,14 +2316,14 @@ namespace m8p {
         sum = SIMD_FMA_PS(diff, diff, sum); // sum += diff * diff
 
         float result[AVX_V_SIZE];
-        SIMD_STORE_PS(result, sum);
-        
         float total = 0.0f;
+        SIMD_STORE_PS(result, sum);
+
         for (size_t i = 0; i < AVX_V_SIZE; i++) {
             total += result[i];
         }
 
-        // // ::ALLOC::
+        // ::ALLOC::
         REG[rdest] = m8_obj(M8, sqrtf(total));
 
         return std::make_pair(
@@ -3251,15 +3251,18 @@ namespace m8p {
 
             } else if (opCode=="ret"||opCode=="return") {
                 lastRet = Ret_OP(M8, instr_tokens);
-
-            // } else if (opCode=="mret") {
-                // lastRet = Ret_OP(M8, instr_tokens);
  
+             } else if (opCode=="i32mul") {
+                lastRet = I32Mul_OP(M8, instr_tokens);
+
             } else if (opCode=="i32set") {
                 lastRet = I32Set_OP(M8, instr_tokens);
 
             } else if (opCode=="i32add") {
                 lastRet = I32Add_OP(M8, instr_tokens);
+
+            } else if (opCode=="i32sub") {
+                lastRet = I32Sub_OP(M8, instr_tokens);
 
             } else if (opCode=="stall") {
                 lastRet = Stall_OP(M8, instr_tokens);
@@ -3267,8 +3270,6 @@ namespace m8p {
             } else if (opCode=="ustall") {
                 lastRet = UStall_OP(M8, instr_tokens);
 
-            } else if (opCode=="i32sub") {
-                lastRet = I32Sub_OP(M8, instr_tokens);
 
             } else if (opCode=="mat8") {
                 lastRet = Mat8Set_OP(M8, instr_tokens);
@@ -3301,8 +3302,6 @@ namespace m8p {
             // } else if (opCode=="matmul8") {
             //     lastRet = MatMul3_OP(M8, instr_tokens);
 #endif
-            } else if (opCode=="i32mul") {
-                lastRet = I32Mul_OP(M8, instr_tokens);
 
             } else if (opCode=="f32set") {
                 lastRet = F32Set_OP(M8, instr_tokens);
@@ -3317,7 +3316,6 @@ namespace m8p {
                 lastRet = F32Mul_OP(M8, instr_tokens);
 
             // } else if (opCode=="jfield") {
-
             // } else if (opCode=="set") {
             // } else if (opCode=="del") {
             // } else if (opCode=="get") {
@@ -3358,7 +3356,7 @@ namespace m8p {
                 return lastRet;
 
             } else {
-                if (opCode=="ret") {
+                if (opCode=="ret"||opCode=="return") {
                     return lastRet;
                 }                
             }
