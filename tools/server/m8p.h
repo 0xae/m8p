@@ -1467,14 +1467,34 @@ namespace m8p {
         string Value = params.at(2);
         int32_t number;
 
-        auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
-        if(ec == std::errc()){
+        if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
+            if (REG.count(Value)>0) {
+                M8_Obj *R = REG[Value];
+                if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_I32) {
+                    return std::make_pair(
+                        errorf("EXPECTING_INT32_REGISTER["+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+                number = R->I32;
+            } else {
+                return std::make_pair(
+                    errorf("NIL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );   
+            }
+
         } else {
-            return std::make_pair(
-                errorf("EXPECTING_INT32["+Value+"]"),
-                M8->nilValue
-            );
+            auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
+            if(ec == std::errc()){
+            } else {
+                return std::make_pair(
+                    errorf("EXPECTING_INT32["+Value+"]"),
+                    M8->nilValue
+                );
+            }
         }
+
 
         REG[rdest] = m8_obj(M8, number);
         return std::make_pair(
@@ -1497,14 +1517,42 @@ namespace m8p {
         string Value = params.at(2);
         int32_t number;
 
-        auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
-        if(ec == std::errc{}){
+        if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
+            if (REG.count(Value)>0) {
+                M8_Obj *R = REG[Value];
+                if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_I32) {
+                    return std::make_pair(
+                        errorf("EXPECTING_INT32_REGISTER["+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+                number = R->I32;
+            } else {
+                return std::make_pair(
+                    errorf("NIL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );   
+            }
+
         } else {
-            return std::make_pair(
-                errorf("EXPECTING_INT32["+Value+"]"),
-                M8->nilValue
-            );
+            auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
+            if(ec == std::errc()){
+            } else {
+                return std::make_pair(
+                    errorf("EXPECTING_INT32["+Value+"]"),
+                    M8->nilValue
+                );
+            }
         }
+
+        // auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
+        // if(ec == std::errc{}){
+        // } else {
+        //     return std::make_pair(
+        //         errorf("EXPECTING_INT32["+Value+"]"),
+        //         M8->nilValue
+        //     );
+        // }
 
         if (REG.count(rdest)) {
             M8_Obj *R = REG[rdest];
@@ -1541,6 +1589,174 @@ namespace m8p {
             REG[rdest]
         );
     }
+
+    std::pair<M8_Error, M8_Obj*> I32Sub_OP(M8System* M8, std::vector<std::string> params){
+        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+        if (psize<2) {
+            return std::make_pair(
+                errorf("i32sub requires two parameters"),
+                M8->nilValue
+            );
+        }
+
+        std::map<std::string, M8_Obj*> &REG = M8->Registers;
+        string rdest = params.at(1);// dont forget 0 is for the op_code
+        string Value = params.at(2);
+        int32_t number;
+        if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
+            if (REG.count(Value)>0) {
+                M8_Obj *R = REG[Value];
+                if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_I32) {
+                    return std::make_pair(
+                        errorf("EXPECTING_INT32_REGISTER["+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+                number = R->I32;
+            } else {
+                return std::make_pair(
+                    errorf("NIL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );   
+            }
+
+        } else {
+            auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
+            if(ec == std::errc()){
+            } else {
+                return std::make_pair(
+                    errorf("EXPECTING_INT32["+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+        // auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
+        // if(ec == std::errc{}){
+        // } else {
+        //     return std::make_pair(
+        //         errorf("EXPECTING_INT32["+Value+"]"),
+        //         M8->nilValue
+        //     );
+        // }
+
+        if (REG.count(rdest)) {
+            M8_Obj *R = REG[rdest];
+            if (R==nullptr){
+                return std::make_pair(
+                    errorf("NULL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );
+            }
+            if (is_nil(M8, R)){
+                return std::make_pair(
+                    errorf("NIL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );
+            }
+
+            if (R->Type!=MP8_I32) {
+                return std::make_pair(
+                    errorf("EXPECTING_INT32_REGISTER["+rdest+"]"),
+                    M8->nilValue
+                );
+            }
+
+            int32_t total = R->I32-number;
+            R->I32 = total;
+            return std::make_pair(M8_Err_nil, R);
+        } else {
+            return std::make_pair(
+                errorf("REGISTER_NOT_FOUND["+rdest+"]"),
+                M8->nilValue
+            );
+        }
+    }
+
+    std::pair<M8_Error, M8_Obj*> I32Mul_OP(M8System* M8, std::vector<std::string> params){
+        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+        if (psize<2) {
+            return std::make_pair(
+                errorf("i32mul requires two parameters"),
+                M8->nilValue
+            );
+        }
+
+        std::map<std::string, M8_Obj*> &REG = M8->Registers;
+        string rdest = params.at(1);// dont forget 0 is for the op_code
+        string Value = params.at(2);
+        int32_t number;
+
+        if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
+            if (REG.count(Value)>0) {
+                M8_Obj *R = REG[Value];
+                if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_I32) {
+                    return std::make_pair(
+                        errorf("EXPECTING_INT32_REGISTER["+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+                number = R->I32;
+            } else {
+                return std::make_pair(
+                    errorf("NIL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );   
+            }
+
+        } else {
+            auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
+            if(ec == std::errc()){
+            } else {
+                return std::make_pair(
+                    errorf("EXPECTING_INT32["+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        // auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
+        // if(ec == std::errc{}){
+        // } else {
+        //     return std::make_pair(
+        //         errorf("EXPECTING_INT32["+Value+"]"),
+        //         M8->nilValue
+        //     );
+        // }
+
+        if (REG.count(rdest)) {
+            M8_Obj *R = REG[rdest];
+            if (R==nullptr){
+                return std::make_pair(
+                    errorf("NULL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );
+            }
+            if (is_nil(M8, R)){
+                return std::make_pair(
+                    errorf("NIL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );
+            }
+
+            if (R->Type!=MP8_I32) {
+                return std::make_pair(
+                    errorf("EXPECTING_INT32_REGISTER["+rdest+"]"),
+                    M8->nilValue
+                );
+            }
+
+            int32_t total = R->I32 * number;
+            R->I32 = total;
+            return std::make_pair(M8_Err_nil, R);
+
+        } else {
+            return std::make_pair(
+                errorf("REGISTER_NOT_FOUND["+rdest+"]"),
+                M8->nilValue
+            );
+        }
+    }
+
 
     std::pair<M8_Error, M8_Obj*> Stall_OP(M8System* M8, std::vector<std::string> params){
         int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
@@ -1606,119 +1822,6 @@ namespace m8p {
             << std::endl;
         usleep(number);
         return std::make_pair(M8_Err_nil, M8->nilValue);
-    }
-
-    std::pair<M8_Error, M8_Obj*> I32Sub_OP(M8System* M8, std::vector<std::string> params){
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (psize<2) {
-            return std::make_pair(
-                errorf("i32sub requires two parameters"),
-                M8->nilValue
-            );
-        }
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string rdest = params.at(1);// dont forget 0 is for the op_code
-        string Value = params.at(2);
-        int32_t number;
-
-        auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
-        if(ec == std::errc{}){
-        } else {
-            return std::make_pair(
-                errorf("EXPECTING_INT32["+Value+"]"),
-                M8->nilValue
-            );
-        }
-
-        if (REG.count(rdest)) {
-            M8_Obj *R = REG[rdest];
-            if (R==nullptr){
-                return std::make_pair(
-                    errorf("NULL_REGISTER["+Value+"]"),
-                    M8->nilValue
-                );
-            }
-            if (is_nil(M8, R)){
-                return std::make_pair(
-                    errorf("NIL_REGISTER["+Value+"]"),
-                    M8->nilValue
-                );
-            }
-
-            if (R->Type!=MP8_I32) {
-                return std::make_pair(
-                    errorf("EXPECTING_INT32_REGISTER["+rdest+"]"),
-                    M8->nilValue
-                );
-            }
-
-            int32_t total = R->I32-number;
-            R->I32 = total;
-            return std::make_pair(M8_Err_nil, R);
-        } else {
-            return std::make_pair(
-                errorf("REGISTER_NOT_FOUND["+rdest+"]"),
-                M8->nilValue
-            );
-        }
-    }
-
-    std::pair<M8_Error, M8_Obj*> I32Mul_OP(M8System* M8, std::vector<std::string> params){
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (psize<2) {
-            return std::make_pair(
-                errorf("i32mul requires two parameters"),
-                M8->nilValue
-            );
-        }
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string rdest = params.at(1);// dont forget 0 is for the op_code
-        string Value = params.at(2);
-        int32_t number;
-
-        auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
-        if(ec == std::errc{}){
-        } else {
-            return std::make_pair(
-                errorf("EXPECTING_INT32["+Value+"]"),
-                M8->nilValue
-            );
-        }
-
-        if (REG.count(rdest)) {
-            M8_Obj *R = REG[rdest];
-            if (R==nullptr){
-                return std::make_pair(
-                    errorf("NULL_REGISTER["+Value+"]"),
-                    M8->nilValue
-                );
-            }
-            if (is_nil(M8, R)){
-                return std::make_pair(
-                    errorf("NIL_REGISTER["+Value+"]"),
-                    M8->nilValue
-                );
-            }
-
-            if (R->Type!=MP8_I32) {
-                return std::make_pair(
-                    errorf("EXPECTING_INT32_REGISTER["+rdest+"]"),
-                    M8->nilValue
-                );
-            }
-
-            int32_t total = R->I32 * number;
-            R->I32 = total;
-            return std::make_pair(M8_Err_nil, R);
-
-        } else {
-            return std::make_pair(
-                errorf("REGISTER_NOT_FOUND["+rdest+"]"),
-                M8->nilValue
-            );
-        }
     }
 
     //
