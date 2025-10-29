@@ -4577,6 +4577,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                     // std::vector<float> vec = json_value(R, "embedding", 0).get<std::vector<float>>();
                     json vec = json_value(R, "embedding", json::array());
                     for (json &ref : vec) {
+                        if (ref.size()==0) {
+                        }
+
                         for (json &el : ref) {
                             // LOG_INFO("===> el ", el);
                             if (count>=dim) {
