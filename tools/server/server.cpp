@@ -4570,6 +4570,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                 REG[rdest]->AR_F32.clear();
                 json responses = json::array();
                 size_t count=0;
+                size_t osize=0;
 
                 for (auto &res : results) {
                     GGML_ASSERT(dynamic_cast<server_task_result_embd*>(res.get()) != nullptr);
@@ -4596,7 +4597,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                 }
 
                 LOG_INFO("=====================> EMBEEDING with dim and count ", {{"dim", dim, 
-                                                                                  "count",count}});
+                                                                                  "count",count,
+                                                                                  "osize", osize}});
 
             }, [&](const json & error_data) {
                 error = true;
@@ -5132,7 +5134,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 2) {
         return std::make_pair(
-            m8p::errorf("vdb_add requires at least 2 parameters (instance name, DIF32 register , [string register])"),
+            m8p::errorf("vdb_add requires at least 2 parameters (instance name, DIF32 register, string contents register])"),
             M8->nilValue
         );
     }
@@ -5271,9 +5273,30 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 3) {
         return std::make_pair(
-            m8p::errorf("vdb_add requires at least 3 parameters (instance name, DIF32 register, output register)"),
+            m8p::errorf("vdb_add requires at least 3 parameters (instance name, DIF32 register, output register, options)"),
             M8->nilValue
         );
+    }
+
+    float distance = -1;
+
+    if (psize > 3) {
+        std::map<std::string, std::string> options;
+        options = m8p::parseOptions(3, params);
+
+        if (options.count("distance")>0) {
+            float number=0;
+            std::string Value = options["distance"];
+            try {
+                number=std::stof(Value);
+                distance = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_FLOAT32[distance, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
     }
 
     // mat8 <r1> 10 20 30 40 50 60 70 80
@@ -5361,9 +5384,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
                 }
 
                 std::cout << "]\n" << std::endl;
-                std::cout << "{min_dist=" << min_dist << ", flabel=" << flabel << "}, ";
+                std::cout << "{min_dist=" << min_dist << ", flabel=" << flabel << "}, " << std::endl;
 
-                if (matches>0) {
+                if ((distance>-1 && min_dist>distance)) {
+                    std::cout << " min_dist=" << min_dist << " is above distance requested. distance=" << distance << " " << std::endl;
+                }
+
+                if (matches>0 && (distance>-1 && min_dist<=distance)) {
                     size_t last_insert_index = VectorDB[ins_name].lastIndex*dim;
                     float *nn_vector = VectorDB[ins_name].rowstore + flabel*dim;
                     size_t key = flabel*dim;
@@ -5428,7 +5455,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 1) {
         return std::make_pair(
-            m8p::errorf("vdb_instance requires at least 1 parameter (instance name, Register)"),
+            m8p::errorf("vdb_instance requires at least 1 parameter (instance name, Register), options(dim=16 max_elements=500 M=16 ef_construction=200)"),
             M8->nilValue
         );
     }
@@ -5476,19 +5503,33 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
             }
         }
 
-        // if (options.count("ef_construction")>0) {
-        //     int32_t number=0;
-        //     std::string Value = options["ef_construction"];
-        //     try {
-        //         number=std::stof(Value);
-        //         n_predict = number;
-        //     } catch (const std::invalid_argument& ia) {
-        //         return std::make_pair(
-        //             m8p::errorf("EXPECTING_INT32[ef_construction, "+Value+"]"),
-        //             M8->nilValue
-        //         );
-        //     }
-        // }
+        if (options.count("ef_construction")>0) {
+            int32_t number=0;
+            std::string Value = options["ef_construction"];
+            try {
+                number=std::stof(Value);
+                ef_construction = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[ef_construction, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        if (options.count("M")>0) {
+            int32_t number=0;
+            std::string Value = options["M"];
+            try {
+                number=std::stof(Value);
+                M = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[M, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
     }
 
     if (VectorDB.count(ins_name) > 0) {
