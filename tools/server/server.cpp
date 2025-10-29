@@ -5175,20 +5175,33 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
                     size_t last_insert_index = VectorDB[ins_name].lastIndex*dim;
                     float *nn_vector = VectorDB[ins_name].rowstore + flabel*dim;
 
-                    // if (flabel*dim < last_insert_index) {
-                    // if (flabel < last_insert_index) {
-                        auto v = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-                        for (int i = 0; i<dim; ++i){
-                            v->AR_F32.push_back(nn_vector[i]);
+                    size_t key = flabel*dim;
+                    if (VectorDB[ins_name].ValueCache.count(key)>0) {
+                        std::string contents = VectorDB[ins_name].ValueCache[key];
+                        std::vector<llama_token> tokens;
+                        tokens = tokenize_mixed(ctx_server->vocab, contents, false, false);
+                        REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+                        for (std::vector<llama_token>::iterator i=tokens.begin(); i!=tokens.end(); ++i) {
+                            REG[rdest]->AR_F32.push_back((float)*i);
                         }
-                        REG[rdest] = v;
                         return std::make_pair(m8p::M8_Err_nil, v);
-                    // } else {
-                    //     LOG_INFO("[vector_search] flabel*dim is after last_insert_index(lastIndex*dim): ", {
-                    //         {"flabel", flabel*dim},
-                    //         {"last_insert_index", last_insert_index}
-                    //     });
-                    // }
+
+                    } else {
+                        // if (flabel*dim < last_insert_index) {
+                        // if (flabel < last_insert_index) {
+                            auto v = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+                            for (int i = 0; i<dim; ++i){
+                                v->AR_F32.push_back(nn_vector[i]);
+                            }
+                            REG[rdest] = v;
+                            return std::make_pair(m8p::M8_Err_nil, v);
+                        // } else {
+                        //     LOG_INFO("[vector_search] flabel*dim is after last_insert_index(lastIndex*dim): ", {
+                        //         {"flabel", flabel*dim},
+                        //         {"last_insert_index", last_insert_index}
+                        //     });
+                        // }                        
+                    }
 
                 }
             }
