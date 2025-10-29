@@ -4545,7 +4545,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
             };
 
             // get the result
-            ctx_server.receive_multi_results(task_ids, [&REG, &rdest](std::vector<server_task_result_ptr> &results) {
+            ctx_server.receive_multi_results(task_ids, [M8, &REG, &rdest](std::vector<server_task_result_ptr> &results) {
                 REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
                 REG[rdest]->AR_F32.clear();
                 json responses = json::array();
@@ -5553,6 +5553,9 @@ public:
 
         } else if (opCode=="llm_tokenize") {
             return LLM_TOKENIZE(this->ctx_server, M8, params);
+
+        } else if (opCode=="llm_embed") {
+            return LLM_EMBED(this->ctx_server, M8, params);
 
         } else if (opCode=="llm_detokenize") {
             return LLM_DETOKENIZE(this->ctx_server, M8, params);
