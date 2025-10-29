@@ -4551,17 +4551,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                 REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
                 REG[rdest]->AR_F32.clear();
                 json responses = json::array();
-                // for (std::vector<llama_token>::iterator i=tokens.begin(); i!=tokens.end(); ++i) {
-                //     REG[rdest]->AR_F32.push_back((float)*i);
-                // }
                 for (auto &res : results) {
                     GGML_ASSERT(dynamic_cast<server_task_result_embd*>(res.get()) != nullptr);
                     json R = res->to_json();
-                    // responses.push_back();
-                    LOG_INFO("===> res ", R);
+                    const auto& vec = json_value(R, "embedding", json::array()).get<std::vector<float>>();
+                    for (std::vector<float>::iterator i=vec.begin(); i!=vec.end(); ++i) {
+                        REG[rdest]->AR_F32.push_back((float)*i);
+                    }
+                    // LOG_INFO("===> res ", R);
                 }
 
-                LOG_INFO("=====================> EMBEEDING ", responses);
+                LOG_INFO("=====================> EMBEEDING ", m8p::to_string(M8, REG[rdest]));
 
             }, [&](const json & error_data) {
                 error = true;
