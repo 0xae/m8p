@@ -62,7 +62,7 @@
         #define SIMD_SUB_PS _mm512_sub_ps
         #define SIMD_STORE_PS _mm512_storeu_ps
         #define SIMD_LOAD_PS _mm512_loadu_ps
-        #define simd_vec __m512;
+        #define simd_vec __m512
 
     #elif defined(__AVX2__) || defined(__AVX__)
         #define AVX_V_SIZE 8    // 256/32 = 8 floats
@@ -73,7 +73,7 @@
         #define SIMD_STORE_PS _mm256_storeu_ps
         #define SIMD_LOAD_PS _mm256_loadu_ps
         // typedef __m256 simd_vec;
-        #define simd_vec __m256;
+        #define simd_vec __m256
     #else
         #define AVX_V_SIZE 4    // 128/32 = 4 floats (SSE)
         #define SIMD_SET_PS _mm_set_ps
@@ -84,7 +84,7 @@
         #define SIMD_STORE_PS _mm_storeu_ps
         #define SIMD_LOAD_PS _mm_loadu_ps
         // typedef __m128 simd_vec;
-        #define simd_vec __m128;
+        #define simd_vec __m128
     #endif
 #else
   #warning No AVX support [matmul wont be available]
