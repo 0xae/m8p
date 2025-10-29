@@ -2278,6 +2278,8 @@ namespace m8p {
             );
         }
 
+        string rdest = params.at(1);// dont forget 0 is for the op_code
+
         float matrix[8] = {
             0,0,0,0,
             0,0,0,0
@@ -2312,7 +2314,6 @@ namespace m8p {
         }
 
         std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string rdest = params.at(1);// dont forget 0 is for the op_code
 
         REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
         for (int i=0; i<8; i++) {
