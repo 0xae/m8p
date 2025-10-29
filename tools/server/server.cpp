@@ -5388,13 +5388,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
                 LOG_INFO("min_dist and distance requested", {{
                     "min_dist", min_dist,
                     "distance", distance
-                }})
+                }});
 
                 if (distance>-1 && min_dist>distance) {
                     LOG_INFO("min_dist is above distance requested.", {{
                         "min_dist", min_dist,
                         "distance", distance
-                    }})
+                    }});
                 }
 
                 if (matches>0 && (distance==-1 || (distance>-1 && (min_dist<=distance))) ) {
