@@ -4435,6 +4435,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
     m8p::M8System* M8, 
     std::vector<std::string> params);
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE_DESTROY(
+    server_context *ctx_server,
+    m8p::M8System* M8, 
+    std::vector<std::string> params);
+
 std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
     server_context *ctx_server,
     m8p::M8System* M8, 
@@ -4938,6 +4943,37 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
 
 // BEGIN HNSWLIB
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE_DESTROY(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params) 
+{
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize < 1) {
+        return std::make_pair(
+            m8p::errorf("vdb_destroy requires at least 1 parameter (instance name)"),
+            M8->nilValue
+        );
+    }
+
+    std::string ins_name = params.at(1);
+    m8p::__trim(ins_name);
+
+    std::map<std::string, vectordb_index> &VectorDB = G_Vector_DB;
+
+    if (VectorDB.count(ins_name)==0) {
+        return std::make_pair(
+            m8p::errorf("Vectordb Instance ["+ins_name+"] not found!"),
+            M8->nilValue
+        );
+    }
+
+    VectorDB.erase(ins_name);
+    return std::make_pair(
+        m8p::M8_Err_nil,
+        M8->true_
+    );
+}
 
 std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
     server_context *ctx_server,
@@ -5424,6 +5460,8 @@ public:
             return VECTOR_ADD_POINT(this->ctx_server, M8, params);
         } else if (opCode=="vdb_search") {
             return VECTOR_SEARCH(this->ctx_server, M8, params);
+        } else if (opCode=="vdb_destroy") {
+            return VECTOR_INSTANCE_DESTROY(this->ctx_server, M8, params);
 
         // } else if (opCode=="llm_infill") {
         //     return LLM_INFILL(this->ctx_server, M8, params);
