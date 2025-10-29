@@ -4470,9 +4470,125 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_TOKENIZE(
         m8p::M8System* M8, 
         std::vector<std::string> params);
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
+        server_context *server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params);
+
 //
 // BEGIN IMPL
 //
+
+std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
+        server_context *server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params) {
+
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize!=2) {
+        return std::make_pair(
+            m8p::errorf("llm_embed requires 2 parameters"),
+            M8->nilValue
+        );
+    }
+
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+    std::string rname = params.at(1);// dont forget 0 is for the op_code
+    std::string rdest = params.at(2);
+
+    if (REG.count(rname)) {
+        m8p::M8_Obj *R = REG[rname];
+        if (R==nullptr){
+            return std::make_pair(
+                m8p::errorf("NULL_REGISTER["+rname+"]"),
+                M8->nilValue
+            );
+        }
+
+        // std::vector<server_tokens> inputs;
+        // const auto & prompt = data.at("prompt");
+        // inputs = tokenize_input_prompts(ctx_server.vocab, ctx_server.mctx, prompt, true, true);
+
+        if (!m8p::is_nil(M8, R) && R->Type==m8p::MP8_STRING && R->Value.size()>0) {
+            std::string contents = R->Value;
+            // std::vector<llama_token> tokens;
+            json prompt = {{"prompt" , contents}};
+            // tokens = server->tokenize(contents, true);
+            // tokens = tokenize_mixed(server->vocab, contents, false, false);
+            auto tokenized_prompts = tokenize_input_prompts(server->vocab, server->mctx, prompt, true, true);
+            int embd_normalize = 2; 
+            
+            bool error = false;
+            std::unordered_set<int> task_ids;
+            {
+                std::vector<server_task> tasks;
+                for (size_t i = 0; i < tokenized_prompts.size(); i++) {
+                    server_task task = server_task(SERVER_TASK_TYPE_EMBEDDING);
+
+                    task.id = server->queue_tasks.get_new_id();
+                    task.index = i;
+                    task.tokens = std::move(tokenized_prompts[i]);
+
+                    task.params.oaicompat = OAICOMPAT_TYPE_NONE;
+                    task.params.embd_normalize = embd_normalize;
+
+                    tasks.push_back(std::move(task));
+                }
+
+                task_ids = server_task::get_list_id(tasks);
+                server->queue_results.add_waiting_tasks(tasks);
+                server->queue_tasks.post(std::move(tasks));
+            }
+
+            auto is_connection_closed = []() -> bool {
+                return false; // fool it thinking this is a connection
+            };
+
+            // get the result
+            ctx_server.receive_multi_results(task_ids, [&REG, &rdest](std::vector<server_task_result_ptr> &results) {
+                REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+                REG[rdest]->AR_F32.clear();
+                json responses = json::array();
+                // for (std::vector<llama_token>::iterator i=tokens.begin(); i!=tokens.end(); ++i) {
+                //     REG[rdest]->AR_F32.push_back((float)*i);
+                // }
+                for (auto & res : results) {
+                    // GGML_ASSERT(dynamic_cast<server_task_result_embd*>(res.get()) != nullptr);
+                    responses.push_back(res->to_json());
+                }
+
+                LOG_ERROR("=====================> EMBEEDING ", responses);
+
+            }, [&](const json & error_data) {
+                error = true;
+            }, is_connection_closed);
+
+            ctx_server.queue_results.remove_waiting_task_ids(task_ids);
+            if (error) {
+                return std::make_pair(
+                    m8p::errorf("ERROR OCURRED DURING EMBEEDING"),
+                    M8->nilValue
+                );
+            }
+
+            return std::make_pair(
+                m8p::M8_Err_nil,
+                REG[rdest]
+            );
+
+        } else {
+            return std::make_pair(
+                m8p::errorf("EMPTY_REGISTER["+rname+"]"),
+                M8->nilValue
+            );
+        }
+    } else {
+        return std::make_pair(
+            m8p::errorf("REGISTER_NOT_FOUND["+rname+"]"),
+            M8->nilValue
+        );
+    }
+}
 
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_TOKENIZE(
         server_context *server,
@@ -4512,14 +4628,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_TOKENIZE(
 
             // ::ALLOC::
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-            // const json data = format_tokenizer_response(tokens);
-            // std::stringstream ss;
-            // ss << "[";
-            // for (std::vector<llama_token>::iterator i=tokens.begin(); i!=tokens.end(); ++i) {
-            //     ss << *i << ",";
-            // }
-            // ss << "]";
-            // std::cout << "string: " << ss.str() << "\n";
             REG[rdest]->AR_F32.clear();
             for (std::vector<llama_token>::iterator i=tokens.begin(); i!=tokens.end(); ++i) {
                 REG[rdest]->AR_F32.push_back((float)*i);

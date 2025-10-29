@@ -69,7 +69,7 @@ align <queryt> 16
 # Search and get most similar snippet
 vdb_search CODE_SNIPPETS <queryt> <rx>
 llm_detokenize <rx> <rx2>
-
+vdb_destroy CODE_SNIPPETS
 ret <query> <rx2>
 
 # Generate an explanation using LLM
