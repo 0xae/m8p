@@ -2085,38 +2085,30 @@ namespace m8p {
         simd_vec b;
         simd_vec c;
 
-        if (AVX_V_SIZE==4) {
-            a = _mm256_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
-
-            b = _mm256_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-
-        } else if (AVX_V_SIZE==8) {
-            a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
-                              matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
-                              matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-
-        } else if (AVX_V_SIZE==16) {
-
+        #if defined(__AVX512F__)
             a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
                               matrix[11], matrix[10], matrix[9], matrix[8], 
                               matrix[7], matrix[6], matrix[5], matrix[4], 
                               matrix[3], matrix[2], matrix[1], matrix[0]);
-
             b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
                               matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
                               matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
                               matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
 
-        } else {
-            return std::make_pair(
-                errorf("Unexpected AVX_V_SIZE ["+ std::to_string(AVX_V_SIZE) + "]"),
-                M8->nilValue
-            );
-        }
+        #elif defined(__AVX2__) || defined(__AVX__)
+            a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
+                              matrix[3], matrix[2], matrix[1], matrix[0]);
+            b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
+                              matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+        #else
+            a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
+            b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+        #endif
 
-        // simd_vec a
-        // __m256 c;
+        // return std::make_pair(
+        //     errorf("Unexpected AVX_V_SIZE ["+ std::to_string(AVX_V_SIZE) + "]"),
+        //     M8->nilValue
+        // );
 
         if (op=="mul") {
             c = SIMD_MUL_PS(a, b);
