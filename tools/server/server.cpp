@@ -5385,7 +5385,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
     m8p::M8System* M8, 
     std::vector<std::string> params) 
 {
-    // vdb_instance MY_STORE dim=10
+    // vdb_instance MY_STORE dim=10 max_elements=2000 ef_construction=200  M=16
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 1) {
         return std::make_pair(
@@ -5399,11 +5399,58 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
     m8p::__trim(ins_name);
 
     // int dim = 16;               // Dimension of the elements
-    int dim = 16;               // Dimension of the elements
-    int max_elements = 500;   // Maximum number of elements, should be known beforehand
+    int32_t dim = 16;               // Dimension of the elements
+    int32_t max_elements = 500;   // Maximum number of elements, should be known beforehand
     int M = 16;                 // Tightly connected with internal dimensionality of the data
                                 // strongly affects the memory consumption
     int ef_construction = 200;  // Controls index search speed/build speed tradeoff
+
+    if (psize>1) {
+        std::map<std::string, std::string> options;
+        options = m8p::parseOptions(2, params);
+
+        if (options.count("dim")>0) {
+            int32_t number=0;
+            std::string Value = options["dim"];
+            try {
+                number=std::stof(Value);
+                dim = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[dim, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        if (options.count("max_elements")>0) {
+            int32_t number=0;
+            std::string Value = options["max_elements"];
+            try {
+                number=std::stof(Value);
+                max_elements = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[max_elements, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        // if (options.count("ef_construction")>0) {
+        //     int32_t number=0;
+        //     std::string Value = options["ef_construction"];
+        //     try {
+        //         number=std::stof(Value);
+        //         n_predict = number;
+        //     } catch (const std::invalid_argument& ia) {
+        //         return std::make_pair(
+        //             m8p::errorf("EXPECTING_INT32[ef_construction, "+Value+"]"),
+        //             M8->nilValue
+        //         );
+        //     }
+        // }
+    }
 
     if (VectorDB.count(ins_name) > 0) {
         // instance_data &Ref = LLMDB[ins_name];
