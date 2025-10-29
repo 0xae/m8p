@@ -64,6 +64,7 @@
         #define SIMD_SETZERO_PS _mm512_setzero_ps
         #define SIMD_FMA_PS _mm512_fmadd_ps
         #define SIMD_LOAD_PS _mm512_loadu_ps
+        #define SIMD_SQRT_PS _mm512_sqrt_ps
         #define simd_vec __m512
 
     #elif defined(__AVX2__) || defined(__AVX__)
@@ -75,6 +76,7 @@
         #define SIMD_STORE_PS _mm256_storeu_ps
         #define SIMD_SETZERO_PS _mm256_setzero_ps
         #define SIMD_LOAD_PS _mm256_loadu_ps
+        #define SIMD_SQRT_PS _mm256_sqrt_ps
         #if defined(__FMA__)
             #define SIMD_FMA_PS _mm256_fmadd_ps
         #else
@@ -89,6 +91,7 @@
         #define SIMD_MUL_PS _mm_mul_ps
         #define SIMD_SUB_PS _mm_sub_ps
         #define SIMD_SETZERO_PS _mm_setzero_ps
+        #define SIMD_SQRT_PS _mm_sqrt_ps
         #define SIMD_FMA_PS(a, b, c) _mm_add_ps(_mm_mul_ps(a, b), c)
         #define SIMD_STORE_PS _mm_storeu_ps
         #define SIMD_LOAD_PS _mm_loadu_ps
