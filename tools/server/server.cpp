@@ -4570,6 +4570,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                 REG[rdest]->AR_F32.clear();
                 json responses = json::array();
                 size_t count=0;
+
                 for (auto &res : results) {
                     GGML_ASSERT(dynamic_cast<server_task_result_embd*>(res.get()) != nullptr);
                     json R = res->to_json();

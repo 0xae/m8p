@@ -351,6 +351,10 @@ namespace m8p {
         return std::to_string(val);
     }
 
+    std::string to_string(size_t val) {
+        return std::to_string(val);
+    }
+
     std::string to_string(int32_t val) {
         return std::to_string(val);
     }
