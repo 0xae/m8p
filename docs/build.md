@@ -28,7 +28,7 @@ cmake -B build
 
 OR without LIBCURL:
 ```bash
-cmake -B build -DLLAMA_CURL=OFF
+cmake -B build -DLLAMA_CURL=OFF -DLLAMA_NATIVE=ON
 ```
 
 ```bash

@@ -53,7 +53,18 @@
 
 #ifdef __AVX__
   #include <immintrin.h>
-  #define AVX_V_SIZE 8
+  // #define AVX_V_SIZE 8
+    #if defined(__AVX512F__)
+        #define AVX_V_SIZE 512
+    #elif defined(__AVX2__)
+        #define AVX_V_SIZE 256
+    #elif defined(__AVX__)
+        #define AVX_V_SIZE 256
+    #else
+        // #define AVX_V_SIZE 128  // SSE fallback
+        #define AVX_V_SIZE 8
+    #endif
+  #warning AVX support is AVAILABLE
 #else
   #warning No AVX support [matmul wont be available]
 #endif
@@ -2295,7 +2306,7 @@ namespace m8p {
 
         if (t != 8) {
             return std::make_pair(
-                errorf("matriz.size != 8"), // TODO: replace with [AVX_V_SIZE]
+                errorf("["+rdest+"] matrix.size != 8"), // TODO: replace with [AVX_V_SIZE]
                 M8->nilValue
             );
         }
