@@ -4974,14 +4974,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
         m8p::__trim(str_def);
         m8p::M8_Obj *R = REG[str_def];
 
-        if (R==nullptr || m8p::is_nil(M8, R)){
-            return std::make_pair(
-                m8p::errorf("NULL_REGISTER["+str_def+"]"),
-                M8->nilValue
-            );
+        if (R!=nullptr && !m8p::is_nil(M8, R)){
+            // return std::make_pair(
+            //     m8p::errorf("NULL_REGISTER["+str_def+"]"),
+            //     M8->nilValue
+            // );
+            str_def = m8p::to_string(M8, R);
         }
-
-        str_def = m8p::to_string(M8, R);
     }
 
     if (VectorDB.count(ins_name)==0) {
@@ -5174,8 +5173,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
                 if (matches>0) {
                     size_t last_insert_index = VectorDB[ins_name].lastIndex*dim;
                     float *nn_vector = VectorDB[ins_name].rowstore + flabel*dim;
-
                     size_t key = flabel*dim;
+
                     if (VectorDB[ins_name].ValueCache.count(key)>0) {
                         std::string contents = VectorDB[ins_name].ValueCache[key];
                         std::vector<llama_token> tokens;
