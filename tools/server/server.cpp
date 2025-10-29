@@ -4592,7 +4592,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                     // }
                 }
 
-                LOG_INFO("=====================> EMBEEDING with dim and count ", dim, m8p::to_string(count));
+                LOG_INFO("=====================> EMBEEDING with dim and count ", dim, count);
 
             }, [&](const json & error_data) {
                 error = true;
