@@ -52,19 +52,15 @@
 #endif
 
 #ifdef __AVX__
-  #include <immintrin.h>
-  // #define AVX_V_SIZE 8
+    #include <immintrin.h>
+    #warning AVX support is AVAILABLE
     #if defined(__AVX512F__)
-        #define AVX_V_SIZE 512
-    #elif defined(__AVX2__)
-        #define AVX_V_SIZE 256
-    #elif defined(__AVX__)
-        #define AVX_V_SIZE 256
+        #define AVX_V_SIZE 16   // 512/32 = 16 floats
+    #elif defined(__AVX2__) || defined(__AVX__)
+        #define AVX_V_SIZE 8    // 256/32 = 8 floats
     #else
-        // #define AVX_V_SIZE 128  // SSE fallback
-        #define AVX_V_SIZE 8
+        #define AVX_V_SIZE 4    // 128/32 = 4 floats (SSE)
     #endif
-  #warning AVX support is AVAILABLE
 #else
   #warning No AVX support [matmul wont be available]
 #endif
@@ -2022,58 +2018,6 @@ namespace m8p {
 
 #ifdef __AVX__
     // std::pair<M8_Error, M8_Obj*> matmul(M8System* M8, std::vector<std::string> params);
-    std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params){
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (psize<2) {
-            return std::make_pair(
-                errorf("matmul requires two parameters"),
-                M8->nilValue
-            );
-        }
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string rsource = params.at(1);
-        string rdest = params.at(2);// dont forget 0 is for the op_code
-
-        std::vector<float> tokens{1.0, 1.0, 1.0, 1.0, 
-                                  1.0, 1.0, 1.0, 1.0};
-
-        if (tokens.size()!=AVX_V_SIZE) {
-            return std::make_pair(
-                errorf("tokens must contain 8 floats"),
-                M8->nilValue
-            );
-        }
-
-        float matrix[AVX_V_SIZE];
-        std::copy(tokens.begin(), tokens.end(), matrix);
-
-        __m256 a = _mm256_set_ps(matrix[0], matrix[1], matrix[2], matrix[3], 
-                                 matrix[4], matrix[5], matrix[6], matrix[7]);
-        __m256 b = _mm256_set_ps(18.0, 17.0, 16.0, 15.0, 
-                                 14.0, 13.0, 12.0, 11.0);
-
-        __m256 c = _mm256_add_ps(a, b);
-
-        float d[AVX_V_SIZE];
-        _mm256_storeu_ps(d, c);
-
-        // std::cout << "result equals " << d[0] << "," << d[1]
-        //           << "," << d[2] << "," << d[3] << ","
-        //           << d[4] << "," << d[5] << "," << d[6] << ","
-        //           << d[7] << std::endl;
-
-        REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-        for (int i=0; i<AVX_V_SIZE; i++) {
-            REG[rdest]->AR_F32.push_back(d[i]);
-        }
-
-        return std::make_pair(
-            M8_Err_nil,
-            REG[rdest]
-        );
-    }
-
     std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params){
         int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
         if (psize<3) {
@@ -2093,7 +2037,7 @@ namespace m8p {
 
         if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
             return std::make_pair(
-                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+"]"),
+                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
                 M8->nilValue
             );
         }
@@ -2136,6 +2080,58 @@ namespace m8p {
         _mm256_storeu_ps(d, c);
 
         // std::cout << "[" << op << "]result equals " << d[0] << "," << d[1]
+        //           << "," << d[2] << "," << d[3] << ","
+        //           << d[4] << "," << d[5] << "," << d[6] << ","
+        //           << d[7] << std::endl;
+
+        REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+        for (int i=0; i<AVX_V_SIZE; i++) {
+            REG[rdest]->AR_F32.push_back(d[i]);
+        }
+
+        return std::make_pair(
+            M8_Err_nil,
+            REG[rdest]
+        );
+    }
+
+    std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params){
+        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+        if (psize<2) {
+            return std::make_pair(
+                errorf("matmul requires two parameters"),
+                M8->nilValue
+            );
+        }
+
+        std::map<std::string, M8_Obj*> &REG = M8->Registers;
+        string rsource = params.at(1);
+        string rdest = params.at(2);// dont forget 0 is for the op_code
+
+        std::vector<float> tokens{1.0, 1.0, 1.0, 1.0, 
+                                  1.0, 1.0, 1.0, 1.0};
+
+        if (tokens.size()!=AVX_V_SIZE) {
+            return std::make_pair(
+                errorf("tokens must contain 8 floats"),
+                M8->nilValue
+            );
+        }
+
+        float matrix[AVX_V_SIZE];
+        std::copy(tokens.begin(), tokens.end(), matrix);
+
+        __m256 a = _mm256_set_ps(matrix[0], matrix[1], matrix[2], matrix[3], 
+                                 matrix[4], matrix[5], matrix[6], matrix[7]);
+        __m256 b = _mm256_set_ps(18.0, 17.0, 16.0, 15.0, 
+                                 14.0, 13.0, 12.0, 11.0);
+
+        __m256 c = _mm256_add_ps(a, b);
+
+        float d[AVX_V_SIZE];
+        _mm256_storeu_ps(d, c);
+
+        // std::cout << "result equals " << d[0] << "," << d[1]
         //           << "," << d[2] << "," << d[3] << ","
         //           << d[4] << "," << d[5] << "," << d[6] << ","
         //           << d[7] << std::endl;
@@ -2325,7 +2321,6 @@ namespace m8p {
             REG[rdest]
         );
     }
-
 
     std::pair<M8_Error, M8_Obj*> F32Mul_OP(M8System* M8, std::vector<std::string> params){
         int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
