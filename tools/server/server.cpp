@@ -4556,9 +4556,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                     json R = res->to_json();
                     // std::vector<float> vec = json_value(R, "embedding", 0).get<std::vector<float>>();
                     json vec = json_value(R, "embedding", json::array());
-                    for (auto &ref : vec) {
-                        for (auto &el : ref) {
-                            LOG_INFO("===> el ", el);
+                    for (json &ref : vec) {
+                        for (json &el : ref) {
+                            // LOG_INFO("===> el ", el);
+                            REG[rdest]->AR_F32.push_back(el.get<float>());
                         }
                     }
                     // for (std::vector<float>::iterator i=vec.begin(); i!=vec.end(); ++i) {
