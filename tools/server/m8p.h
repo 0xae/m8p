@@ -297,7 +297,12 @@ namespace m8p {
             return M8->nilValue;
         }
 
-        return m8_obj(M8, C->Type, C->Value);
+        M8_Obj* obj=m8_obj(M8, C->Type, C->Value);
+        obj->I32 = C->I32;
+        obj->F32 = C->F32;
+        obj->AR_F32 = C->AR_F32;
+        obj->AR_OBJ = C->AR_OBJ;
+        return obj;
     }
 
     bool is_error(M8System *M8, M8_Obj *V) {

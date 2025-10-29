@@ -5141,9 +5141,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
                 std::cout << "{min_dist=" << min_dist << ", flabel=" << flabel << "}, ";
 
                 if (matches>0) {
-                    // size_t last_insert_index = VectorDB[ins_name].lastIndex*dim;
-                    // float *nn_vector = VectorDB[ins_name].rowstore + flabel*dim;
-                    size_t last_insert_index = VectorDB[ins_name].lastIndex;
+                    size_t last_insert_index = VectorDB[ins_name].lastIndex*dim;
                     float *nn_vector = VectorDB[ins_name].rowstore + flabel*dim;
 
                     // if (flabel*dim < last_insert_index) {
