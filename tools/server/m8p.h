@@ -1738,13 +1738,40 @@ namespace m8p {
         string rdest = params.at(1);// dont forget 0 is for the op_code
         string Value = params.at(2);
         float number=0;
-        try {number=std::stof(Value);}
-        catch (const std::invalid_argument& ia) {
-            return std::make_pair(
-                errorf("EXPECTING_FLOAT32["+Value+"]"),
-                M8->nilValue
-            );
+        if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
+            if (REG.count(Value)>0) {
+                M8_Obj *R = REG[Value];
+                if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_F32) {
+                    return std::make_pair(
+                        errorf("EXPECTING_FLOAT32_REGISTER["+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+                number = R->F32;
+            } else {
+                return std::make_pair(
+                    errorf("NIL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );   
+            }
+
+        } else {
+            try {number=std::stof(Value);}
+            catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    errorf("EXPECTING_FLOAT32["+Value+"]"),
+                    M8->nilValue
+                );
+            }            
         }
+
+        // try {number=std::stof(Value);}
+        // catch (const std::invalid_argument& ia) {
+        //     return std::make_pair(
+        //         errorf("EXPECTING_FLOAT32["+Value+"]"),
+        //         M8->nilValue
+        //     );
+        // }
 
         // auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
         // if(ec == std::errc()){
@@ -1774,15 +1801,43 @@ namespace m8p {
         std::map<std::string, M8_Obj*> &REG = M8->Registers;
         string rdest = params.at(1);// dont forget 0 is for the op_code
         string Value = params.at(2);
-        // float number;
         float number=0;
-        try {number=std::stof(Value);}
-        catch (const std::invalid_argument& ia) {
-            return std::make_pair(
-                errorf("EXPECTING_FLOAT32["+Value+"]"),
-                M8->nilValue
-            );
+        // float number;
+
+        if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
+            if (REG.count(Value)>0) {
+                M8_Obj *R = REG[Value];
+                if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_F32) {
+                    return std::make_pair(
+                        errorf("EXPECTING_FLOAT32_REGISTER["+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+                number = R->F32;
+            } else {
+                return std::make_pair(
+                    errorf("NIL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );   
+            }
+
+        } else {
+            try {number=std::stof(Value);}
+            catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    errorf("EXPECTING_FLOAT32["+Value+"]"),
+                    M8->nilValue
+                );
+            }            
         }
+
+        // try {number=std::stof(Value);}
+        // catch (const std::invalid_argument& ia) {
+        //     return std::make_pair(
+        //         errorf("EXPECTING_FLOAT32["+Value+"]"),
+        //         M8->nilValue
+        //     );
+        // }
         // auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
         // if(ec == std::errc{}){
         // } else {
@@ -1840,22 +1895,34 @@ namespace m8p {
         std::map<std::string, M8_Obj*> &REG = M8->Registers;
         string rdest = params.at(1);// dont forget 0 is for the op_code
         string Value = params.at(2);
-        // float number;
-        // auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
-        // if(ec == std::errc{}){
-        // } else {
-        //     return std::make_pair(
-        //         errorf("EXPECTING_FLOAT32["+Value+"]"),
-        //         M8->nilValue
-        //     );
-        // }
         float number=0;
-        try {number=std::stof(Value);}
-        catch (const std::invalid_argument& ia) {
-            return std::make_pair(
-                errorf("EXPECTING_FLOAT32["+Value+"]"),
-                M8->nilValue
-            );
+        __trim(Value);
+
+        if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
+            if (REG.count(Value)>0) {
+                M8_Obj *R = REG[Value];
+                if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_F32) {
+                    return std::make_pair(
+                        errorf("EXPECTING_FLOAT32_REGISTER["+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+                number = R->F32;
+            } else {
+                return std::make_pair(
+                    errorf("NIL_REGISTER["+Value+"]"),
+                    M8->nilValue
+                );   
+            }
+
+        } else {
+            try {number=std::stof(Value);}
+            catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    errorf("EXPECTING_FLOAT32["+Value+"]"),
+                    M8->nilValue
+                );
+            }            
         }
 
         if (REG.count(rdest)) {
