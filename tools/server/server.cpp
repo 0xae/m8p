@@ -4954,9 +4954,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
 
     // mat8 <r1> 10 20 30 40 50 60 70 80
     // mat8 <r2> 15 20 30 40 50 60 70 80
+    // store <prompt> my prompt i like it
     // vdb_instance V0001 dim=8 ...
     // vdb_add V0001 <r1> [<sv1>]
-    // vdb_add V0001 <r2>
+    // vdb_add V0001 <r2> <prompt>
+    // vdb_add V0001 <r2> You can add the prompt here too
     // vdb_search V0001 <r2>
 
     std::string ins_name = params.at(1);
@@ -4970,6 +4972,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
 
     std::string str_def =  "<__0NONE>";
     if (psize > 2) {
+        str_def = "";
         // str_def = params.at(3);
         for (size_t i=3; i<params.size(); ++i) {
             std::string v = params.at(i);
