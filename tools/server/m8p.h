@@ -2043,7 +2043,7 @@ namespace m8p {
         }
         if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
             return std::make_pair(
-                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+"]"),
+                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
                 M8->nilValue
             );
         }
