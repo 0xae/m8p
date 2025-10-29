@@ -26,6 +26,33 @@ Build (requires LIBCURL)
 cmake -B build
 ```
 
+Check AVX support
+```bash
+g++ -mavx512f -mavx512vnni -mavx512bf16 -dM -E - < /dev/null | grep AVX
+```
+
+Complete List:
+```bash
+# SSE (ancient, ~2001)
+-msse -msse2 -msse3 -msse4.1 -msse4.2
+
+# AVX (2011)
+-mavx
+
+# AVX2 (2013)
+-mavx2
+
+# AVX-512 (2017+)
+-mavx512f      # Foundation - REQUIRED base
+-mavx512dq     # Doubleword/Quadword
+-mavx512vl     # Vector Length extensions
+-mavx512bw     # Byte/Word
+-mavx512cd     # Conflict Detection
+-mavx512vbmi   # Vector Bit Manipulation
+-mavx512vnni   # Vector Neural Network Instructions
+-mavx512bf16   # BFloat16
+```
+
 OR without LIBCURL:
 ```bash
 cmake -B build -DLLAMA_CURL=OFF -DLLAMA_NATIVE=ON
