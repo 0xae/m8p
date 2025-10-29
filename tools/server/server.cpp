@@ -4555,9 +4555,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                 //     REG[rdest]->AR_F32.push_back((float)*i);
                 // }
                 for (auto &res : results) {
-                    // GGML_ASSERT(dynamic_cast<server_task_result_embd*>(res.get()) != nullptr);
-                    // responses.push_back(res->to_json());
-                    LOG_INFO("R ", res);
+                    GGML_ASSERT(dynamic_cast<server_task_result_embd*>(res.get()) != nullptr);
+                    json R = res->to_json();
+                    // responses.push_back();
+                    LOG_INFO("===> res ", R);
                 }
 
                 LOG_INFO("=====================> EMBEEDING ", responses);
