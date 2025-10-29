@@ -4512,11 +4512,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
         if (!m8p::is_nil(M8, R) && R->Type==m8p::MP8_STRING && R->Value.size()>0) {
             std::string contents = R->Value;
             // std::vector<llama_token> tokens;
-            json prompt = {{"prompt" , contents}};
+            json prompt = {{"contents" , contents}};
             // tokens = server->tokenize(contents, true);
             // tokens = tokenize_mixed(server->vocab, contents, false, false);
-            auto tokenized_prompts = tokenize_input_prompts(server->vocab, server->mctx, prompt, true, true);
+            auto tokenized_prompts = tokenize_input_prompts(server->vocab, server->mctx, prompt.at("contents"), true, true);
             int embd_normalize = 2; 
+
+            LOG_INFO("=====================> PROMPT OBJ: ", prompt);
             
             bool error = false;
             std::unordered_set<int> task_ids;
@@ -4557,7 +4559,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                     responses.push_back(res->to_json());
                 }
 
-                LOG_ERROR("=====================> EMBEEDING ", responses);
+                LOG_INFO("=====================> EMBEEDING ", responses);
 
             }, [&](const json & error_data) {
                 error = true;
