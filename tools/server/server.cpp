@@ -4700,9 +4700,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_DETOKENIZE(
         std::vector<std::string> params) {
 
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
-    if (psize!=2) {
+    if (psize<2) {
         return std::make_pair(
-            m8p::errorf("llm_detokenize requires 2 parameters"),
+            m8p::errorf("llm_detokenize requires at least 2 parameters"),
             M8->nilValue
         );
     }
@@ -5385,13 +5385,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
 
                 std::cout << "]\n" << std::endl;
                 // std::cout << "{min_dist=" << min_dist << ", flabel=" << flabel << "}, " << std::endl;
-                LOG_INFO("min_dist and distance requested", {{
+                LOG_INFO("[SHOW] min_dist found and distance requested", {{
                     "min_dist", min_dist,
                     "distance", distance
                 }});
 
                 if (distance>-1 && min_dist>distance) {
-                    LOG_INFO("min_dist is above distance requested.", {{
+                    LOG_INFO("[FILTER] min_dist is above distance requested.", {{
                         "min_dist", min_dist,
                         "distance", distance
                     }});
