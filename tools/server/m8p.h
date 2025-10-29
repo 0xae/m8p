@@ -61,6 +61,8 @@
         #define SIMD_MUL_PS _mm512_mul_ps
         #define SIMD_SUB_PS _mm512_sub_ps
         #define SIMD_STORE_PS _mm512_storeu_ps
+        #define SIMD_SETZERO_PS _mm512_setzero_ps
+        #define SIMD_FMA_PS _mm512_fmadd_ps
         #define SIMD_LOAD_PS _mm512_loadu_ps
         #define simd_vec __m512
 
@@ -71,7 +73,13 @@
         #define SIMD_SUB_PS _mm256_sub_ps
         #define SIMD_MUL_PS _mm256_mul_ps
         #define SIMD_STORE_PS _mm256_storeu_ps
+        #define SIMD_SETZERO_PS _mm256_setzero_ps
         #define SIMD_LOAD_PS _mm256_loadu_ps
+        #if defined(__FMA__)
+            #define SIMD_FMA_PS _mm256_fmadd_ps
+        #else
+            #define SIMD_FMA_PS(a, b, c) _mm256_add_ps(_mm256_mul_ps(a, b), c)
+        #endif
         // typedef __m256 simd_vec;
         #define simd_vec __m256
     #else
@@ -80,7 +88,8 @@
         #define SIMD_ADD_PS _mm_add_ps
         #define SIMD_MUL_PS _mm_mul_ps
         #define SIMD_SUB_PS _mm_sub_ps
-
+        #define SIMD_SETZERO_PS _mm_setzero_ps
+        #define SIMD_FMA_PS(a, b, c) _mm_add_ps(_mm_mul_ps(a, b), c)
         #define SIMD_STORE_PS _mm_storeu_ps
         #define SIMD_LOAD_PS _mm_loadu_ps
         // typedef __m128 simd_vec;

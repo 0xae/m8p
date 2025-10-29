@@ -51,6 +51,9 @@ Complete List:
 -mavx512vbmi   # Vector Bit Manipulation
 -mavx512vnni   # Vector Neural Network Instructions
 -mavx512bf16   # BFloat16
+
+#SINGLE LINE
+-mavx512f -mavx512dq -mavx512vl -mavx512bw  -mavx512cd -mavx512vbmi  -mavx512vnni -mavx512bf16
 ```
 
 OR without LIBCURL:
