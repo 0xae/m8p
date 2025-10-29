@@ -4406,6 +4406,7 @@ struct vectordb_index {
     int ef_construction = 200;
     float* rowstore = nullptr;
     int lastIndex = 0;
+    std::map<size_t, std::string> ValueCache;
 };
 
 struct instance_data {
@@ -4946,7 +4947,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 2) {
         return std::make_pair(
-            m8p::errorf("vdb_add requires at least 2 parameters (instance name, DIF32 register)"),
+            m8p::errorf("vdb_add requires at least 2 parameters (instance name, DIF32 register , [string register])"),
             M8->nilValue
         );
     }
@@ -4954,7 +4955,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
     // mat8 <r1> 10 20 30 40 50 60 70 80
     // mat8 <r2> 15 20 30 40 50 60 70 80
     // vdb_instance V0001 dim=8 ...
-    // vdb_add V0001 <r1>
+    // vdb_add V0001 <r1> [<sv1>]
     // vdb_add V0001 <r2>
     // vdb_search V0001 <r2>
 
@@ -4966,6 +4967,22 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
     // dif32_ary
     std::map<std::string, vectordb_index> &VectorDB = G_Vector_DB;
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+
+    std::string str_def =  "<__0NONE>";
+    if (psize > 2) {
+        str_def = params.at(3);
+        m8p::__trim(str_def);
+        m8p::M8_Obj *R = REG[str_def];
+
+        if (R==nullptr || m8p::is_nil(M8, R)){
+            return std::make_pair(
+                m8p::errorf("NULL_REGISTER["+str_def+"]"),
+                M8->nilValue
+            );
+        }
+
+        str_def = m8p::to_string(M8, R);
+    }
 
     if (VectorDB.count(ins_name)==0) {
         return std::make_pair(
@@ -5004,6 +5021,16 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
             float *src_data = R->AR_F32.data();
             float *rowstore = VectorDB[ins_name].rowstore+i*dim;
 
+            if (str_def!="<__0NONE>") {
+                size_t key = i*dim;
+                if (VectorDB[ins_name].ValueCache.count(key)!=0) {
+                    return std::make_pair(
+                        m8p::errorf("Unexpected Key collision ["+ins_name+","+rsource+"]"),
+                        M8->nilValue
+                    );
+                }
+            }
+
             for (int j=0; j<dim; j++) {
                 int idx=j+(i*dim);
                 std::cout << "data[" << idx << "] = " 
@@ -5014,6 +5041,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
             std::cout << "\n";
             alg_hnsw->addPoint(src_data, i);
             VectorDB[ins_name].lastIndex += 1;
+            if (str_def!="<__0NONE>"){
+                size_t key = i*dim;
+                VectorDB[ins_name].ValueCache[key] = str_def;
+            }
 
             return std::make_pair(
                 m8p::M8_Err_nil,
