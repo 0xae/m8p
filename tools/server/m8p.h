@@ -195,6 +195,12 @@ namespace m8p {
     M8_Obj* m8_obj_dup(M8System *M8, M8_Obj *C);
     std::string to_string(M8_Obj* C);
 
+    std::string to_string(uint32_t);
+    std::string to_string(int32_t);
+    std::string to_string(int);
+    std::string to_string(float);
+    std::string to_string(double);
+
     void RegisterVirtual(M8System *M8, string name, VInstr* callable);
     bool is_error(M8System *M8, M8_Obj *V);
     bool is_nil(M8System *M8, M8_Obj *V);
@@ -340,6 +346,26 @@ namespace m8p {
     //     std::vector<float> AR_F32;
     //     std::vector<M8_Obj*> AR_OBJ;
     // };
+
+    std::string to_string(uint32_t val) {
+        return std::to_string(val);
+    }
+
+    std::string to_string(int32_t val) {
+        return std::to_string(val);
+    }
+
+    std::string to_string(int val) {
+        return std::to_string(val);
+    }
+
+    std::string to_string(float val) {
+        return std::to_string(val);
+    }
+
+    std::string to_string(double val) {
+        return std::to_string(val);
+    }
 
     std::string to_string(M8System *M8, M8_Obj* C) {
         if (C==nullptr || C==M8->nilValue) {

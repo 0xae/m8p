@@ -4485,9 +4485,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
         std::vector<std::string> params) {
 
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
-    if (psize!=2) {
+    if (psize<2) {
         return std::make_pair(
-            m8p::errorf("llm_embed requires 2 parameters"),
+            m8p::errorf("llm_embed requires at least 2 parameters and options (dim=1570)"),
             M8->nilValue
         );
     }
@@ -4495,6 +4495,24 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
     std::string rname = params.at(1);// dont forget 0 is for the op_code
     std::string rdest = params.at(2);
+    int32_t dim = 1570;
+
+    if (psize>2) {
+        std::map<std::string, std::string> options = m8p::parseOptions(3, params);
+        if (options.count("dim")>0) {
+            int32_t number=0;
+            std::string Value = options["dim"];
+            try {
+                number=std::stof(Value);
+                dim = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[dim, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+    }
 
     if (REG.count(rname)) {
         m8p::M8_Obj *R = REG[rname];
@@ -4556,18 +4574,24 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                     json R = res->to_json();
                     // std::vector<float> vec = json_value(R, "embedding", 0).get<std::vector<float>>();
                     json vec = json_value(R, "embedding", json::array());
+                    size_t count=0;
                     for (json &ref : vec) {
                         for (json &el : ref) {
                             // LOG_INFO("===> el ", el);
+                            if (count>=dim) {
+                                break;
+                            }
                             REG[rdest]->AR_F32.push_back(el.get<float>());
+                            count++;
                         }
                     }
+
                     // for (std::vector<float>::iterator i=vec.begin(); i!=vec.end(); ++i) {
                     //     REG[rdest]->AR_F32.push_back((float)*i);
                     // }
                 }
 
-                LOG_INFO("=====================> EMBEEDING ", m8p::to_string(M8, REG[rdest]));
+                LOG_INFO("=====================> EMBEEDING with dim and count ", dim, m8p::to_string(count));
 
             }, [&](const json & error_data) {
                 error = true;
