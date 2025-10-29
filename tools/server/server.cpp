@@ -5184,7 +5184,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
                         for (std::vector<llama_token>::iterator i=tokens.begin(); i!=tokens.end(); ++i) {
                             REG[rdest]->AR_F32.push_back((float)*i);
                         }
-                        return std::make_pair(m8p::M8_Err_nil, v);
+                        return std::make_pair(m8p::M8_Err_nil, REG[rdest]);
 
                     } else {
                         // if (flabel*dim < last_insert_index) {
