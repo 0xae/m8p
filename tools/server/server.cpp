@@ -4554,11 +4554,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                 for (auto &res : results) {
                     GGML_ASSERT(dynamic_cast<server_task_result_embd*>(res.get()) != nullptr);
                     json R = res->to_json();
-                    std::vector<float> vec = json_value(R, "embedding", json::array()).get<std::vector<float>>();
-                    for (std::vector<float>::iterator i=vec.begin(); i!=vec.end(); ++i) {
-                        REG[rdest]->AR_F32.push_back((float)*i);
-                    }
-                    // LOG_INFO("===> res ", R);
+                    // std::vector<float> vec = json_value(R, "embedding", json::array()).get<std::vector<float>>();
+                    json vec = json_value(R, "embedding", json::array());
+                    LOG_INFO("===> vec ", vec);
+                    // for (std::vector<float>::iterator i=vec.begin(); i!=vec.end(); ++i) {
+                    //     REG[rdest]->AR_F32.push_back((float)*i);
+                    // }
                 }
 
                 LOG_INFO("=====================> EMBEEDING ", m8p::to_string(M8, REG[rdest]));
