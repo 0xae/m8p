@@ -33,8 +33,8 @@ and developed in tandem with the golang codebase.
 
 This implementations is based off llama.cpp and ships the whole llama runtime inside the M8 interpreter/VM.
 
-The vm codebase is in [m8p core](./m8p).
-The server is [here](./tools/m8p-server)
+The vm codebase is in [m8p core](./tools/server/m8p.h).
+The server is [here](./tools/server)
 
 ## Build
 BUILD README IS [here](./docs/build.md)
@@ -42,50 +42,106 @@ We use the same build toolchain as llama, then type:
 
 ```make llama-server```
 
-## Run daemon
-``` ./run-m8-daemon.sh 2&> ~/m8logs.txt```
-
-### Daemon Logs
-``` tail -f ~/m8logs.txt```
-
-### Debugger session
-``` gdb --args ./llama-server -m ~/models/gemma-gguf/gemma-2b-it.gguf -t 20 --port 9500 --host 0.0.0.0```
-
-## Start M8 flavoured llama-server
-Again same commands as llama-server:
+# Run Server
 ```
 ./llama-server -m ~/models/mistral-7b-instruct-v0.2.Q4_K_M.gguf  -t 20 --port 8090 --host 0.0.0.0
 ```
 
-## Instrumentation
-All Params passed to llama-server can be acessed thru the ```llama_params``` instruction, just specify the output register;
+## Instruction Set Library
+View complete instruction set [here](./tools/server/library/library.asm)
 
-example:
+### Basic Operations
 ```asm
-llama_params <r1>
-assertcontains <r1> LLAMA_VERSION_
-ret <r1>
+## Basic Operations
+f32set <rage> 12.2
+i32set <r2> 5
+store <r1> ..string... # will store ...string... in register <r1>, store does not support newlines
+store <r3> My age is <rage> and i have <r2> friends # store supports interpolation
+dup <r1> <r2> # will duplicate register <r1> to <r2>
+store <r2> ulala # testing
+ret <r1> <r2> # multiple returns
 ```
 
+### Assertions
+```asm
+assertcontains <r1> ...string...
+assertnotempty <r1>
+assertempty <r1>
+assertnil <r1>
+asserteq <r1> <r2>
 ```
-TODO: INCLUDE THE INSTRUCTION/INSTRUMENTATION SET LIST
-```
-
-```
-TODO: INCLUDE THE LLAMA.CPP MODEL INSTRUCTION SET LIST
-```
-
-```
-TODO: INCLUDE THE INFERENCE2 INSTRUCTION SET LIST
-```
-
-```
-TODO: INCLUDE THE OTHERS INSTRUCTION SET LIST
+### Generating Embeedings
+```asm
+store <r1> Hello there
+llm_embed <r1> <rv2> dim=16 ## stores the embeding of <r1> into <rv2> specifies the size of the returning embeedings, <r1> is now: [0.23, 0.232, 0.23, ...]
 ```
 
-A lot of stuff to do.
+### Generate tokens (word dictionary positions)
+```asm
+changing the original register
+llm_tokenize <r1> <r1tokens> 
+llm_detokenize <r1tokens> <r4> 
+ret <r4>
+```
 
-Ships with these routes alongside the llama-server traditional:
+### Math operations
+```asm
+## All operations store the result in the first register, use dup if the value is need before 
+f32add <r10> 23.44533
+f32sub <r10> 23.44533
+f32mul <r10> 23.44533
+f32set <r10> 78
+f32add <r10> 23.44533
+f32sub <r10> 23.44533
+i32set <r9> 123
+i32add <r9> 123
+i32mul <r9> 123
+```
+### Matrix operations
+```asm
+matn <r1> 1 376 306 626 263 8368 ... # creates a variable width matrix 
+mat8 <r1> 10 20 30 40 50 60 70 89  # a matrix of 8 elements
+mat8 <r2> 12.3 20.23 30.23 40.23 50.23 60.23 70 89 
+matsub <r1> <r2> <r3> 
+matadd <r1> <r2> <r3> 
+matmul <r1> <r2> <r3> 
+matdot <score_weights> <result_metrics> <result> ## dot product
+matcosim <score_weights> <result_metrics> <result> ## cosine similarity
+matl2d <score_weights> <result_metrics> <result> ## L2 distance (Euclidean distance)
+ret <r3>
+```
+### Inference
+```asm
+store <r1> Tell me a joke
+llm_instance <r1> instname n_predict=24 temperature=0.5 ## llm_instance will cache the response
+llm_instance <r1> instname n_predict=24 temperature=0.5 force=true ## llm_instance will ignore the cache response and eval
+llm_instancestatus instname <r3> ##llm_instancestatus will return the output of the llm call
+```
+### Vectordb operations (Uses HNSWLIB)
+```asm
+vdb_instance MYDB4 dim=16 max_elements=500 M=16 ef_construction=200
+store <r1> DPR/XML Modelo IVA
+llm_embed <r1> <rv1> dim=16 ## always set dim, dim by default is 1570
+vdb_add MYDB4 <rv1> <r1> # third parameter (<r1>) is what is returned on search match (tokenized)
+vdb_search MYDB4 <rv1> <rv37> distance=0.019 # set distance to -1 to bypass check
+llm_detokenize <rv37> <result_text> ## will fail if no search is match
+return <result_text>
+```
+
+```asm
+mat8 <r1> 1 2 3 4 5 6 7 8
+align <r1> 16
+mat8 <r2> 10 20 30 40 50 60 70 80
+align <r2> 16
+mat8 <r3> 90 100 200 300 400 500 600 700
+align <r3> 16
+vdb_instance MYDB dim=16 max_elements=500 M=16 ef_construction=200
+vdb_add MYDB <r1> 1 2 3 4 5 6 7 8
+vdb_add MYDB <r2> 10 20 30 40 50 60 70 80
+vdb_add MYDB <r3> 90 100 200 300 400 500 600 700
+```
+
+Ships with these routes:
 - POST ```/api/v1/m8/dry-run``` - Run a temporary execution (M8 instance is destroyed after request finished and all resources released)
 
 - POST ```/api/v1/m8/session-create/:id_session``` - Create a persistent session.
@@ -171,7 +227,7 @@ int main(int argc, char ** argv) {
         std::string sType=0;
         int32_t i32Value=0;
         float f32Value=0;
-        std::string sValue = ""
+        std::string sValue = "";
 
         if (Ret.second!=nullptr) {
             sType = m8p::TypeStr(Ret.second->Type);
@@ -192,135 +248,3 @@ int main(int argc, char ** argv) {
 }
 ```
 
-### BUILD
-
-More options:
-- [Build for Intel](./docs/intel.md)
-- [Build on Android](./docs/android.md)
-- [Performance troubleshooting](./docs/development/token_generation_performance_tips.md)
-- [GGML tips & tricks](https://github.com/ggerganov/llama.cpp/wiki/GGML-Tips-&-Tricks)
-
-In order to build llama.cpp you have four different options.
-
-- Using `make`:
-  - On Linux or MacOS:
-      ```bash
-      make
-      ```
-
-  - Notes:
-    - For `Q4_0_4_4` quantization type build, add the `GGML_NO_LLAMAFILE=1` flag. For example, use `make GGML_NO_LLAMAFILE=1`.
-    - For faster compilation, add the `-j` argument to run multiple jobs in parallel. For example, `make -j 8` will run 8 jobs in parallel.
-    - For faster repeated compilation, install [ccache](https://ccache.dev/).
-    - For debug builds, run `make LLAMA_DEBUG=1`
-
-- Using `CMake`:
-
-  ```bash
-  cmake -B build
-  cmake --build build --config Release
-  ```
-
-  **Notes**:
-
-    - For `Q4_0_4_4` quantization type build, add the `-DGGML_LLAMAFILE=OFF` cmake option. For example, use `cmake -B build -DGGML_LLAMAFILE=OFF`.
-    - For faster compilation, add the `-j` argument to run multiple jobs in parallel. For example, `cmake --build build --config Release -j 8` will run 8 jobs in parallel.
-    - For faster repeated compilation, install [ccache](https://ccache.dev/).
-    - For debug builds, there are two cases:
-
-      1. Single-config generators (e.g. default = `Unix Makefiles`; note that they just ignore the `--config` flag):
-
-      ```bash
-      cmake -B build -DCMAKE_BUILD_TYPE=Debug
-      cmake --build build
-      ```
-
-      2. Multi-config generators (`-G` param set to Visual Studio, XCode...):
-
-      ```bash
-      cmake -B build -G "Xcode"
-      cmake --build build --config Debug
-      ```
-    - Building for Windows (x86, x64 and arm64) with MSVC or clang as compilers:
-      - Install Visual Studio 2022, e.g. via the [Community Edition](https://visualstudio.microsoft.com/de/vs/community/). In the installer, select at least the following options (this also automatically installs the required additional tools like CMake,...):
-        - Tab Workload: Desktop-development with C++
-        - Tab Components (select quickly via search): C++-_CMake_ Tools for Windows, _Git_ for Windows, C++-_Clang_ Compiler for Windows, MS-Build Support for LLVM-Toolset (clang)
-      - Please remember to always use a Developer Command Prompt / PowerShell for VS2022 for git, build, test
-      - For Windows on ARM (arm64, WoA) build with:
-        ```bash
-        cmake --preset arm64-windows-llvm-release -D GGML_OPENMP=OFF
-        cmake --build build-arm64-windows-llvm-release
-        ```
-        Note: Building for arm64 could also be done just with MSVC (with the build-arm64-windows-MSVC preset, or the standard CMake build instructions). But MSVC does not support inline ARM assembly-code, used e.g. for the accelerated Q4_0_4_8 CPU kernels.
-
-## Metal Build
-
-On MacOS, Metal is enabled by default. Using Metal makes the computation run on the GPU.
-To disable the Metal build at compile time use the `GGML_NO_METAL=1` flag or the `GGML_METAL=OFF` cmake option.
-
-When built with Metal support, you can explicitly disable GPU inference with the `--n-gpu-layers|-ngl 0` command-line
-argument.
-
-## BLAS Build
-
-Building the program with BLAS support may lead to some performance improvements in prompt processing using batch sizes higher than 32 (the default is 512). Support with CPU-only BLAS implementations doesn't affect the normal generation performance. We may see generation performance improvements with GPU-involved BLAS implementations, e.g. cuBLAS, hipBLAS. There are currently several different BLAS implementations available for build and use:
-
-### Accelerate Framework:
-
-This is only available on Mac PCs and it's enabled by default. You can just build using the normal instructions.
-
-### OpenBLAS:
-- [Check Guide](./docs/openblas.md)
-
-### BLIS
-Check [BLIS.md](./backend/BLIS.md) for more information.
-
-### INTEL
-- [See Guide](./docs/intel.md)
-
-### CUDA
-- [See Guide](./docs/cuda.md)
-
-### MUSA
-- [See Guide](./docs/musa.md)
-
-
-### hipBLAS
-- [See Guide](./docs/hipblas.md)
-
-### VULCAN
-- [See Guide](./docs/vulcan.md)
-
-### CANN
-- [See Guide](./docs/cann.md)
-
-### Android
-
-To read documentation for how to build on Android, [click here](./docs/android.md)
-
-
-```
-          |\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\|
-          |/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/|
-          |\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\|
-          |_________________________________________|
-__________|                                         |__________
-__________|                                         |__________
-__________|                                         |__________
-__________|       /$$      /$$  /$$$$$$             |__________
-__________|      | $$$    /$$$ /$$__  $$            |__________
-__________|      | $$$$  /$$$$| $$  \ $$            |__________
-__________|      | $$ $$/$$ $$|  $$$$$$/            |__________
-__________|      | $$  $$$| $$ >$$__  $$            |__________
-__________|      | $$\  $ | $$| $$  \ $$            |__________
-__________|      | $$ \/  | $$|  $$$$$$/            |__________
-__________|      |__/     |__/ \______/             |__________
-__________|                                         |__________
-__________|           LLM MICROPROCESSOR            |__________
-__________|                                         |__________
-__________|_________________________________________|__________
-          |_________________________________________|
-          |\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\|
-          |/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/|
-          |\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\|
-```
