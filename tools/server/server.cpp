@@ -7301,16 +7301,19 @@ std::string M8_BANNER =
             return;
         }
 
-        const std::lock_guard<std::mutex> lock(g_session);
-        std::string id_session = get_uuid();
-        do {
-            id_session = get_uuid();
-        } while (GlobalSession.count(id_session)!=0);
+        std::string id_session = "";
+        m8p::M8System *m8;
+        {
+            const std::lock_guard<std::mutex> lock(g_session);
+            do {
+                id_session = get_uuid();
+            } while (GlobalSession.count(id_session)!=0);
 
-        m8p::M8System *m8 = m8p::M8P_Instance(id_session);
-        GlobalSession[id_session].name = id_session;
-        GlobalSession[id_session].exec_calls = 0;
-        GlobalSession[id_session].m8 = m8;
+            GlobalSession[id_session].name = id_session;
+            GlobalSession[id_session].exec_calls = 0;
+            GlobalSession[id_session].m8 = m8;
+            m8 = m8p::M8P_Instance(id_session);
+        }
 
         // res.set_header("Access-Control-Allow-Origin", "*");
 
@@ -7402,8 +7405,10 @@ std::string M8_BANNER =
             res_ok(res, Resp);
         }
 
-        // GlobalSession.erase(id_session);
-
+        {
+            const std::lock_guard<std::mutex> lock(g_session);
+            GlobalSession.erase(id_session);
+        }
         m8p::DestroyMP8(m8);
         // if (virtualvm!=nullptr){
         //     delete virtualvm;
