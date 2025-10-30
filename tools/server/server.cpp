@@ -5738,15 +5738,15 @@ public:
 std::map<std::string, M8Session> GlobalSession;
 
 std::string get_uuid() {
-    static random_device dev;
-    static mt19937 rng(dev());
+    static std::random_device dev;
+    static std::mt19937 rng(dev());
 
-    uniform_int_distribution<int> dist(0, 15);
+    std::uniform_int_distribution<int> dist(0, 15);
 
     const char *v = "0123456789abcdef";
     const bool dash[] = { 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 };
 
-    string res;
+    std::string res;
     for (int i = 0; i < 16; i++) {
         if (dash[i]) res += "-";
         res += v[dist(rng)];
@@ -7289,7 +7289,6 @@ std::string M8_BANNER =
     const auto handle_Run = [virtualvm, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
-        std::string id_session = get_uuid();
         json data = json::parse(req.body);
         if (data.count("code")==0) {
             res_error(res, format_error_response(".code property must contain valid code", ERROR_TYPE_INVALID_REQUEST));
@@ -7302,8 +7301,18 @@ std::string M8_BANNER =
             return;
         }
 
+        const std::lock_guard<std::mutex> lock(g_session);
+        std::string id_session = get_uuid();
+        // do {
+        //     id_session = get_uuid();
+        // } while (GlobalSession.count(id_session)!=0);
+
+        // m8p::M8System *m8 = m8p::M8P_Instance(id_session);
+        // GlobalSession[id_session].name = id_session;
+        // GlobalSession[id_session].exec_calls = 0;
+        // GlobalSession[id_session].m8 = m8;
+
         // res.set_header("Access-Control-Allow-Origin", "*");
-        m8p::M8System *m8 = m8p::M8P_Instance("http-session-m8");
 
         try {
             // will handle all custom instr
@@ -7394,6 +7403,7 @@ std::string M8_BANNER =
         }
 
         // GlobalSession.erase(id_session);
+
         m8p::DestroyMP8(m8);
         // if (virtualvm!=nullptr){
         //     delete virtualvm;
