@@ -6923,8 +6923,8 @@ std::string M8_BANNER =
         std::string id_session = req.path_params.at("id_session");
         m8p::__trim(id_session);
 
-        if (id_session.size()==0 || id_session.size()>50) {
-            res_error(res, format_error_response(".id_session property must be between (0,50) size", ERROR_TYPE_INVALID_REQUEST));
+        if (id_session.size()==0 || id_session.size()>150) {
+            res_error(res, format_error_response(".id_session property must be between (0,150) size", ERROR_TYPE_INVALID_REQUEST));
             return;          
         }
 
@@ -6966,8 +6966,8 @@ std::string M8_BANNER =
         std::string id_session = req.path_params.at("id_session");
         m8p::__trim(id_session);
 
-        if (id_session.size()==0 || id_session.size()>50) {
-            res_error(res, format_error_response(".id_session property must be between (0,50) size", ERROR_TYPE_INVALID_REQUEST));
+        if (id_session.size()==0 || id_session.size()>150) {
+            res_error(res, format_error_response(".id_session property must be between (0,150) size", ERROR_TYPE_INVALID_REQUEST));
             return;
         }
 
@@ -6983,7 +6983,7 @@ std::string M8_BANNER =
             return;
         }
 
-        // XXX: LOC HERE
+        // XXX: LOCK HERE
         {
             const std::lock_guard<std::mutex> lock(g_session);
             if (GlobalSession.count(id_session)==0) {
@@ -7268,6 +7268,7 @@ std::string M8_BANNER =
         }
     };
 
+    // dry-Run
     const auto handle_Run = [virtualvm, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
@@ -7364,20 +7365,17 @@ std::string M8_BANNER =
 
         } catch (std::exception & e) {
             // message = e.what();
-            // json Resp;
-            // Resp["Status"] = "FAILED";
-            // Resp["R"] = "An error ocurred: on session execution";
-            // Resp["Trace"] = e.what();
-            // std::cout << "ERROR: " 
-            //     << e.what()
-            //     << std::endl;
-            // res_ok(res, Resp);
+            json Resp;
+            Resp["Status"] = "FAILED";
+            Resp["R"] = "An error ocurred: on session execution";
+            Resp["Trace"] = e.what();
+            std::cout << "ERROR: " 
+                << e.what()
+                << std::endl;
+            res_ok(res, Resp);
         }
 
-        if (m8!=nullptr) {
-            m8p::DestroyMP8(m8);
-        }
-
+        m8p::DestroyMP8(m8);
         // if (virtualvm!=nullptr){
         //     delete virtualvm;
         //     virtualvm=nullptr;

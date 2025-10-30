@@ -2030,12 +2030,6 @@ namespace m8p {
 
         if (REG.count(rdest)) {
             M8_Obj *R = REG[rdest];
-            if (R==nullptr){
-                return std::make_pair(
-                    errorf("NULL_REGISTER["+Value+"]"),
-                    M8->nilValue
-                );
-            }
             if (is_nil(M8, R)){
                 return std::make_pair(
                     errorf("NIL_REGISTER["+Value+"]"),
