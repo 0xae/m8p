@@ -4425,7 +4425,7 @@ struct instance_data {
 };
 
 // std::map<std::string, vectordb_index> G_Vector_DB;
-std::map<std::string, instance_data> LLMInstance_DB;
+// std::map<std::string, instance_data> LLMInstance_DB;
 std::map<std::string, M8Session> GlobalSession;
 
 //
@@ -4786,7 +4786,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         );
     }
 
-    std::map<std::string, instance_data> &LLMDB = LLMInstance_DB;
+    std::string sessionId = M8->Name;
+    std::map<std::string, instance_data> &LLMDB = GlobalSession[sessionId].LLMInstance_DB;
+
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
 
     // llm_instance <r1> I001 n_predict=20 async=True|false frequency_penalty=123
@@ -5009,8 +5011,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
     // llm_instancestatus I001 <r2>
     // r2 => 0|2
     // r2 => <text>
+    std::string sessionId = M8->Name;
+    std::map<std::string, instance_data> &LLMDB = GlobalSession[sessionId].LLMInstance_DB;
 
-    std::map<std::string, instance_data> &LLMDB = LLMInstance_DB;
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
 
     std::string ins_name = params.at(1);// instance name
