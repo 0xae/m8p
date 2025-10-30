@@ -7286,7 +7286,7 @@ std::string M8_BANNER =
     };
 
     // dry-Run
-    const auto handle_Run = [virtualvm, &res_error, &res_ok](
+    const auto handle_Run = [virtualvm, &g_session, &GlobalSession,  &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
         json data = json::parse(req.body);
