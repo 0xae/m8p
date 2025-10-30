@@ -696,6 +696,8 @@ struct server_task_result {
 // using shared_ptr for polymorphism of server_task_result
 using server_task_result_ptr = std::unique_ptr<server_task_result>;
 
+std::string get_uuid();
+
 static inline std::string stop_type_to_str(stop_type type) {
     switch (type) {
         case STOP_TYPE_EOS:   return "eos";
@@ -5689,10 +5691,8 @@ public:
 
         } else if (opCode=="llm_tokenize") {
             return LLM_TOKENIZE(this->ctx_server, M8, params);
-
         } else if (opCode=="llm_embed") {
             return LLM_EMBED(this->ctx_server, M8, params);
-
         } else if (opCode=="llm_detokenize") {
             return LLM_DETOKENIZE(this->ctx_server, M8, params);
 
@@ -5737,6 +5737,23 @@ public:
 
 std::map<std::string, M8Session> GlobalSession;
 
+std::string get_uuid() {
+    static random_device dev;
+    static mt19937 rng(dev());
+
+    uniform_int_distribution<int> dist(0, 15);
+
+    const char *v = "0123456789abcdef";
+    const bool dash[] = { 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 };
+
+    string res;
+    for (int i = 0; i < 16; i++) {
+        if (dash[i]) res += "-";
+        res += v[dist(rng)];
+        res += v[dist(rng)];
+    }
+    return res;
+}
 
 
 int main(int argc, char ** argv) {
@@ -7272,6 +7289,7 @@ std::string M8_BANNER =
     const auto handle_Run = [virtualvm, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
+        std::string id_session = get_uuid();
         json data = json::parse(req.body);
         if (data.count("code")==0) {
             res_error(res, format_error_response(".code property must contain valid code", ERROR_TYPE_INVALID_REQUEST));
@@ -7375,6 +7393,7 @@ std::string M8_BANNER =
             res_ok(res, Resp);
         }
 
+        // GlobalSession.erase(id_session);
         m8p::DestroyMP8(m8);
         // if (virtualvm!=nullptr){
         //     delete virtualvm;
