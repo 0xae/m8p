@@ -31,6 +31,11 @@ Check AVX support
 g++ -mavx512f -mavx512vnni -mavx512bf16 -dM -E - < /dev/null | grep AVX
 ```
 
+Build to enable AVX (Advanced vector eXtensions)
+```bash
+cp flags.make tools/server/CMakeFiles/llama-server.dir && make -j 4 llama-server && cp flags.make tools/server/CMakeFiles/llama-server.dir
+```
+
 Complete List:
 ```bash
 # SSE (ancient, ~2001)

@@ -4424,15 +4424,11 @@ struct instance_data {
     json arr;
 };
 
-// std::map<std::string, vectordb_index> G_Vector_DB;
-// std::map<std::string, instance_data> LLMInstance_DB;
 std::map<std::string, M8Session> GlobalSession;
 
 //
 // DECLARATIONS
 //
-
-
 std::pair<m8p::M8_Error, m8p::M8_Obj*> GPT_PARAMS(
     common_params *gpt_params,
     m8p::M8System* M8, 

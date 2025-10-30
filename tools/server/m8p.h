@@ -270,6 +270,7 @@ namespace m8p {
 #ifdef __AVX__
     std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params);
+    std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> MatCosim_OP(M8System* M8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> MatL2Dist_OP(M8System* M8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> MatMul3_OP(M8System* M8, std::vector<std::string> params);
@@ -2420,7 +2421,7 @@ namespace m8p {
         int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
         if (psize<3) {
             return std::make_pair(
-                errorf("matl2d requires (3) three parameters"),
+                errorf("matl2d requires (3) three parameters (input1, input2, result)"),
                 M8->nilValue
             );
         }
@@ -2495,6 +2496,39 @@ namespace m8p {
             M8_Err_nil,
             REG[rdest]
         );
+    }
+
+    std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params) {
+        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+        if (params.size() < 2) {
+            return std::make_pair(errorf("matnorm requires input and output register"), M8->nilValue);
+        }
+
+        std::string src = params.at(1);
+        std::string dst = params.at(2);
+
+        auto &REG = M8->Registers;
+        M8_Obj *A = REG[src];
+
+        if (!A || A->Type != MP8_DF32) {
+            return std::make_pair(errorf("matnorm: "+src.c_str()+" is not a matrix"), M8->nilValue);
+        }
+
+        std::vector<float> &vec = A->AR_F32;
+        float sumsq = 0.0f;
+        for (float v : vec) sumsq += v * v;
+        float norm = sqrtf(sumsq);
+
+        if (norm == 0.0f) {
+            return std::make_pair(errorf("matnorm: zero vector cannot be normalized"), M8->nilValue);
+        }
+
+        REG[dst] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+        for (size_t i = 0; i < vec.size(); ++i) {
+            normed[i] = vec[i] / norm;
+            REG[dst]->AR_F32.push_back(normed);
+        }
+        return std::make_pair(M8_Err_nil, REG[dst]);
     }
 
     std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params){
@@ -3457,6 +3491,9 @@ namespace m8p {
 
             } else if (opCode=="matdot") {
                 lastRet = MatDotProd_OP(M8, instr_tokens);
+
+            } else if (opCode=="matnorm") {
+                lastRet = MatNorm_OP(M8, instr_tokens);
 
             } else if (opCode=="matcosim") {
                 lastRet = MatCosim_OP(M8, instr_tokens);
