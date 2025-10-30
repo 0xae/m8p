@@ -2511,7 +2511,7 @@ namespace m8p {
         M8_Obj *A = REG[src];
 
         if (!A || A->Type != MP8_DF32) {
-            return std::make_pair(errorf("matnorm: "+src.c_str()+" is not a matrix"), M8->nilValue);
+            return std::make_pair(errorf("matnorm: "+src+" is not a matrix"), M8->nilValue);
         }
 
         std::vector<float> &vec = A->AR_F32;
