@@ -4386,17 +4386,22 @@ inline void signal_handler(int signal) {
     shutdown_handler(signal);
 }
 
+class LLamaInstr;
+struct M8MemorySession;
+struct vectordb_index;
+struct instance_data;
+struct M8Session;
+
+
 struct M8Session {
     std::string name;
     int32_t exec_calls;
     std::mutex rlock;
     bool IsLock = false;
     m8p::M8System *m8;
+    std::map<std::string, vectordb_index> G_Vector_DB;
+    std::map<std::string, instance_data> LLMInstance_DB;
 };
-
-class LLamaInstr;
-struct M8MemorySession;
-struct vectordb_index;
 
 struct vectordb_index {
     int Status=2; // 1=OK, 0=FAILED, 2=PENDING
@@ -4484,7 +4489,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
         server_context *server,
         m8p::M8System* M8, 
-        std::vector<std::string> params) {
+        std::vector<std::string> params) 
+{
 
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize<2) {
@@ -4638,8 +4644,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_TOKENIZE(
         server_context *server,
         m8p::M8System* M8, 
-        std::vector<std::string> params) {
-
+        std::vector<std::string> params) 
+{
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize!=2) {
         return std::make_pair(
@@ -4699,8 +4705,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_TOKENIZE(
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_DETOKENIZE(
         server_context *server,
         m8p::M8System* M8, 
-        std::vector<std::string> params) {
-
+        std::vector<std::string> params) 
+{
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize<2) {
         return std::make_pair(
@@ -5096,6 +5102,153 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
 
 // BEGIN HNSWLIB
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
+    server_context *ctx_server,
+    m8p::M8System* M8, 
+    std::vector<std::string> params) 
+{
+    // vdb_instance MY_STORE dim=10 max_elements=2000 ef_construction=200  M=16
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize < 1) {
+        return std::make_pair(
+            m8p::errorf("vdb_instance requires at least 1 parameter (instance name, Register), options(dim=16 max_elements=500 M=16 ef_construction=200)"),
+            M8->nilValue
+        );
+    }
+
+    std::string sessionId = M8->Name;
+    std::map<std::string, vectordb_index> &VectorDB = GlobalSession[sessionId].G_Vector_DB;
+    std::string ins_name = params.at(1); // instance name
+    m8p::__trim(ins_name);
+
+    // int dim = 16;               // Dimension of the elements
+    int32_t dim = 16;               // Dimension of the elements
+    int32_t max_elements = 500;   // Maximum number of elements, should be known beforehand
+    int M = 16;                 // Tightly connected with internal dimensionality of the data
+                                // strongly affects the memory consumption
+    int ef_construction = 200;  // Controls index search speed/build speed tradeoff
+
+    if (psize>1) {
+        std::map<std::string, std::string> options;
+        options = m8p::parseOptions(2, params);
+
+        if (options.count("dim")>0) {
+            int32_t number=0;
+            std::string Value = options["dim"];
+            try {
+                number=std::stof(Value);
+                dim = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[dim, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        if (options.count("max_elements")>0) {
+            int32_t number=0;
+            std::string Value = options["max_elements"];
+            try {
+                number=std::stof(Value);
+                max_elements = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[max_elements, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        if (options.count("ef_construction")>0) {
+            int32_t number=0;
+            std::string Value = options["ef_construction"];
+            try {
+                number=std::stof(Value);
+                ef_construction = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[ef_construction, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        if (options.count("M")>0) {
+            int32_t number=0;
+            std::string Value = options["M"];
+            try {
+                number=std::stof(Value);
+                M = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[M, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+    }
+
+    if (VectorDB.count(ins_name) > 0) {
+        // instance_data &Ref = LLMDB[ins_name];
+        // instance_data &Ref = LLMDB[ins_name];
+        // REG[rdest] = m8_obj(M8, (int32_t)Ref.Status);
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->true_
+        );
+
+    } else {
+        hnswlib::L2Space *space = new hnswlib::L2Space(dim);
+        hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(space, max_elements, M, ef_construction);
+
+        std::mt19937 rng;
+        rng.seed(47);
+        std::uniform_real_distribution<> distrib_real;
+
+        float* data = new float[dim*max_elements];
+        for (int i = 0; i < dim*max_elements; i++) {
+            data[i] = distrib_real(rng);
+            // data[i] = -1;
+        }
+
+        for (int i=0; i<max_elements; i++) {
+            alg_hnsw->addPoint(data + (i*dim), i);
+        }
+
+        float correct = 0;
+        for (int i = 0; i < max_elements; i++) {
+            // float *idx = data + i * dim;
+            // std::cout << "idx = [";
+            // for (int j=0; j<dim; j++) {
+            //     std::cout << idx[j] << ",";
+            // }
+            // std::cout << "]\n";
+            std::priority_queue<std::pair<float, hnswlib::labeltype>> result = alg_hnsw->searchKnn(data + i * dim, 1);
+            hnswlib::labeltype label = result.top().second;
+            if (label == i) correct++;
+        }
+
+        float recall = correct / max_elements;
+        std::cout << "Recall: " << recall << "\n";
+
+        VectorDB[ins_name].Status=1;
+        VectorDB[ins_name].space = space;
+        VectorDB[ins_name].dim = dim;
+        VectorDB[ins_name].max_elements = max_elements;
+        VectorDB[ins_name].M = M;
+        VectorDB[ins_name].lastIndex = 0;
+        VectorDB[ins_name].store = alg_hnsw;
+        VectorDB[ins_name].rowstore = data;
+
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->_1
+        );
+    }
+
+}
+
 std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE_DESTROY(
         server_context *ctx_server,
         m8p::M8System* M8, 
@@ -5455,151 +5608,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
     }
 }
 
-std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
-    server_context *ctx_server,
-    m8p::M8System* M8, 
-    std::vector<std::string> params) 
-{
-    // vdb_instance MY_STORE dim=10 max_elements=2000 ef_construction=200  M=16
-    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
-    if (psize < 1) {
-        return std::make_pair(
-            m8p::errorf("vdb_instance requires at least 1 parameter (instance name, Register), options(dim=16 max_elements=500 M=16 ef_construction=200)"),
-            M8->nilValue
-        );
-    }
 
-    std::map<std::string, vectordb_index> &VectorDB = G_Vector_DB;
-    std::string ins_name = params.at(1); // instance name
-    m8p::__trim(ins_name);
-
-    // int dim = 16;               // Dimension of the elements
-    int32_t dim = 16;               // Dimension of the elements
-    int32_t max_elements = 500;   // Maximum number of elements, should be known beforehand
-    int M = 16;                 // Tightly connected with internal dimensionality of the data
-                                // strongly affects the memory consumption
-    int ef_construction = 200;  // Controls index search speed/build speed tradeoff
-
-    if (psize>1) {
-        std::map<std::string, std::string> options;
-        options = m8p::parseOptions(2, params);
-
-        if (options.count("dim")>0) {
-            int32_t number=0;
-            std::string Value = options["dim"];
-            try {
-                number=std::stof(Value);
-                dim = number;
-            } catch (const std::invalid_argument& ia) {
-                return std::make_pair(
-                    m8p::errorf("EXPECTING_INT32[dim, "+Value+"]"),
-                    M8->nilValue
-                );
-            }
-        }
-
-        if (options.count("max_elements")>0) {
-            int32_t number=0;
-            std::string Value = options["max_elements"];
-            try {
-                number=std::stof(Value);
-                max_elements = number;
-            } catch (const std::invalid_argument& ia) {
-                return std::make_pair(
-                    m8p::errorf("EXPECTING_INT32[max_elements, "+Value+"]"),
-                    M8->nilValue
-                );
-            }
-        }
-
-        if (options.count("ef_construction")>0) {
-            int32_t number=0;
-            std::string Value = options["ef_construction"];
-            try {
-                number=std::stof(Value);
-                ef_construction = number;
-            } catch (const std::invalid_argument& ia) {
-                return std::make_pair(
-                    m8p::errorf("EXPECTING_INT32[ef_construction, "+Value+"]"),
-                    M8->nilValue
-                );
-            }
-        }
-
-        if (options.count("M")>0) {
-            int32_t number=0;
-            std::string Value = options["M"];
-            try {
-                number=std::stof(Value);
-                M = number;
-            } catch (const std::invalid_argument& ia) {
-                return std::make_pair(
-                    m8p::errorf("EXPECTING_INT32[M, "+Value+"]"),
-                    M8->nilValue
-                );
-            }
-        }
-    }
-
-    if (VectorDB.count(ins_name) > 0) {
-        // instance_data &Ref = LLMDB[ins_name];
-        // instance_data &Ref = LLMDB[ins_name];
-        // REG[rdest] = m8_obj(M8, (int32_t)Ref.Status);
-        return std::make_pair(
-            m8p::M8_Err_nil,
-            M8->true_
-        );
-
-    } else {
-        hnswlib::L2Space *space = new hnswlib::L2Space(dim);
-        hnswlib::HierarchicalNSW<float>* alg_hnsw = new hnswlib::HierarchicalNSW<float>(space, max_elements, M, ef_construction);
-
-        std::mt19937 rng;
-        rng.seed(47);
-        std::uniform_real_distribution<> distrib_real;
-
-        float* data = new float[dim*max_elements];
-        for (int i = 0; i < dim*max_elements; i++) {
-            data[i] = distrib_real(rng);
-            // data[i] = -1;
-        }
-
-        for (int i=0; i<max_elements; i++) {
-            alg_hnsw->addPoint(data + (i*dim), i);
-        }
-
-        float correct = 0;
-        for (int i = 0; i < max_elements; i++) {
-            // float *idx = data + i * dim;
-            // std::cout << "idx = [";
-            // for (int j=0; j<dim; j++) {
-            //     std::cout << idx[j] << ",";
-            // }
-            // std::cout << "]\n";
-            std::priority_queue<std::pair<float, hnswlib::labeltype>> result = alg_hnsw->searchKnn(data + i * dim, 1);
-            hnswlib::labeltype label = result.top().second;
-            if (label == i) correct++;
-        }
-
-        float recall = correct / max_elements;
-        std::cout << "Recall: " << recall << "\n";
-
-        VectorDB[ins_name].Status=1;
-        VectorDB[ins_name].space = space;
-        VectorDB[ins_name].dim = dim;
-        VectorDB[ins_name].max_elements = max_elements;
-        VectorDB[ins_name].M = M;
-        VectorDB[ins_name].lastIndex = 0;
-        VectorDB[ins_name].store = alg_hnsw;
-        VectorDB[ins_name].rowstore = data;
-
-        return std::make_pair(
-            m8p::M8_Err_nil,
-            M8->_1
-        );
-    }
-
-}
 
 // END HNSWLIB
 
