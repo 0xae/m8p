@@ -7303,14 +7303,14 @@ std::string M8_BANNER =
 
         const std::lock_guard<std::mutex> lock(g_session);
         std::string id_session = get_uuid();
-        // do {
-        //     id_session = get_uuid();
-        // } while (GlobalSession.count(id_session)!=0);
+        do {
+            id_session = get_uuid();
+        } while (GlobalSession.count(id_session)!=0);
 
-        // m8p::M8System *m8 = m8p::M8P_Instance(id_session);
-        // GlobalSession[id_session].name = id_session;
-        // GlobalSession[id_session].exec_calls = 0;
-        // GlobalSession[id_session].m8 = m8;
+        m8p::M8System *m8 = m8p::M8P_Instance(id_session);
+        GlobalSession[id_session].name = id_session;
+        GlobalSession[id_session].exec_calls = 0;
+        GlobalSession[id_session].m8 = m8;
 
         // res.set_header("Access-Control-Allow-Origin", "*");
 
