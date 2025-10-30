@@ -2525,8 +2525,7 @@ namespace m8p {
 
         REG[dst] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
         for (size_t i = 0; i < vec.size(); ++i) {
-            normed[i] = vec[i] / norm;
-            REG[dst]->AR_F32.push_back(normed);
+            REG[dst]->AR_F32.push_back(vec[i] / norm);
         }
         return std::make_pair(M8_Err_nil, REG[dst]);
     }
