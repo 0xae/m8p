@@ -4424,8 +4424,9 @@ struct instance_data {
     json arr;
 };
 
-std::map<std::string, vectordb_index> G_Vector_DB;
+// std::map<std::string, vectordb_index> G_Vector_DB;
 std::map<std::string, instance_data> LLMInstance_DB;
+std::map<std::string, M8Session> GlobalSession;
 
 //
 // DECLARATIONS
@@ -5265,7 +5266,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE_DESTROY(
     std::string ins_name = params.at(1);
     m8p::__trim(ins_name);
 
-    std::map<std::string, vectordb_index> &VectorDB = G_Vector_DB;
+    std::string sessionId = M8->Name;
+    std::map<std::string, vectordb_index> &VectorDB = GlobalSession[sessionId].G_Vector_DB;
 
     if (VectorDB.count(ins_name)==0) {
         return std::make_pair(
@@ -5309,7 +5311,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
     m8p::__trim(rsource);
 
     // dif32_ary
-    std::map<std::string, vectordb_index> &VectorDB = G_Vector_DB;
+    std::string sessionId = M8->Name;
+    std::map<std::string, vectordb_index> &VectorDB = GlobalSession[sessionId].G_Vector_DB;
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
 
     std::string str_def =  "<__0NONE>";
@@ -5469,7 +5472,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
     m8p::__trim(rdest);
 
     // dim32_ary
-    std::map<std::string, vectordb_index> &VectorDB = G_Vector_DB;
+    std::string sessionId = M8->Name;
+    std::map<std::string, vectordb_index> &VectorDB = GlobalSession[sessionId].G_Vector_DB;
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
 
     if (VectorDB.count(ins_name)==0) {
@@ -5743,8 +5747,6 @@ public:
 };
 
 // std::string piped_output(gpt_params *params, std::string query);
-
-std::map<std::string, M8Session> GlobalSession;
 
 std::string get_uuid() {
     static std::random_device dev;
