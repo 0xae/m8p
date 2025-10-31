@@ -128,6 +128,7 @@ namespace m8p {
 
     const int MP8_DI32 = 13;
     const int MP8_DF32 = 14;
+    const int MP8_MATRIX = MP8_DF32;
 
     const int MP8_ERR = 15;
     const int ERR_NIL = 16;
@@ -1568,13 +1569,7 @@ namespace m8p {
     }
 
     bool IsValid_DF32(M8System* M8, M8_Obj* R) {
-        if (R==nullptr){
-            return false;
-        }
-        if (is_nil(M8, R)){
-            return false;
-        }
-        if (R->Type!=MP8_DF32) {
+        if (R==nullptr || is_nil(M8, R) || R->Type!=MP8_DF32) {
             return false;
         }
         return true;
@@ -1591,7 +1586,7 @@ namespace m8p {
     }
 
     #ifdef __AVX__
-        // inline_matop operates on AVX_V_SIZE matrix
+        // inline_matop operates on AVX_V_SIZE matrices
         bool inline_matop(std::string op, std::vector<float> &i1, std::vector<float> &i2, std::vector<float> &out) {
             if (i1.size()!=AVX_V_SIZE || i1.size()!=i2.size()) {
                 return false;
@@ -1644,6 +1639,67 @@ namespace m8p {
             }
 
             return true;
+        }
+
+        std::pair<M8_Error, M8_Obj*> MatAddFlex_OP(M8System* M8, std::vector<std::string> params) {
+            int psize = __abs(params.size()-1);
+            if (params.size()<3) {
+                return std::make_pair(
+                    errorf("xmatadd requires 3 parameters"),
+                    M8->nilValue
+                );
+            }
+
+            const std::string rA = params[1];
+            const std::string rB = params[2];
+            const std::string rOut = params[3];
+
+            auto& REG = M8->Registers;
+            M8_Obj* A = REG[rA];
+            M8_Obj* B = REG[rB];
+
+            if (!IsValid_DF32(A) || !IsValid_DF32(B)) {
+                return std::make_pair(
+                    errorf("xmatadd operands must be matrices"),
+                    M8->nilValue
+                );
+            }
+
+            auto& vA = A->AR_F32;
+            auto& vB = B->AR_F32;
+            size_t N = std::min(vA.size(), vB.size());
+
+            std::vector<float> result(N, 0.0f);
+
+            const size_t CHUNK = AVX_V_SIZE;
+            size_t i = 0;
+            std::vector<float> temp;
+
+            for (; i + CHUNK<=N; i+=CHUNK) {
+                // Slice CHUNK elements from each vector
+                std::vector<float> subA(vA.begin() + i, vA.begin() + i + CHUNK);
+                std::vector<float> subB(vB.begin() + i, vB.begin() + i + CHUNK);
+
+                // inline_matop will clear temp, so we can reuse-it
+                if(inline_matop("add", subA, subB, temp)){
+                    std::copy(temp.begin(), temp.end(), result.begin()+i);
+                } else {
+                    return std::make_pair(
+                        errorf("OPERATION FAILED"),
+                        M8->nilValue
+                    );
+                }
+            }
+
+            // Scalar fallback for remainder
+            for (; i<N; ++i) {
+                result[i] = vA[i] + vB[i];
+            }
+
+            // Store result
+            REG[rOut] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+            REG[rOut]->AR_F32 = result;
+            return std::make_pair(M8_Err_nil, REG[rOut]);
         }
 
         // std::pair<M8_Error, M8_Obj*> matmul(M8System* M8, std::vector<std::string> params);
