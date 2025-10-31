@@ -235,7 +235,7 @@ namespace m8p {
     std::pair<M8_Error, M8_Obj*> Ret_OP(M8System* M8, std::vector<std::string> params);
     // AVX SUPPORT
     #ifdef __AVX__
-        void inline_matop(std::string op, std::vector<float>&, std::vector<float>&, std::vector<float>&);
+        bool inline_matop(std::string op, std::vector<float>&, std::vector<float>&, std::vector<float>&);
         std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatN_OP(std::string op, M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params);
@@ -1592,7 +1592,11 @@ namespace m8p {
 
     #ifdef __AVX__
         // inline_matop operates on AVX_V_SIZE matrix
-        void inline_matop(std::string op, std::vector<float> &i1, std::vector<float> &i2, std::vector<float> &out) {
+        bool inline_matop(std::string op, std::vector<float> &i1, std::vector<float> &i2, std::vector<float> &out) {
+            if (i1.size()!=AVX_V_SIZE || i1.size()!=i2.size()) {
+                return false;
+            }
+
             float matrix[AVX_V_SIZE];
             float matrix_val[AVX_V_SIZE];
             std::copy(i1.begin(), i1.end(), matrix);
