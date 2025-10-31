@@ -237,6 +237,7 @@ namespace m8p {
     // AVX SUPPORT
     #ifdef __AVX__
         bool inline_matop(std::string op, std::vector<float>&, std::vector<float>&, std::vector<float>&);
+        std::pair<M8_Error, M8_Obj*> MatFlex_OP(std::string op, M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatN_OP(std::string op, M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params);
@@ -1641,11 +1642,11 @@ namespace m8p {
             return true;
         }
 
-        std::pair<M8_Error, M8_Obj*> MatAddFlex_OP(M8System* M8, std::vector<std::string> params) {
+        std::pair<M8_Error, M8_Obj*> MatFlex_OP(std::string op, M8System* M8, std::vector<std::string> params) {
             int psize = __abs(params.size()-1);
             if (params.size()<3) {
                 return std::make_pair(
-                    errorf("xmatadd requires 3 parameters"),
+                    errorf(params[0] + " requires 3 parameters"),
                     M8->nilValue
                 );
             }
@@ -1681,7 +1682,7 @@ namespace m8p {
                 std::vector<float> subB(vB.begin() + i, vB.begin() + i + CHUNK);
 
                 // inline_matop will clear temp, so we can reuse-it
-                if(inline_matop("add", subA, subB, temp)){
+                if(inline_matop(op, subA, subB, temp)){
                     std::copy(temp.begin(), temp.end(), result.begin()+i);
                 } else {
                     return std::make_pair(
@@ -2776,6 +2777,13 @@ namespace m8p {
             } else if (opCode=="align") {
                 lastRet = ALIGN_OP(M8, instr_tokens);
             #ifdef __AVX__
+                        } else if (opCode=="xmatadd") {
+                            lastRet = MatFlex_OP("add", M8, instr_tokens);
+                        } else if (opCode=="xmatsub") {
+                            lastRet = MatFlex_OP("sub", M8, instr_tokens);
+                        } else if (opCode=="xmatmul") {
+                            lastRet = MatFlex_OP("mul", M8, instr_tokens);
+
                         } else if (opCode=="matadd") {
                             lastRet = Mat8_OP("add", M8, instr_tokens);
 
