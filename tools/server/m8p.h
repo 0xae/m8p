@@ -198,39 +198,6 @@ namespace m8p {
         M8_Obj *_10 = nullptr;
     };
 
-    struct prompt_obj {
-        string value;
-        vector<int32_t> embed;
-        vector<string> categories;
-    };
-
-    struct train_db {
-        bool Valid = false;
-        set<string> categories;
-        vector<prompt_obj> prompts;
-    };
-
-    struct doc_def {
-        int32_t count;
-        vector<int32_t> tokens;
-    };
-    // struct train_memory {
-    //     bool Valid=false;
-    //     std::map<string, std::map<string, int32_t>> DistTable;
-    //     std::map<string, int32_t> CatCounts;
-    //     string name;
-    //     string date;
-    // };
-    struct train_memory {
-        bool Valid=false;
-        std::map<string, std::map<string, int32_t>> DistTable;
-        std::map<string, int32_t> CatCounts;
-        std::map<string, int32_t> GCounts;
-        set<string> groups;
-        string name;
-        string date;
-    };
-
     // M8_Obj *errValue = nullptr;
 
     M8_Obj* m8_obj_list(M8System *M8, std::vector<M8_Obj*> AR_OBJ);
@@ -267,16 +234,16 @@ namespace m8p {
     std::pair<M8_Error, M8_Obj*> Load_OP(M8System* M8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> Ret_OP(M8System* M8, std::vector<std::string> params);
     // AVX SUPPORT
-#ifdef __AVX__
-    std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params);
-    std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params);
-    std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params);
-    std::pair<M8_Error, M8_Obj*> MatCosim_OP(M8System* M8, std::vector<std::string> params);
-    std::pair<M8_Error, M8_Obj*> MatL2Dist_OP(M8System* M8, std::vector<std::string> params);
-    std::pair<M8_Error, M8_Obj*> MatMul3_OP(M8System* M8, std::vector<std::string> params);
-    std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params);
-    std::pair<M8_Error, M8_Obj*> MatN_OP(std::string op, M8System* M8, std::vector<std::string> params);
-#endif
+    #ifdef __AVX__
+        std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> MatCosim_OP(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> MatL2Dist_OP(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> MatMul3_OP(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> MatN_OP(std::string op, M8System* M8, std::vector<std::string> params);
+    #endif
     // matrix api
     std::pair<M8_Error, M8_Obj*> Mat8Set_OP(M8System* M8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> ALIGN8_OP(M8System* M8, std::vector<std::string> params);
@@ -644,612 +611,6 @@ namespace m8p {
     int __abs(int32_t v) {
         return v>0? v : -v;
     }
-
-    //
-    // ALL API
-    //
-
-    //
-    // TRAINING API
-    //
-    train_db create_train_db(string &filename) {
-        train_db TRAIN;
-        TRAIN.Valid=false;
-        std::cout << "Reading: " 
-                  << filename 
-                  << "\n" 
-                  << std::endl;
-
-        std::ifstream file(filename.c_str());
-
-        if (!file.is_open()) {
-            fprintf(stderr, "Error: could not open file %s\n", filename.c_str());
-            // check Va
-            return TRAIN;
-        }
-
-        string Line;
-        while (std::getline(file, Line)) {
-            __trim(Line);
-            if (Line=="") {
-                continue;
-            }
-
-            if (Line.rfind("##",0) == 0) { 
-                auto pos_1=Line.rfind("##",0);
-                std::string buf = Line.substr(pos_1+2);
-                __trim(buf);
-
-                if (buf.find("{")!=string::npos) {
-                    if (buf.find("}")==string::npos) {
-                        std::cout << "Malformed category Instruction. Missing closing brace }\n"; 
-                        continue;
-                    }
-                    
-                    std::string catBuf = buf.substr(buf.find("{")+1, buf.find("}")-1);
-                    auto RList = __split_no_empty(catBuf, ",");
-                    prompt_obj PMT;
-                    PMT.value = buf.substr(buf.find("}")+1);;
-
-                    for (string &Token : RList) {
-                        __trim(Token);
-                        if (Token=="") continue;
-                        PMT.categories.push_back(Token);
-                        TRAIN.categories.insert(Token);
-                    }
-                    TRAIN.prompts.push_back(PMT);
-
-                } else {
-                    prompt_obj PMT;
-                    PMT.value = buf;
-                    TRAIN.prompts.push_back(PMT);
-                }
-
-
-            } else if (Line.rfind("[]",0) == 0) {
-                // auto pos_1=Line.rfind("[]",0);
-                // std::string buf = Line.substr(pos_1+2);
-            } else {
-                std::cout << "Invalid Instruction: " 
-                          << "["
-                          << Line
-                          << "]\n"
-                          << std::endl;
-            }
-
-        }
-
-        TRAIN.Valid = true;
-        return TRAIN;
-    }
-
-    std::set<string> make_tuples(std::vector<std::string> &WTokens) {
-        size_t wtlen = WTokens.size();
-        set<string> seq;
-
-        if (wtlen==0) {
-            return seq;
-        } else if (wtlen == 1) {
-            __trim(WTokens[0]);
-            if (WTokens[0] != "") {                
-                string Key=WTokens[0]+" <NOP>";
-                string Key2="<NOP> "+ WTokens[0];
-                seq.insert(Key);
-                seq.insert(Key2);
-            }
-
-        } else if (wtlen==2) {
-            string Key=WTokens[0]+" "+WTokens[1];
-            string Key2=WTokens[1]+" "+WTokens[0];
-            seq.insert(Key);
-            seq.insert(Key2);
-
-        } else if (wtlen==3) {
-            string Key=WTokens[0]+" "+WTokens[1];
-            string Key2=WTokens[1]+" "+WTokens[2];
-            string Key3=WTokens[0]+" "+WTokens[2];
-            seq.insert(Key);
-            seq.insert(Key2);
-            seq.insert(Key3);
-
-        } else if (wtlen==4) {
-            seq.insert(WTokens[0]+" "+WTokens[2]);
-            seq.insert(WTokens[1]+" "+WTokens[2]);
-            string Key=WTokens[0]+" "+WTokens[1];
-            string Key2=WTokens[2]+" "+WTokens[3];
-            seq.insert(Key);
-            seq.insert(Key2);
-
-        } else if (wtlen==5) {
-            {
-                string Key=WTokens[0]+" "+WTokens[1];
-                string Key2=WTokens[1]+" "+WTokens[2];
-                string Key3=WTokens[0]+" "+WTokens[2];
-                seq.insert(Key);
-                seq.insert(Key2);
-                seq.insert(Key3);
-            }
-            string Key=WTokens[0]+" "+WTokens[1]+" "+WTokens[2];
-            string Key2=WTokens[3]+" "+WTokens[4];
-            seq.insert(Key);
-            seq.insert(Key2);
-
-        } else {
-            {
-                string Key=WTokens[0]+" "+WTokens[1];
-                string Key2=WTokens[1]+" "+WTokens[2];
-                string Key3=WTokens[0]+" "+WTokens[2];
-                seq.insert(Key);
-                seq.insert(Key2);
-                seq.insert(Key3);
-            }
-
-            string Key=WTokens[0]+" "+WTokens[1]+" "+WTokens[2];
-            string Key2=WTokens[1]+" "+WTokens[2]+" "+WTokens[3];
-            string Key3=WTokens[2]+" "+WTokens[3]+" "+WTokens[4];
-            seq.insert(Key);
-            seq.insert(Key2);
-            seq.insert(Key3);
-        }
-
-        return seq;
-    }
-
-    train_memory train_memory_words(train_db &TRAIN_DB) {
-        // vector<doc_def> docList;
-        train_memory Memory;
-        // std::map<string, std::map<string, int32_t>> DistTable;
-        std::map<string, int32_t> &GIndex = Memory.GCounts;
-        bool hasGname = false;
-
-        for (prompt_obj &PMT : TRAIN_DB.prompts) {
-            string &strBuf = PMT.value;
-            std::string ctx="Default";
-            std::string gname="<NOP>";
-
-            for (std::string &Cat : PMT.categories) {
-                __trim(Cat);
-                if (Cat.find("ctx=")!=string::npos && ctx=="Default") {
-                    auto start=Cat.find("ctx=")+4;
-                    ctx = Cat.substr(start);
-                }
-
-                if (Cat.find("gname=")!=string::npos && gname=="<NOP>") {
-                    auto start=Cat.find("gname=")+6;
-                    std::string copy = Cat.substr(start);
-                    __trim(copy);
-                    if (copy.size()>0) {
-                        gname=copy;
-                        hasGname=true;
-                    }
-                }
-
-                if (ctx!="Default" && gname!="<NOP>") {
-                    break;
-                }
-            }
-
-            if (ctx=="Default" || ctx=="") {
-                std::cout << "Warning: No context classification found on qa : "<< strBuf << " [skipping this line]\n";
-                continue;
-            }
-
-            if (hasGname) {
-                Memory.groups.insert(gname);
-            }
-
-            __trim(strBuf);
-            vector<string> WTokens = __split_no_empty(strBuf, " ");
-            size_t wtlen = WTokens.size();
-            if (wtlen==0) {
-                std::cout << "Warning: No words were detected in this list: "<< strBuf << " [skipping this line]\n";
-                continue;
-            }
-
-            std::map<string, int32_t> stats;
-            set<string> seq_tuples = make_tuples(WTokens);
-
-            for (std::string TUPLE : seq_tuples) {
-                if(stats.count(TUPLE)==0) {
-                    stats[TUPLE]=0;
-                }
-                stats[TUPLE] += 1;
-                if (hasGname) {
-                    std::string gKey = TUPLE+"__##"+gname;
-                    if (GIndex.count(gKey)==0) {                    
-                        GIndex[gKey]=0;
-                    }
-                    GIndex[gKey] += 1;
-                }
-            }
-
-            // debug_stats(stats);
-            if (Memory.DistTable.count(ctx)==0) {
-                Memory.DistTable[ctx] = stats;
-                Memory.CatCounts[ctx] = 1;
-            } else {
-                Memory.CatCounts[ctx] += 1;
-                std::map<string, int32_t> &CatStats = Memory.DistTable[ctx];
-                for (std::pair<string,int32_t> P : stats) {
-                    // std::cout << P.first << " = " << P.second << "\n";
-                    if (CatStats.count(P.first)==0) {
-                        CatStats[P.first] = P.second;
-                    } else {
-                        CatStats[P.first] += P.second;
-                    }
-                }
-            }
-        }
-
-        // std::cout << std::endl;
-        Memory.Valid = true;
-        return Memory;
-    }
-
-    std::pair<set<string>,int32_t> sequence_message_call(std::string &question) {
-        auto WTokens = __split_no_empty(question, " ");
-        std::set<std::string> seq = make_tuples(WTokens);
-        auto seq_len = seq.size();
-
-        return std::make_pair(
-            seq,
-            seq_len
-        );
-        // if (wtlen==1) {
-        //     // std::cout << "w words found on this line: "<< strBuf << " [skipping this line]\n";
-        //     // string Key=WTokens[0];
-        //     string Key=WTokens[0] + " " +"<NOP>";
-        //     string Key2="<NOP> " + WTokens[0];
-        //     seq.insert(Key);
-        //     seq.insert(Key2);
-        // } else if (wtlen==2) {
-        //     string Key=WTokens[0]+" "+WTokens[1];
-        //     string Key2=WTokens[1]+" "+WTokens[0];
-        //     seq.insert(Key);
-        //     seq.insert(Key2);
-        // } else if (wtlen==3) {
-        //     string Key=WTokens[0]+" "+WTokens[1];
-        //     string Key2=WTokens[1]+" "+WTokens[2];
-        //     string Key3=WTokens[0]+" "+WTokens[2];
-        //     seq.insert(Key);
-        //     seq.insert(Key2);
-        //     seq.insert(Key3);
-        // } else if (wtlen==4) {
-        //     string Key=WTokens[0]+" "+WTokens[1];
-        //     string Key2=WTokens[2]+" "+WTokens[3];
-        //     string Key3=WTokens[1]+" "+WTokens[2];
-        //     seq.insert(Key);
-        //     seq.insert(Key2);
-        //     seq.insert(Key3);
-        // } else if (wtlen==5) {
-        //     string Key=WTokens[0]+" "+WTokens[1]+" "+WTokens[2];
-        //     string Key3=WTokens[0]+" "+WTokens[1];
-        //     string Key5=WTokens[1]+" "+WTokens[2];
-        //     string Key2=WTokens[3]+" "+WTokens[4];
-        //     seq.insert(Key);
-        //     seq.insert(Key2);
-        //     seq.insert(Key3);
-        //     seq.insert(Key5);
-        // } else {
-        //     string Key=WTokens[0]+" "+WTokens[1];
-        //     string Key4=WTokens[0]+" "+WTokens[1]+" "+WTokens[2];
-        //     string Key2=WTokens[1]+" "+WTokens[2]+" "+WTokens[3];
-        //     string Key3=WTokens[2]+" "+WTokens[3]+" "+WTokens[4];
-
-        //     seq.insert(Key);
-        //     seq.insert(Key2);
-        //     seq.insert(Key3);
-        //     seq.insert(Key4);
-        // }
-    }
-
-    map<string, int32_t> classify_qa(train_memory &MEM, std::string &question) {
-        auto seq_message = sequence_message_call(question);
-        map<string, int32_t> matches;
-
-        if (seq_message.second==0) {
-        } else {
-            // std::cout << "Classify: " << question;
-            auto DistTable = MEM.DistTable;
-            int current_count = 0;
-
-            for (string Seq : seq_message.first) {
-                for (auto &Cat : DistTable) {
-                    if (current_count>=1000) {
-                        break;
-                    }
-
-                    string catName = Cat.first; // string (category name)
-                    std::map<string, int32_t> &CatStats = Cat.second; // stats
-                    if (CatStats.count(Seq)>0) {
-                        // std::cout << "[X] Match: [count="  << CatStats[Seq] << "]\n";
-                        if (matches.count(catName)==0) {
-                            matches[catName]=0;
-                        }
-                        matches[catName] += CatStats[Seq]; // should by count
-                        current_count += 1;
-                    } else {
-                        // std::cout << "SEq not found on catstats not found: " <<  Seq << "\n";
-                    }
-                }
-            }
-        }
-
-        return matches;
-    }
-
-    std::map<std::string, int32_t> classify_qa_until(train_memory &MEM, std::string question) {
-        map<string, int32_t> matches;
-        int minSize = 5;
-        int iterations = 50;
-
-        do {
-            if (iterations<=0) {
-                break;
-            } else if (iterations!=50) {
-                auto fspace = question.find(" ");
-                if (fspace!=string::npos) {
-                    question = question.substr(fspace+1); // skip first word
-                } else {
-                    break;
-                }
-            }
-
-            matches = classify_qa(MEM, question);
-            iterations -= 1;
-        } while (matches.size()==0);
-
-        return matches;
-    }
-
-    //
-    // MULTIVARIATE (Category) Classifier
-    // Brings Categories & Sub Tags (groupname)
-    // minSim: percentage limit to be considered on the results
-    //
-    // xxxxxxxxxxxxxxx
-    // classify_qa_multiv(TRAINDB, MEM, prompt, 0.8)
-    // xxxxxxxxxxxxxxx
-    //
-
-    struct MatchMV {
-        int32_t cat_match_count = -1;
-        std::map<std::string, int32_t> variates;
-        // => groupname => 10 counts
-        // => supplier_details => 10 counts
-        // => customer_details => 10 counts
-    };
-
-    void debug_Matches(train_memory &MEM,  map<string, MatchMV> &Matches, std::string &question, float minSim) {
-        std::cout << "==========================\n";
-        std::cout << "CLASSIFY MULTI VARIATE\n";
-        std::cout << "Candidate:  "  << question << "\n";
-
-        auto DistTable = MEM.DistTable;
-        std::map<string, int32_t> &GIndex = MEM.GCounts;
-
-        if (Matches.size()==0) {
-            std::cout << "Sorry no matches found\n";
-            return;
-        }
-
-        for (auto Iter : Matches) {
-            std::string catName = Iter.first;
-            MatchMV &matchObj = Iter.second;
-            int32_t rowCount=-1;
-            if (MEM.CatCounts.count(catName)>0) {
-                rowCount = MEM.CatCounts[catName];
-            }
-
-            std::cout << "[X] " 
-                << " Match: [mcount="  << matchObj.cat_match_count << "] => "
-                << "{" 
-                << catName 
-                << "[RowCount=" << rowCount
-                << ", Variates=";
-
-
-            for (auto VIter : matchObj.variates) {
-                auto Gname = VIter.first;
-                std::cout << Gname << ":" << VIter.second << ", ";
-            }
-
-            std::cout << "]\n";
-        }
-
-        std::cout << "==========================\n";
-    }
-
-    std::map<std::string, MatchMV> classify_qa_multiv(train_memory &MEM, std::string &question, float minSim) {
-        map<string, MatchMV> Matches;
-        std::map<string, int32_t> &GIndex = MEM.GCounts;
-
-        float minCount = 1.0;
-        auto seq_message = sequence_message_call(question);
-
-        if (seq_message.second==0) {
-        } else {
-            auto DistTable = MEM.DistTable;
-
-            for (string Seq : seq_message.first) {
-                for (auto &Cat : DistTable) {
-                    string catName = Cat.first; // string (category name)
-                    std::map<string, int32_t> &CatStats = Cat.second; // stats
-                    if (CatStats.count(Seq)>0) {
-                        if (Matches.count(catName)==0) {
-                            Matches[catName].cat_match_count = 0;
-                        }
-
-                        for (auto Gname : MEM.groups) {
-                            __trim(Gname);
-                            if (Gname=="" || Gname=="<NOP>") {
-                                continue;
-                            }
-
-                            std::string key_try = Seq+"__##"+Gname;
-                            if (GIndex.count(key_try)) {
-                                if (Matches[catName].variates.count(Gname)==0) {
-                                    Matches[catName].variates[Gname] = 0;
-                                }
-                                Matches[catName].variates[Gname] += 1;
-                                // Matches[catName].variates[Gname] += GIndex[key_try];
-                            }
-                        }
-
-                        // std::cout << "]}\n";
-                        Matches[catName].cat_match_count += CatStats[Seq]; // should by count
-                    }
-                }
-            }
-        }
-
-        debug_Matches(MEM, Matches, question, minSim);
-        return Matches;
-    }
-
-    std::map<std::string, MatchMV> classify_qa_multiv_until(train_memory &MEM, std::string question, float minSim) {
-        std::map<std::string, MatchMV> matches;
-        int minSize = 5;
-        int iterations = 50;
-
-        do {
-            if (iterations<=0) {
-                break;
-            } else if (iterations!=50) {
-                auto fspace = question.find(" ");
-                if (fspace!=string::npos) {
-                    std::string pop = question.substr(0, fspace);
-                    std::cout << "POP: " << pop << "\n";
-                    question = question.substr(fspace+1); // skip first word
-                } else {
-                    break;
-                }
-            }
-
-            matches = classify_qa_multiv(MEM, question, minSim);
-            iterations -= 1;
-        } while (matches.size()==0);
-
-        return matches;
-    }
-
-    void printList(std::vector<string> &List) {
-        std::cout << "[";
-        for (string &Ref : List) {
-            std::cout << Ref << ",";
-        }
-        std::cout << "]";
-    }
-
-    std::map<std::string, std::string> parseOptions(int start, std::vector<std::string> &params) {
-        std::map<std::string, std::string> options;
-        for (uint32_t i=start; i<params.size(); ++i) {
-            std::string opt = params.at(i);
-            __trim(opt);
-            if (opt.find("=") != std::string::npos) {
-                size_t pos_t = opt.find("=");
-                std::string Key = opt.substr(0, pos_t);
-                std::string Value = opt.substr(pos_t+1);
-                options[Key]=Value;
-            }
-        }
-        return options;
-    }
-
-    void debug_train_db(train_db &TRAIN_DB, bool extended, std::string &Name) {
-        if (!TRAIN_DB.Valid) {
-            std::cout << "INVALID TRAIN DB\n";
-            return;
-        }
-
-        std::cout << "=================================\n";
-        std::cout << " TRAINING DATABASE [" << Name << "] \n";
-        std::cout << "=================================\n";
-        std::cout << "# of prompts = " << TRAIN_DB.prompts.size() << "\n";
-        std::cout << "# of categories = " << TRAIN_DB.categories.size() << "\n";
-        std::map<std::string, int32_t> CatCounts;
-        std::cout << "==============[CATEGORIES]============\n";
-        for (prompt_obj &PMT : TRAIN_DB.prompts) {
-            // std::cout << "P: %" << PMT.value << "%, C:"; printList(PMT.categories);
-            // std::cout << "\n";
-            for (std::string &catName : PMT.categories) {
-                if (CatCounts.count(catName)==0) {
-                    CatCounts[catName]=0;
-                }
-                CatCounts[catName] += 1;
-            }
-        }
-
-        for (auto &Iter : CatCounts) {
-            std::cout << "{" << Iter.first << "}, Count:" << Iter.second << "\n";
-        }
-
-        if (extended) {
-            std::cout << "==============[PROMPTS]============\n";
-            for (prompt_obj &PMT : TRAIN_DB.prompts) {
-                std::cout << "P: %" << PMT.value << "%, C:"; printList(PMT.categories);
-                std::cout << "\n";
-            }
-        }
-
-        std::cout << "=================================\n";
-    }
-
-    void debug_mem_db(train_memory &MEM, bool extended, std::string &Name) {
-        if (!MEM.Valid) {
-            std::cout << ">>>>>>>>> INVALID MEMORY DB <<<<<<<<\n";
-            return;
-        }
-
-        auto DistTable = MEM.DistTable;
-        std::cout << "=================================\n";
-        std::cout << " MEMORY DATABASE [" << Name << "] \n";
-        std::cout << "=================================\n";
-
-        for (auto &Cat : DistTable) {
-            string catName = Cat.first; // string (category name)
-            int32_t catCounts = -1;
-            std::map<string, int32_t> &CatStats = Cat.second; // stats
-            std::cout << "Category: "  << catName;
-            if (MEM.CatCounts.count(catName)>0) {
-                std::cout << "[CategoryCounts="  
-                    << MEM.CatCounts[catName]
-                    << ", RowCount="
-                    << CatStats.size()
-                    << "]";
-                catCounts = MEM.CatCounts[catName];
-            }
-
-            std::cout << "\n";
-
-            if (extended) {        
-                int32_t i=0;
-                for (auto P : CatStats) {
-                    float percent = -1;
-                    if (P.second>0 && catCounts>0) {
-                        percent = P.second/catCounts;
-                    }
-                    std::cout <<"    " 
-                            << i  
-                            << " ["
-                            << "counts=" <<  P.second  << ", "
-                            << "%=" <<  P.second << "/" << catCounts
-                        << "] "
-                        << "'" << P.first << "'"
-                        ;
-                    std::cout << "\n";
-                    i++;
-                }
-                std::cout << "==========================\n";
-            }
-        }
-
-        std::cout << "=================================\n";
-    }
-
-    //
-    // END ALL API
-    //
 
 
     //
@@ -2222,517 +1583,514 @@ namespace m8p {
         return true;
     }
 
-#ifdef __AVX__
-    // std::pair<M8_Error, M8_Obj*> matmul(M8System* M8, std::vector<std::string> params);
-    std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params){
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (psize<3) {
-            return std::make_pair(
-                errorf("matop requires (3) three parameters"),
-                M8->nilValue
-            );
-        }
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string m1 = params.at(1);// dont forget 0 is for the op_code
-        string m2 = params.at(2);
-        string rdest = params.at(3);
-
-        auto MR1 = REG[m1];
-        auto MR2 = REG[m2];
-
-        if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
-            return std::make_pair(
-                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
-                M8->nilValue
-            );
-        }
-        if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
-            return std::make_pair(
-                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
+    #ifdef __AVX__
+        // std::pair<M8_Error, M8_Obj*> matmul(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params){
+            int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+            if (psize<3) {
+                return std::make_pair(
+                    errorf("matop requires (3) three parameters"),
                     M8->nilValue
+                );
+            }
+
+            std::map<std::string, M8_Obj*> &REG = M8->Registers;
+            string m1 = params.at(1);// dont forget 0 is for the op_code
+            string m2 = params.at(2);
+            string rdest = params.at(3);
+
+            auto MR1 = REG[m1];
+            auto MR2 = REG[m2];
+
+            if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
+                return std::make_pair(
+                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
+                    M8->nilValue
+                );
+            }
+            if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
+                return std::make_pair(
+                        errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
+                        M8->nilValue
+                );
+            }
+
+            std::vector<float> tokens = MR1->AR_F32;
+            std::vector<float> mul_value = MR2->AR_F32;
+
+            float matrix[AVX_V_SIZE];
+            float matrix_val[AVX_V_SIZE];
+            std::copy(tokens.begin(), tokens.end(), matrix);
+            std::copy(mul_value.begin(), mul_value.end(), matrix_val);
+
+            simd_vec a;
+            simd_vec b;
+            simd_vec c;
+
+            #if defined(__AVX512F__)
+                a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
+                                  matrix[11], matrix[10], matrix[9], matrix[8], 
+                                  matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
+                                  matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
+                                  matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
+                                  matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
+
+            #elif defined(__AVX2__) || defined(__AVX__)
+                a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
+                                  matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #else
+                a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #endif
+
+            // return std::make_pair(
+            //     errorf("Unexpected AVX_V_SIZE ["+ std::to_string(AVX_V_SIZE) + "]"),
+            //     M8->nilValue
+            // );
+
+            if (op=="mul") {
+                c = SIMD_MUL_PS(a, b);
+            } else if (op=="add") {
+                c = SIMD_ADD_PS(a, b);
+            } else if (op=="sub") {
+                c = SIMD_SUB_PS(a, b);
+            } else {
+                return std::make_pair(
+                    errorf("mat8op Invalid op: ["+op+"]"),
+                    M8->nilValue
+                );
+            }
+
+            float d[AVX_V_SIZE];
+            SIMD_STORE_PS(d, c);
+
+            // std::cout << "[" << op << "]result equals " << d[0] << "," << d[1]
+            //           << "," << d[2] << "," << d[3] << ","
+            //           << d[4] << "," << d[5] << "," << d[6] << ","
+            //           << d[7] << std::endl;
+
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+            for (int i=0; i<AVX_V_SIZE; i++) {
+                REG[rdest]->AR_F32.push_back(d[i]);
+            }
+
+            return std::make_pair(
+                M8_Err_nil,
+                REG[rdest]
             );
         }
 
-        std::vector<float> tokens = MR1->AR_F32;
-        std::vector<float> mul_value = MR2->AR_F32;
+        std::pair<M8_Error, M8_Obj*> MatCosim_OP(M8System* M8, std::vector<std::string> params){
+            int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+            if (psize<3) {
+                return std::make_pair(
+                    errorf("matcosim requires (3) three parameters"),
+                    M8->nilValue
+                );
+            }
 
-        float matrix[AVX_V_SIZE];
-        float matrix_val[AVX_V_SIZE];
-        std::copy(tokens.begin(), tokens.end(), matrix);
-        std::copy(mul_value.begin(), mul_value.end(), matrix_val);
+            std::map<std::string, M8_Obj*> &REG = M8->Registers;
+            string m1 = params.at(1);// dont forget 0 is for the op_code
+            string m2 = params.at(2);
+            string rdest = params.at(3);
 
-        simd_vec a;
-        simd_vec b;
-        simd_vec c;
+            auto MR1 = REG[m1];
+            auto MR2 = REG[m2];
 
-        #if defined(__AVX512F__)
-            a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
-                              matrix[11], matrix[10], matrix[9], matrix[8], 
-                              matrix[7], matrix[6], matrix[5], matrix[4], 
-                              matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
-                              matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
-                              matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
-                              matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
+            if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
+                return std::make_pair(
+                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
+                    M8->nilValue
+                );
+            }
+            if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
+                return std::make_pair(
+                        errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
+                        M8->nilValue
+                );
+            }
 
-        #elif defined(__AVX2__) || defined(__AVX__)
-            a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
-                              matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
-                              matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-        #else
-            a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-        #endif
+            std::vector<float> tokens = MR1->AR_F32;
+            std::vector<float> mul_value = MR2->AR_F32;
 
-        // return std::make_pair(
-        //     errorf("Unexpected AVX_V_SIZE ["+ std::to_string(AVX_V_SIZE) + "]"),
-        //     M8->nilValue
-        // );
+            float matrix[AVX_V_SIZE];
+            float matrix_val[AVX_V_SIZE];
+            std::copy(tokens.begin(), tokens.end(), matrix);
+            std::copy(mul_value.begin(), mul_value.end(), matrix_val);
 
-        if (op=="mul") {
+            simd_vec a;
+            simd_vec b;
+            simd_vec c;
+
+            #if defined(__AVX512F__)
+                a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
+                                  matrix[11], matrix[10], matrix[9], matrix[8], 
+                                  matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
+                                  matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
+                                  matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
+                                  matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
+            #elif defined(__AVX2__) || defined(__AVX__)
+                a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
+                                  matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #else
+                a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #endif
+
+            simd_vec dot_sum = SIMD_SETZERO_PS();
+            simd_vec norm_a = SIMD_SETZERO_PS();
+            simd_vec norm_b = SIMD_SETZERO_PS();
+
+            dot_sum = SIMD_FMA_PS(a, b, dot_sum);  // dot_sum += va * vb
+            norm_a = SIMD_FMA_PS(a, a, norm_a);    // norm_a += va * va
+            norm_b = SIMD_FMA_PS(b, b, norm_b);    // norm_b += vb * vb
+
+            float dot_result[AVX_V_SIZE], 
+                 norm_a_result[AVX_V_SIZE], 
+                 norm_b_result[AVX_V_SIZE];
+
+            SIMD_STORE_PS(dot_result, dot_sum);
+            SIMD_STORE_PS(norm_a_result, norm_a);
+            SIMD_STORE_PS(norm_b_result, norm_b);
+
+            float dot = 0.0f, na = 0.0f, nb = 0.0f;
+            for (size_t i = 0; i < AVX_V_SIZE; i++) {
+                dot += dot_result[i];
+                na += norm_a_result[i];
+                nb += norm_b_result[i];
+            }
+            
+            float res_total = dot / (sqrtf(na) * sqrtf(nb));
+            // // ::ALLOC::
+            REG[rdest] = m8_obj(M8, res_total);
+
+            return std::make_pair(
+                M8_Err_nil,
+                REG[rdest]
+            );
+        }
+
+        std::pair<M8_Error, M8_Obj*> MatL2Dist_OP(M8System* M8, std::vector<std::string> params){
+            int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+            if (psize<3) {
+                return std::make_pair(
+                    errorf("matl2d requires (3) three parameters (input1, input2, result)"),
+                    M8->nilValue
+                );
+            }
+
+            std::map<std::string, M8_Obj*> &REG = M8->Registers;
+            string m1 = params.at(1);// dont forget 0 is for the op_code
+            string m2 = params.at(2);
+            string rdest = params.at(3);
+
+            auto MR1 = REG[m1];
+            auto MR2 = REG[m2];
+
+            if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
+                return std::make_pair(
+                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
+                    M8->nilValue
+                );
+            }
+            if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
+                return std::make_pair(
+                        errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
+                        M8->nilValue
+                );
+            }
+
+            std::vector<float> tokens = MR1->AR_F32;
+            std::vector<float> mul_value = MR2->AR_F32;
+
+            float matrix[AVX_V_SIZE];
+            float matrix_val[AVX_V_SIZE];
+            std::copy(tokens.begin(), tokens.end(), matrix);
+            std::copy(mul_value.begin(), mul_value.end(), matrix_val);
+
+            simd_vec a;
+            simd_vec b;
+
+            #if defined(__AVX512F__)
+                a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
+                                  matrix[11], matrix[10], matrix[9], matrix[8], 
+                                  matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
+                                  matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
+                                  matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
+                                  matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
+            #elif defined(__AVX2__) || defined(__AVX__)
+                a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
+                                  matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #else
+                a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #endif
+
+            simd_vec sum = SIMD_SETZERO_PS();
+            simd_vec diff = SIMD_SUB_PS(a,b);
+            sum = SIMD_FMA_PS(diff, diff, sum); // sum += diff * diff
+
+            float result[AVX_V_SIZE];
+            float total = 0.0f;
+            SIMD_STORE_PS(result, sum);
+
+            for (size_t i = 0; i < AVX_V_SIZE; i++) {
+                total += result[i];
+            }
+
+            // ::ALLOC::
+            REG[rdest] = m8_obj(M8, sqrtf(total));
+
+            return std::make_pair(
+                M8_Err_nil,
+                REG[rdest]
+            );
+        }
+
+        std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params) {
+            int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+            if (params.size() < 2) {
+                return std::make_pair(errorf("matnorm requires input and output register"), M8->nilValue);
+            }
+
+            std::string src = params.at(1);
+            std::string dst = params.at(2);
+
+            auto &REG = M8->Registers;
+            M8_Obj *A = REG[src];
+
+            if (!A || A->Type != MP8_DF32) {
+                return std::make_pair(errorf("matnorm: "+src+" is not a matrix"), M8->nilValue);
+            }
+
+            std::vector<float> &vec = A->AR_F32;
+            float sumsq = 0.0f;
+            for (float v : vec) sumsq += v * v;
+            float norm = sqrtf(sumsq);
+
+            if (norm == 0.0f) {
+                return std::make_pair(errorf("matnorm: zero vector cannot be normalized"), M8->nilValue);
+            }
+
+            REG[dst] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+            for (size_t i = 0; i < vec.size(); ++i) {
+                REG[dst]->AR_F32.push_back(vec[i] / norm);
+            }
+            return std::make_pair(M8_Err_nil, REG[dst]);
+        }
+
+        std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params){
+            int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+            if (psize<3) {
+                return std::make_pair(
+                    errorf("matdot requires (3) three parameters"),
+                    M8->nilValue
+                );
+            }
+
+            std::map<std::string, M8_Obj*> &REG = M8->Registers;
+            string m1 = params.at(1);// dont forget 0 is for the op_code
+            string m2 = params.at(2);
+            string rdest = params.at(3);
+
+            auto MR1 = REG[m1];
+            auto MR2 = REG[m2];
+
+            if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
+                return std::make_pair(
+                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
+                    M8->nilValue
+                );
+            }
+            if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
+                return std::make_pair(
+                        errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
+                        M8->nilValue
+                );
+            }
+
+            std::vector<float> tokens = MR1->AR_F32;
+            std::vector<float> mul_value = MR2->AR_F32;
+
+            float matrix[AVX_V_SIZE];
+            float matrix_val[AVX_V_SIZE];
+            std::copy(tokens.begin(), tokens.end(), matrix);
+            std::copy(mul_value.begin(), mul_value.end(), matrix_val);
+
+            simd_vec a;
+            simd_vec b;
+            simd_vec c;
+
+            #if defined(__AVX512F__)
+                a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
+                                  matrix[11], matrix[10], matrix[9], matrix[8], 
+                                  matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
+                                  matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
+                                  matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
+                                  matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
+
+            #elif defined(__AVX2__) || defined(__AVX__)
+                a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
+                                  matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #else
+                a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #endif
+
             c = SIMD_MUL_PS(a, b);
-        } else if (op=="add") {
-            c = SIMD_ADD_PS(a, b);
-        } else if (op=="sub") {
-            c = SIMD_SUB_PS(a, b);
-        } else {
+
+            float d[AVX_V_SIZE];
+            SIMD_STORE_PS(d, c);
+
+            float total = 0.0f;
+            for (size_t i=0; i<AVX_V_SIZE; i++) {
+                total += d[i];
+            }
+
+            // ::ALLOC::
+            REG[rdest] = m8_obj(M8, total);
+
             return std::make_pair(
-                errorf("mat8op Invalid op: ["+op+"]"),
-                M8->nilValue
+                M8_Err_nil,
+                REG[rdest]
             );
         }
 
-        float d[AVX_V_SIZE];
-        SIMD_STORE_PS(d, c);
-
-        // std::cout << "[" << op << "]result equals " << d[0] << "," << d[1]
-        //           << "," << d[2] << "," << d[3] << ","
-        //           << d[4] << "," << d[5] << "," << d[6] << ","
-        //           << d[7] << std::endl;
-
-        REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-        for (int i=0; i<AVX_V_SIZE; i++) {
-            REG[rdest]->AR_F32.push_back(d[i]);
-        }
-
-        return std::make_pair(
-            M8_Err_nil,
-            REG[rdest]
-        );
-    }
-
-    std::pair<M8_Error, M8_Obj*> MatCosim_OP(M8System* M8, std::vector<std::string> params){
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (psize<3) {
-            return std::make_pair(
-                errorf("matcosim requires (3) three parameters"),
-                M8->nilValue
-            );
-        }
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string m1 = params.at(1);// dont forget 0 is for the op_code
-        string m2 = params.at(2);
-        string rdest = params.at(3);
-
-        auto MR1 = REG[m1];
-        auto MR2 = REG[m2];
-
-        if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
-            return std::make_pair(
-                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
-                M8->nilValue
-            );
-        }
-        if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
-            return std::make_pair(
-                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
+        std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params){
+            int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+            if (psize<2) {
+                return std::make_pair(
+                    errorf("matmul requires two parameters"),
                     M8->nilValue
-            );
-        }
+                );
+            }
 
-        std::vector<float> tokens = MR1->AR_F32;
-        std::vector<float> mul_value = MR2->AR_F32;
+            // std::cout << "AVX_V_SIZE: " << AVX_V_SIZE << std::endl;
 
-        float matrix[AVX_V_SIZE];
-        float matrix_val[AVX_V_SIZE];
-        std::copy(tokens.begin(), tokens.end(), matrix);
-        std::copy(mul_value.begin(), mul_value.end(), matrix_val);
+            std::map<std::string, M8_Obj*> &REG = M8->Registers;
+            string rsource = params.at(1);
+            string rdest = params.at(2);// dont forget 0 is for the op_code
 
-        simd_vec a;
-        simd_vec b;
-        simd_vec c;
+            std::vector<float> tokens{1.0, 1.0, 1.0, 1.0, 
+                                      1.0, 1.0, 1.0, 1.0};
 
-        #if defined(__AVX512F__)
-            a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
-                              matrix[11], matrix[10], matrix[9], matrix[8], 
-                              matrix[7], matrix[6], matrix[5], matrix[4], 
-                              matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
-                              matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
-                              matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
-                              matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
-        #elif defined(__AVX2__) || defined(__AVX__)
-            a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
-                              matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
-                              matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-        #else
-            a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-        #endif
-
-        simd_vec dot_sum = SIMD_SETZERO_PS();
-        simd_vec norm_a = SIMD_SETZERO_PS();
-        simd_vec norm_b = SIMD_SETZERO_PS();
-
-        dot_sum = SIMD_FMA_PS(a, b, dot_sum);  // dot_sum += va * vb
-        norm_a = SIMD_FMA_PS(a, a, norm_a);    // norm_a += va * va
-        norm_b = SIMD_FMA_PS(b, b, norm_b);    // norm_b += vb * vb
-
-        float dot_result[AVX_V_SIZE], 
-             norm_a_result[AVX_V_SIZE], 
-             norm_b_result[AVX_V_SIZE];
-
-        SIMD_STORE_PS(dot_result, dot_sum);
-        SIMD_STORE_PS(norm_a_result, norm_a);
-        SIMD_STORE_PS(norm_b_result, norm_b);
-
-        float dot = 0.0f, na = 0.0f, nb = 0.0f;
-        for (size_t i = 0; i < AVX_V_SIZE; i++) {
-            dot += dot_result[i];
-            na += norm_a_result[i];
-            nb += norm_b_result[i];
-        }
-        
-        float res_total = dot / (sqrtf(na) * sqrtf(nb));
-        // // ::ALLOC::
-        REG[rdest] = m8_obj(M8, res_total);
-
-        return std::make_pair(
-            M8_Err_nil,
-            REG[rdest]
-        );
-    }
-
-    std::pair<M8_Error, M8_Obj*> MatL2Dist_OP(M8System* M8, std::vector<std::string> params){
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (psize<3) {
-            return std::make_pair(
-                errorf("matl2d requires (3) three parameters (input1, input2, result)"),
-                M8->nilValue
-            );
-        }
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string m1 = params.at(1);// dont forget 0 is for the op_code
-        string m2 = params.at(2);
-        string rdest = params.at(3);
-
-        auto MR1 = REG[m1];
-        auto MR2 = REG[m2];
-
-        if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
-            return std::make_pair(
-                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
-                M8->nilValue
-            );
-        }
-        if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
-            return std::make_pair(
-                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
+            if (tokens.size()!=AVX_V_SIZE) {
+                return std::make_pair(
+                    errorf("tokens must contain "+std::to_string(AVX_V_SIZE)+" floats"),
                     M8->nilValue
+                );
+            }
+
+            float matrix[AVX_V_SIZE];
+            std::copy(tokens.begin(), tokens.end(), matrix);
+
+            __m256 a = _mm256_set_ps(matrix[0], matrix[1], matrix[2], matrix[3], 
+                                     matrix[4], matrix[5], matrix[6], matrix[7]);
+            __m256 b = _mm256_set_ps(18.0, 17.0, 16.0, 15.0, 
+                                     14.0, 13.0, 12.0, 11.0);
+
+            __m256 c = _mm256_add_ps(a, b);
+
+            float d[AVX_V_SIZE];
+            _mm256_storeu_ps(d, c);
+
+            // std::cout << "result equals " << d[0] << "," << d[1]
+            //           << "," << d[2] << "," << d[3] << ","
+            //           << d[4] << "," << d[5] << "," << d[6] << ","
+            //           << d[7] << std::endl;
+
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+            for (int i=0; i<AVX_V_SIZE; i++) {
+                REG[rdest]->AR_F32.push_back(d[i]);
+            }
+
+            return std::make_pair(
+                M8_Err_nil,
+                REG[rdest]
             );
         }
 
-        std::vector<float> tokens = MR1->AR_F32;
-        std::vector<float> mul_value = MR2->AR_F32;
-
-        float matrix[AVX_V_SIZE];
-        float matrix_val[AVX_V_SIZE];
-        std::copy(tokens.begin(), tokens.end(), matrix);
-        std::copy(mul_value.begin(), mul_value.end(), matrix_val);
-
-        simd_vec a;
-        simd_vec b;
-
-        #if defined(__AVX512F__)
-            a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
-                              matrix[11], matrix[10], matrix[9], matrix[8], 
-                              matrix[7], matrix[6], matrix[5], matrix[4], 
-                              matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
-                              matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
-                              matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
-                              matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
-        #elif defined(__AVX2__) || defined(__AVX__)
-            a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
-                              matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
-                              matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-        #else
-            a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-        #endif
-
-        simd_vec sum = SIMD_SETZERO_PS();
-        simd_vec diff = SIMD_SUB_PS(a,b);
-        sum = SIMD_FMA_PS(diff, diff, sum); // sum += diff * diff
-
-        float result[AVX_V_SIZE];
-        float total = 0.0f;
-        SIMD_STORE_PS(result, sum);
-
-        for (size_t i = 0; i < AVX_V_SIZE; i++) {
-            total += result[i];
-        }
-
-        // ::ALLOC::
-        REG[rdest] = m8_obj(M8, sqrtf(total));
-
-        return std::make_pair(
-            M8_Err_nil,
-            REG[rdest]
-        );
-    }
-
-    std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params) {
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (params.size() < 2) {
-            return std::make_pair(errorf("matnorm requires input and output register"), M8->nilValue);
-        }
-
-        std::string src = params.at(1);
-        std::string dst = params.at(2);
-
-        auto &REG = M8->Registers;
-        M8_Obj *A = REG[src];
-
-        if (!A || A->Type != MP8_DF32) {
-            return std::make_pair(errorf("matnorm: "+src+" is not a matrix"), M8->nilValue);
-        }
-
-        std::vector<float> &vec = A->AR_F32;
-        float sumsq = 0.0f;
-        for (float v : vec) sumsq += v * v;
-        float norm = sqrtf(sumsq);
-
-        if (norm == 0.0f) {
-            return std::make_pair(errorf("matnorm: zero vector cannot be normalized"), M8->nilValue);
-        }
-
-        REG[dst] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-        for (size_t i = 0; i < vec.size(); ++i) {
-            REG[dst]->AR_F32.push_back(vec[i] / norm);
-        }
-        return std::make_pair(M8_Err_nil, REG[dst]);
-    }
-
-    std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params){
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (psize<3) {
-            return std::make_pair(
-                errorf("matdot requires (3) three parameters"),
-                M8->nilValue
-            );
-        }
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string m1 = params.at(1);// dont forget 0 is for the op_code
-        string m2 = params.at(2);
-        string rdest = params.at(3);
-
-        auto MR1 = REG[m1];
-        auto MR2 = REG[m2];
-
-        if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
-            return std::make_pair(
-                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
-                M8->nilValue
-            );
-        }
-        if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
-            return std::make_pair(
-                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
+        std::pair<M8_Error, M8_Obj*> MatMul3_OP(M8System* M8, std::vector<std::string> params){
+            int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+            if (psize<3) {
+                return std::make_pair(
+                    errorf("matmul8 requires (3) three parameters"),
                     M8->nilValue
-            );
-        }
+                );
+            }
 
-        std::vector<float> tokens = MR1->AR_F32;
-        std::vector<float> mul_value = MR2->AR_F32;
+            std::map<std::string, M8_Obj*> &REG = M8->Registers;
+            string m1 = params.at(1);// dont forget 0 is for the op_code
+            string m2 = params.at(2);
+            string rdest = params.at(3);
 
-        float matrix[AVX_V_SIZE];
-        float matrix_val[AVX_V_SIZE];
-        std::copy(tokens.begin(), tokens.end(), matrix);
-        std::copy(mul_value.begin(), mul_value.end(), matrix_val);
+            auto MR1 = REG[m1];
+            auto MR2 = REG[m2];
 
-        simd_vec a;
-        simd_vec b;
-        simd_vec c;
+            if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
+                return std::make_pair(
+                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+"]"),
+                    M8->nilValue
+                );
+            }
+            if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
+                return std::make_pair(
+                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+"]"),
+                    M8->nilValue
+                );
+            }
 
-        #if defined(__AVX512F__)
-            a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
-                              matrix[11], matrix[10], matrix[9], matrix[8], 
-                              matrix[7], matrix[6], matrix[5], matrix[4], 
-                              matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
-                              matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
-                              matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
-                              matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
+            std::vector<float> tokens = MR1->AR_F32;
+            std::vector<float> mul_value = MR2->AR_F32;
 
-        #elif defined(__AVX2__) || defined(__AVX__)
-            a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
-                              matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
-                              matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-        #else
-            a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
-            b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-        #endif
+            float matrix[AVX_V_SIZE];
+            float matrix_val[AVX_V_SIZE];
+            std::copy(tokens.begin(), tokens.end(), matrix);
+            std::copy(mul_value.begin(), mul_value.end(), matrix_val);
 
-        c = SIMD_MUL_PS(a, b);
+            __m256 a = _mm256_set_ps(matrix[0], matrix[1], matrix[2], matrix[3], 
+                                     matrix[4], matrix[5], matrix[6], matrix[7]);
+            __m256 b = _mm256_set_ps(matrix_val[0], matrix_val[1], matrix_val[2], matrix_val[3], 
+                                     matrix_val[4], matrix_val[5], matrix_val[6], matrix_val[7]);
 
-        float d[AVX_V_SIZE];
-        SIMD_STORE_PS(d, c);
+            // __m256 c = _mm256_add_ps(a, b);
+            __m256 c = _mm256_mul_ps(a, b);
 
-        float total = 0.0f;
-        for (size_t i=0; i<AVX_V_SIZE; i++) {
-            total += d[i];
-        }
+            float d[AVX_V_SIZE];
+            _mm256_storeu_ps(d, c);
 
-        // ::ALLOC::
-        REG[rdest] = m8_obj(M8, total);
+            // std::cout << "result equals " << d[0] << "," << d[1]
+            //           << "," << d[2] << "," << d[3] << ","
+            //           << d[4] << "," << d[5] << "," << d[6] << ","
+            //           << d[7] << std::endl;
 
-        return std::make_pair(
-            M8_Err_nil,
-            REG[rdest]
-        );
-    }
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+            for (int i=0; i<AVX_V_SIZE; i++) {
+                REG[rdest]->AR_F32.push_back(d[i]);
+            }
 
-    std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params){
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (psize<2) {
             return std::make_pair(
-                errorf("matmul requires two parameters"),
-                M8->nilValue
+                M8_Err_nil,
+                REG[rdest]
             );
         }
-
-        // std::cout << "AVX_V_SIZE: " << AVX_V_SIZE << std::endl;
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string rsource = params.at(1);
-        string rdest = params.at(2);// dont forget 0 is for the op_code
-
-        std::vector<float> tokens{1.0, 1.0, 1.0, 1.0, 
-                                  1.0, 1.0, 1.0, 1.0};
-
-        if (tokens.size()!=AVX_V_SIZE) {
-            return std::make_pair(
-                errorf("tokens must contain "+std::to_string(AVX_V_SIZE)+" floats"),
-                M8->nilValue
-            );
-        }
-
-        float matrix[AVX_V_SIZE];
-        std::copy(tokens.begin(), tokens.end(), matrix);
-
-        __m256 a = _mm256_set_ps(matrix[0], matrix[1], matrix[2], matrix[3], 
-                                 matrix[4], matrix[5], matrix[6], matrix[7]);
-        __m256 b = _mm256_set_ps(18.0, 17.0, 16.0, 15.0, 
-                                 14.0, 13.0, 12.0, 11.0);
-
-        __m256 c = _mm256_add_ps(a, b);
-
-        float d[AVX_V_SIZE];
-        _mm256_storeu_ps(d, c);
-
-        // std::cout << "result equals " << d[0] << "," << d[1]
-        //           << "," << d[2] << "," << d[3] << ","
-        //           << d[4] << "," << d[5] << "," << d[6] << ","
-        //           << d[7] << std::endl;
-
-        REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-        for (int i=0; i<AVX_V_SIZE; i++) {
-            REG[rdest]->AR_F32.push_back(d[i]);
-        }
-
-        return std::make_pair(
-            M8_Err_nil,
-            REG[rdest]
-        );
-    }
-
-    std::pair<M8_Error, M8_Obj*> MatMul3_OP(M8System* M8, std::vector<std::string> params){
-        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-        if (psize<3) {
-            return std::make_pair(
-                errorf("matmul8 requires (3) three parameters"),
-                M8->nilValue
-            );
-        }
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-        string m1 = params.at(1);// dont forget 0 is for the op_code
-        string m2 = params.at(2);
-        string rdest = params.at(3);
-
-        auto MR1 = REG[m1];
-        auto MR2 = REG[m2];
-
-        if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
-            return std::make_pair(
-                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+"]"),
-                M8->nilValue
-            );
-        }
-        if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
-            return std::make_pair(
-                errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+"]"),
-                M8->nilValue
-            );
-        }
-
-        std::vector<float> tokens = MR1->AR_F32;
-        std::vector<float> mul_value = MR2->AR_F32;
-
-        float matrix[AVX_V_SIZE];
-        float matrix_val[AVX_V_SIZE];
-        std::copy(tokens.begin(), tokens.end(), matrix);
-        std::copy(mul_value.begin(), mul_value.end(), matrix_val);
-
-        __m256 a = _mm256_set_ps(matrix[0], matrix[1], matrix[2], matrix[3], 
-                                 matrix[4], matrix[5], matrix[6], matrix[7]);
-        __m256 b = _mm256_set_ps(matrix_val[0], matrix_val[1], matrix_val[2], matrix_val[3], 
-                                 matrix_val[4], matrix_val[5], matrix_val[6], matrix_val[7]);
-
-        // __m256 c = _mm256_add_ps(a, b);
-        __m256 c = _mm256_mul_ps(a, b);
-
-        float d[AVX_V_SIZE];
-        _mm256_storeu_ps(d, c);
-
-        // std::cout << "result equals " << d[0] << "," << d[1]
-        //           << "," << d[2] << "," << d[3] << ","
-        //           << d[4] << "," << d[5] << "," << d[6] << ","
-        //           << d[7] << std::endl;
-
-        REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-        for (int i=0; i<AVX_V_SIZE; i++) {
-            REG[rdest]->AR_F32.push_back(d[i]);
-        }
-
-        return std::make_pair(
-            M8_Err_nil,
-            REG[rdest]
-        );
-    }
-#endif
-
-#ifdef INCL_FAISS
-#endif
+    #endif
 
     std::pair<M8_Error, M8_Obj*> MatNSet_OP(M8System* M8, std::vector<std::string> params){
         int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
@@ -2829,7 +2187,6 @@ namespace m8p {
 
         std::map<std::string, M8_Obj*> &REG = M8->Registers;
 
-        REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
         for (int i=0; i<8; i++) {
             REG[rdest]->AR_F32.push_back(matrix[i]);
         }
@@ -3478,31 +2835,31 @@ namespace m8p {
                 lastRet = ALIGN8_OP(M8, instr_tokens);
             } else if (opCode=="align") {
                 lastRet = ALIGN_OP(M8, instr_tokens);
-#ifdef __AVX__
-            } else if (opCode=="matadd") {
-                lastRet = Mat8_OP("add", M8, instr_tokens);
+            #ifdef __AVX__
+                        } else if (opCode=="matadd") {
+                            lastRet = Mat8_OP("add", M8, instr_tokens);
 
-            } else if (opCode=="matsub") {
-                lastRet = Mat8_OP("sub", M8, instr_tokens);
+                        } else if (opCode=="matsub") {
+                            lastRet = Mat8_OP("sub", M8, instr_tokens);
 
-            } else if (opCode=="matmul") {
-                lastRet = Mat8_OP("mul", M8, instr_tokens);
+                        } else if (opCode=="matmul") {
+                            lastRet = Mat8_OP("mul", M8, instr_tokens);
 
-            } else if (opCode=="matdot") {
-                lastRet = MatDotProd_OP(M8, instr_tokens);
+                        } else if (opCode=="matdot") {
+                            lastRet = MatDotProd_OP(M8, instr_tokens);
 
-            } else if (opCode=="matnorm") {
-                lastRet = MatNorm_OP(M8, instr_tokens);
+                        } else if (opCode=="matnorm") {
+                            lastRet = MatNorm_OP(M8, instr_tokens);
 
-            } else if (opCode=="matcosim") {
-                lastRet = MatCosim_OP(M8, instr_tokens);
+                        } else if (opCode=="matcosim") {
+                            lastRet = MatCosim_OP(M8, instr_tokens);
 
-            } else if (opCode=="matl2d") {
-                lastRet = MatL2Dist_OP(M8, instr_tokens);
+                        } else if (opCode=="matl2d") {
+                            lastRet = MatL2Dist_OP(M8, instr_tokens);
 
-            // } else if (opCode=="matmul8") {
-            //     lastRet = MatMul3_OP(M8, instr_tokens);
-#endif
+                        // } else if (opCode=="matmul8") {
+                        //     lastRet = MatMul3_OP(M8, instr_tokens);
+            #endif
 
             } else if (opCode=="f32set") {
                 lastRet = F32Set_OP(M8, instr_tokens);
