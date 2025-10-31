@@ -236,14 +236,12 @@ namespace m8p {
     // AVX SUPPORT
     #ifdef __AVX__
         void inline_matop(std::string op, std::vector<float>&, std::vector<float>&, std::vector<float>&);
-        std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> MatN_OP(std::string op, M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatCosim_OP(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatL2Dist_OP(M8System* M8, std::vector<std::string> params);
-        std::pair<M8_Error, M8_Obj*> MatMul3_OP(M8System* M8, std::vector<std::string> params);
-        std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params);
-        std::pair<M8_Error, M8_Obj*> MatN_OP(std::string op, M8System* M8, std::vector<std::string> params);
     #endif
     // matrix api
     std::pair<M8_Error, M8_Obj*> Mat8Set_OP(M8System* M8, std::vector<std::string> params);
@@ -1583,13 +1581,7 @@ namespace m8p {
     }
 
     bool IsValid_DF32_Dim(M8System* M8, M8_Obj* R, uint32_t dim) {
-        if (R==nullptr){
-            return false;
-        }
-        if (is_nil(M8, R)){
-            return false;
-        }
-        if (R->Type!=MP8_DF32) {
+        if (R==nullptr || is_nil(M8, R) || R->Type!=MP8_DF32) {
             return false;
         }
         if (R->AR_F32.size()!=dim){
@@ -1599,7 +1591,6 @@ namespace m8p {
     }
 
     #ifdef __AVX__
-
         // inline_matop operates on AVX_V_SIZE matrix
         void inline_matop(std::string op, std::vector<float> &i1, std::vector<float> &i2, std::vector<float> &out) {
             float matrix[AVX_V_SIZE];
@@ -1669,13 +1660,13 @@ namespace m8p {
 
             if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
                 return std::make_pair(
-                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+","+ std::to_string(AVX_V_SIZE) + "]"),
+                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+", AVX_V_SIZE="+ std::to_string(AVX_V_SIZE) + ", size=" + std::to_string(MR1->AR_F32.size()) + "]"),
                     M8->nilValue
                 );
             }
             if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
                 return std::make_pair(
-                        errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+","+ std::to_string(AVX_V_SIZE) + "]"),
+                        errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+", AVX_V_SIZE="+ std::to_string(AVX_V_SIZE) + ", size=" + std::to_string(MR1->AR_F32.size()) + "]"),
                         M8->nilValue
                 );
             }
@@ -1970,125 +1961,6 @@ namespace m8p {
 
             // ::ALLOC::
             REG[rdest] = m8_obj(M8, total);
-
-            return std::make_pair(
-                M8_Err_nil,
-                REG[rdest]
-            );
-        }
-
-        std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params){
-            int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-            if (psize<2) {
-                return std::make_pair(
-                    errorf("matmul requires two parameters"),
-                    M8->nilValue
-                );
-            }
-
-            // std::cout << "AVX_V_SIZE: " << AVX_V_SIZE << std::endl;
-
-            std::map<std::string, M8_Obj*> &REG = M8->Registers;
-            string rsource = params.at(1);
-            string rdest = params.at(2);// dont forget 0 is for the op_code
-
-            std::vector<float> tokens{1.0, 1.0, 1.0, 1.0, 
-                                      1.0, 1.0, 1.0, 1.0};
-
-            if (tokens.size()!=AVX_V_SIZE) {
-                return std::make_pair(
-                    errorf("tokens must contain "+std::to_string(AVX_V_SIZE)+" floats"),
-                    M8->nilValue
-                );
-            }
-
-            float matrix[AVX_V_SIZE];
-            std::copy(tokens.begin(), tokens.end(), matrix);
-
-            __m256 a = _mm256_set_ps(matrix[0], matrix[1], matrix[2], matrix[3], 
-                                     matrix[4], matrix[5], matrix[6], matrix[7]);
-            __m256 b = _mm256_set_ps(18.0, 17.0, 16.0, 15.0, 
-                                     14.0, 13.0, 12.0, 11.0);
-
-            __m256 c = _mm256_add_ps(a, b);
-
-            float d[AVX_V_SIZE];
-            _mm256_storeu_ps(d, c);
-
-            // std::cout << "result equals " << d[0] << "," << d[1]
-            //           << "," << d[2] << "," << d[3] << ","
-            //           << d[4] << "," << d[5] << "," << d[6] << ","
-            //           << d[7] << std::endl;
-
-            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-            for (int i=0; i<AVX_V_SIZE; i++) {
-                REG[rdest]->AR_F32.push_back(d[i]);
-            }
-
-            return std::make_pair(
-                M8_Err_nil,
-                REG[rdest]
-            );
-        }
-
-        std::pair<M8_Error, M8_Obj*> MatMul3_OP(M8System* M8, std::vector<std::string> params){
-            int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-            if (psize<3) {
-                return std::make_pair(
-                    errorf("matmul8 requires (3) three parameters"),
-                    M8->nilValue
-                );
-            }
-
-            std::map<std::string, M8_Obj*> &REG = M8->Registers;
-            string m1 = params.at(1);// dont forget 0 is for the op_code
-            string m2 = params.at(2);
-            string rdest = params.at(3);
-
-            auto MR1 = REG[m1];
-            auto MR2 = REG[m2];
-
-            if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
-                return std::make_pair(
-                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+"]"),
-                    M8->nilValue
-                );
-            }
-            if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
-                return std::make_pair(
-                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+"]"),
-                    M8->nilValue
-                );
-            }
-
-            std::vector<float> tokens = MR1->AR_F32;
-            std::vector<float> mul_value = MR2->AR_F32;
-
-            float matrix[AVX_V_SIZE];
-            float matrix_val[AVX_V_SIZE];
-            std::copy(tokens.begin(), tokens.end(), matrix);
-            std::copy(mul_value.begin(), mul_value.end(), matrix_val);
-
-            __m256 a = _mm256_set_ps(matrix[0], matrix[1], matrix[2], matrix[3], 
-                                     matrix[4], matrix[5], matrix[6], matrix[7]);
-            __m256 b = _mm256_set_ps(matrix_val[0], matrix_val[1], matrix_val[2], matrix_val[3], 
-                                     matrix_val[4], matrix_val[5], matrix_val[6], matrix_val[7]);
-
-            // __m256 c = _mm256_add_ps(a, b);
-            __m256 c = _mm256_mul_ps(a, b);
-
-            float d[AVX_V_SIZE];
-            _mm256_storeu_ps(d, c);
-
-            // std::cout << "result equals " << d[0] << "," << d[1]
-            //           << "," << d[2] << "," << d[3] << ","
-            //           << d[4] << "," << d[5] << "," << d[6] << ","
-            //           << d[7] << std::endl;
-
-            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-            for (int i=0; i<AVX_V_SIZE; i++) {
-                REG[rdest]->AR_F32.push_back(d[i]);
-            }
 
             return std::make_pair(
                 M8_Err_nil,
@@ -2861,9 +2733,6 @@ namespace m8p {
 
                         } else if (opCode=="matl2d") {
                             lastRet = MatL2Dist_OP(M8, instr_tokens);
-
-                        // } else if (opCode=="matmul8") {
-                        //     lastRet = MatMul3_OP(M8, instr_tokens);
             #endif
 
             } else if (opCode=="f32set") {
