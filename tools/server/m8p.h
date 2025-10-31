@@ -2039,20 +2039,21 @@ namespace m8p {
         }
 
         string rdest = params.at(1);// dont forget 0 is for the op_code
-
-        float matrix[8] = {
-            0,0,0,0,
-            0,0,0,0
-        };
-
+        __trim(rdest);
+        REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+        REG[rdest]->AR_F32.clear();
         uint32_t t=0;
+
         for (uint32_t i=2; i<params.size(); ++i) {
             string floatVal = params.at(i);
+            __trim(floatVal);
+            if (floatVal=="") { continue; }
             float number=0;
+
             try {
                 number=std::stof(floatVal);
                 if (t<8) {
-                    matrix[t]=number;
+                    REG[rdest]->AR_F32.push_back(number);
                     t++;
                 } else {
                     break;
@@ -2068,15 +2069,9 @@ namespace m8p {
 
         if (t != 8) {
             return std::make_pair(
-                errorf("["+rdest+"] matrix.size != 8"), // TODO: replace with [AVX_V_SIZE]
+                errorf("["+rdest+"] matrix.size != 8"),
                 M8->nilValue
             );
-        }
-
-        std::map<std::string, M8_Obj*> &REG = M8->Registers;
-
-        for (int i=0; i<8; i++) {
-            REG[rdest]->AR_F32.push_back(matrix[i]);
         }
 
         return std::make_pair(
