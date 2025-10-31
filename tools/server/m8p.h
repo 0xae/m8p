@@ -2051,6 +2051,9 @@ namespace m8p {
         uint32_t t=0;
         for (uint32_t i=2; i<params.size(); ++i) {
             string floatVal = params.at(i);
+            __trim(floatVal);
+            if (floatVal=="") {continue};
+
             float number=0;
             try {
                 number=std::stof(floatVal);
@@ -2767,9 +2770,9 @@ namespace m8p {
                 lastRet = UStall_OP(M8, instr_tokens);
 
 
-            } else if (opCode=="mat8") {
-                lastRet = Mat8Set_OP(M8, instr_tokens);
-            } else if (opCode=="matn") {
+            // } else if (opCode=="mat8") {
+                // lastRet = Mat8Set_OP(M8, instr_tokens);
+            } else if (opCode=="matn"||opCode=="mat8"||opCode=="mat"||opCode=="matx") {
                 lastRet = MatNSet_OP(M8, instr_tokens);
 
             } else if (opCode=="align8") {
