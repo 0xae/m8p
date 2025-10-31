@@ -612,6 +612,20 @@ namespace m8p {
         return v>0? v : -v;
     }
 
+    std::map<std::string, std::string> parseOptions(int start, std::vector<std::string> &params) {
+        std::map<std::string, std::string> options;
+        for (uint32_t i=start; i<params.size(); ++i) {
+            std::string opt = params.at(i);
+            __trim(opt);
+            if (opt.find("=") != std::string::npos) {
+                size_t pos_t = opt.find("=");
+                std::string Key = opt.substr(0, pos_t);
+                std::string Value = opt.substr(pos_t+1);
+                options[Key]=Value;
+            }
+        }
+        return options;
+    }
 
     //
     // INSTRUCTION SET IMPLEMENTATION
