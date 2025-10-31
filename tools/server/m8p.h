@@ -1632,7 +1632,7 @@ namespace m8p {
             } else if (op=="sub") {
                 c = SIMD_SUB_PS(a, b);
             } else {
-                return;
+                return false;
             }
 
             float d[AVX_V_SIZE];
@@ -1642,6 +1642,8 @@ namespace m8p {
             for (int i=0; i<AVX_V_SIZE; i++) {
                 out.push_back(d[i]);
             }
+
+            return true;
         }
 
         // std::pair<M8_Error, M8_Obj*> matmul(M8System* M8, std::vector<std::string> params);
@@ -1676,7 +1678,12 @@ namespace m8p {
             }
 
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-            inline_matop(op, MR1->AR_F32, MR2->AR_F32, REG[rdest]->AR_F32);
+            if (!inline_matop(op, MR1->AR_F32, MR2->AR_F32, REG[rdest]->AR_F32)) {
+                return std::make_pair(
+                    errorf("OPERATION FAILED["+op+"]"),
+                    M8->nilValue
+                );                
+            }
 
             return std::make_pair(
                 M8_Err_nil,
