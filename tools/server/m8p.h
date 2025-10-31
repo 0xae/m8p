@@ -235,6 +235,7 @@ namespace m8p {
     std::pair<M8_Error, M8_Obj*> Ret_OP(M8System* M8, std::vector<std::string> params);
     // AVX SUPPORT
     #ifdef __AVX__
+        void inline_matop(std::string op, std::vector<float>&, std::vector<float>&, std::vector<float>&);
         std::pair<M8_Error, M8_Obj*> MatMul_OP(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params);
@@ -1598,6 +1599,56 @@ namespace m8p {
     }
 
     #ifdef __AVX__
+
+        // inline_matop operates on AVX_V_SIZE matrix
+        void inline_matop(std::string op, std::vector<float> &i1, std::vector<float> &i2, std::vector<float> &out) {
+            float matrix[AVX_V_SIZE];
+            float matrix_val[AVX_V_SIZE];
+            std::copy(i1.begin(), i1.end(), matrix);
+            std::copy(i2.begin(), i2.end(), matrix_val);
+            simd_vec a;
+            simd_vec b;
+            simd_vec c;
+
+            #if defined(__AVX512F__)
+                a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
+                                  matrix[11], matrix[10], matrix[9], matrix[8], 
+                                  matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
+                                  matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
+                                  matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
+                                  matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
+
+            #elif defined(__AVX2__) || defined(__AVX__)
+                a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
+                                  matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
+                                  matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #else
+                a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
+                b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
+            #endif
+
+            if (op=="mul") {
+                c = SIMD_MUL_PS(a, b);
+            } else if (op=="add") {
+                c = SIMD_ADD_PS(a, b);
+            } else if (op=="sub") {
+                c = SIMD_SUB_PS(a, b);
+            } else {
+                return;
+            }
+
+            float d[AVX_V_SIZE];
+            SIMD_STORE_PS(d, c);
+            out.clear();
+            // TODO
+            for (int i=0; i<AVX_V_SIZE; i++) {
+                out.push_back(d[i]);
+            }
+        }
+
         // std::pair<M8_Error, M8_Obj*> matmul(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> Mat8_OP(std::string op, M8System* M8, std::vector<std::string> params){
             int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
@@ -1629,68 +1680,8 @@ namespace m8p {
                 );
             }
 
-            std::vector<float> tokens = MR1->AR_F32;
-            std::vector<float> mul_value = MR2->AR_F32;
-
-            float matrix[AVX_V_SIZE];
-            float matrix_val[AVX_V_SIZE];
-            std::copy(tokens.begin(), tokens.end(), matrix);
-            std::copy(mul_value.begin(), mul_value.end(), matrix_val);
-
-            simd_vec a;
-            simd_vec b;
-            simd_vec c;
-
-            #if defined(__AVX512F__)
-                a = _mm512_set_ps(matrix[15], matrix[14], matrix[13], matrix[12], 
-                                  matrix[11], matrix[10], matrix[9], matrix[8], 
-                                  matrix[7], matrix[6], matrix[5], matrix[4], 
-                                  matrix[3], matrix[2], matrix[1], matrix[0]);
-                b = _mm512_set_ps(matrix_val[15], matrix_val[14], matrix_val[13], matrix_val[12], 
-                                  matrix_val[11], matrix_val[10], matrix_val[9],  matrix_val[8], 
-                                  matrix_val[7],  matrix_val[6],  matrix_val[5],  matrix_val[4], 
-                                  matrix_val[3],  matrix_val[2],  matrix_val[1],  matrix_val[0]);
-
-            #elif defined(__AVX2__) || defined(__AVX__)
-                a = _mm256_set_ps(matrix[7], matrix[6], matrix[5], matrix[4], 
-                                  matrix[3], matrix[2], matrix[1], matrix[0]);
-                b = _mm256_set_ps(matrix_val[7], matrix_val[6], matrix_val[5], matrix_val[4], 
-                                  matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-            #else
-                a = _mm_set_ps(matrix[3], matrix[2], matrix[1], matrix[0]);
-                b = _mm_set_ps(matrix_val[3], matrix_val[2], matrix_val[1], matrix_val[0]);
-            #endif
-
-            // return std::make_pair(
-            //     errorf("Unexpected AVX_V_SIZE ["+ std::to_string(AVX_V_SIZE) + "]"),
-            //     M8->nilValue
-            // );
-
-            if (op=="mul") {
-                c = SIMD_MUL_PS(a, b);
-            } else if (op=="add") {
-                c = SIMD_ADD_PS(a, b);
-            } else if (op=="sub") {
-                c = SIMD_SUB_PS(a, b);
-            } else {
-                return std::make_pair(
-                    errorf("mat8op Invalid op: ["+op+"]"),
-                    M8->nilValue
-                );
-            }
-
-            float d[AVX_V_SIZE];
-            SIMD_STORE_PS(d, c);
-
-            // std::cout << "[" << op << "]result equals " << d[0] << "," << d[1]
-            //           << "," << d[2] << "," << d[3] << ","
-            //           << d[4] << "," << d[5] << "," << d[6] << ","
-            //           << d[7] << std::endl;
-
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-            for (int i=0; i<AVX_V_SIZE; i++) {
-                REG[rdest]->AR_F32.push_back(d[i]);
-            }
+            inline_matop(op, MR1->AR_F32, MR2->AR_F32, REG[rdest]->AR_F32);
 
             return std::make_pair(
                 M8_Err_nil,
