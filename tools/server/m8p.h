@@ -2052,7 +2052,9 @@ namespace m8p {
         for (uint32_t i=2; i<params.size(); ++i) {
             string floatVal = params.at(i);
             __trim(floatVal);
-            if (floatVal=="") {continue};
+            if (floatVal=="") {
+                continue;
+            }
 
             float number=0;
             try {
@@ -2775,9 +2777,9 @@ namespace m8p {
             } else if (opCode=="matn"||opCode=="mat8"||opCode=="mat"||opCode=="matx") {
                 lastRet = MatNSet_OP(M8, instr_tokens);
 
-            } else if (opCode=="align8") {
+            } else if (opCode=="align8"||opCode=="pad8") {
                 lastRet = ALIGN8_OP(M8, instr_tokens);
-            } else if (opCode=="align") {
+            } else if (opCode=="align"||opCode=="pad") {
                 lastRet = ALIGN_OP(M8, instr_tokens);
             #ifdef __AVX__
                         } else if (opCode=="xmatadd") {
