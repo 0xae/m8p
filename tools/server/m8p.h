@@ -1658,7 +1658,7 @@ namespace m8p {
             M8_Obj* A = REG[rA];
             M8_Obj* B = REG[rB];
 
-            if (!IsValid_DF32(A) || !IsValid_DF32(B)) {
+            if (!IsValid_DF32(M8, A) || !IsValid_DF32(M8, B)) {
                 return std::make_pair(
                     errorf("xmatadd operands must be matrices"),
                     M8->nilValue
