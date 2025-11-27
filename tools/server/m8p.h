@@ -2264,6 +2264,8 @@ namespace m8p {
                         errorf("NULL_REGISTER["+Value+"]"),
                         M8->nilValue
                     );
+                } else if (R->Type==MP8_STRING) {
+                    Value = R->Value;
                 }
                 __trim(Value);
 
