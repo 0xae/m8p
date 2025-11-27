@@ -2259,19 +2259,12 @@ namespace m8p {
             // the value refers to a register
             if (REG.count(Value)) {
                 M8_Obj *R = REG[Value];
-                if (R==nullptr){
+                if (R==nullptr||is_nil(M8, R)){
                     return std::make_pair(
                         errorf("NULL_REGISTER["+Value+"]"),
                         M8->nilValue
                     );
                 }
-
-                if (is_nil(M8, R)){
-                    Value = "";
-                } else {
-                    Value = R->Value;
-                }
-
                 __trim(Value);
 
             } else {
