@@ -2228,7 +2228,34 @@ namespace m8p {
         string rsource = params.at(1);// dont forget 0 is for the op_code
         string Value = params.at(2);
 
-        if (Value.compare(0, 2, "<r")==0) {
+        // if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
+        //     if (REG.count(Value)>0) {
+        //         M8_Obj *R = REG[Value];
+        //         if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_F32) {
+        //             return std::make_pair(
+        //                 errorf("EXPECTING_FLOAT32_REGISTER["+Value+"]"),
+        //                 M8->nilValue
+        //             );
+        //         }
+        //         number = R->F32;
+        //     } else {
+        //         return std::make_pair(
+        //             errorf("NIL_REGISTER["+Value+"]"),
+        //             M8->nilValue
+        //         );   
+        //     }
+
+        // } else {
+        //     try {number=std::stof(Value);}
+        //     catch (const std::invalid_argument& ia) {
+        //         return std::make_pair(
+        //             errorf("EXPECTING_FLOAT32["+Value+"]"),
+        //             M8->nilValue
+        //         );
+        //     }            
+        // }
+
+        if (Value.compare(0, 1, "<")==0) {
             // the value refers to a register
             if (REG.count(Value)) {
                 M8_Obj *R = REG[Value];
@@ -2270,33 +2297,58 @@ namespace m8p {
             } else if (R->Type==MP8_ERR && Value=="error"){
             } else if (R->Type==MP8_STRING && R->Value==Value){
             } else if (R->Type==MP8_I32){
-                std::string str=Value;
                 int32_t number;
-                auto [ptr, ec] = std::from_chars(str.data(), str.data()+str.size(), number);
-                if(ec == std::errc{}){
-                    if (number!=R->I32) {
+                if (Value.compare(0, 1, "<")==0) {
+                    M8_Obj *R = REG[Value];
+                    if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_I32) {
                         return std::make_pair(
-                            errorf("ASSERTION_FAILED["+rsource+"]"),
+                            errorf("EXPECTING_INT32_REGISTER["+Value+"]"),
                             M8->nilValue
                         );
                     }
+                    number = R->I32;
+
                 } else {
+                    std::string str=Value;
+                    auto [ptr, ec] = std::from_chars(str.data(), str.data()+str.size(), number);
+                    if(ec == std::errc{}){
+                    } else {
+                        return std::make_pair(
+                            errorf("EXPECTING_INT32["+Value+"]"),
+                            M8->nilValue
+                        );
+                    }
+                }
+
+                if (number!=R->I32) {
                     return std::make_pair(
-                        errorf("EXPECTING_INT32["+Value+"]"),
+                        errorf("ASSERTION_FAILED["+rsource+"]"),
                         M8->nilValue
                     );
                 }
+
             } else if (R->Type==MP8_F32){
-                std::string str=Value;
-                // float number;
-                // auto [ptr, ec] = std::from_chars(str.data(), str.data()+str.size(), number);
                 float number=0;
-                try {number=std::stof(Value);}
-                catch (const std::invalid_argument& ia) {
-                    return std::make_pair(
-                        errorf("EXPECTING_FLOAT32["+Value+"]"),
-                        M8->nilValue
-                    );
+                if (Value.compare(0, 1, "<")==0) {
+                    M8_Obj *R = REG[Value];
+                    if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_F32) {
+                        return std::make_pair(
+                            errorf("EXPECTING_FLOAT32_REGISTER["+Value+"]"),
+                            M8->nilValue
+                        );
+                    }
+                    number = R->F32;
+
+                } else {
+                    std::string str=Value;
+                    auto [ptr, ec] = std::from_chars(str.data(), str.data()+str.size(), number);
+                    if(ec == std::errc{}){
+                    } else {
+                        return std::make_pair(
+                            errorf("EXPECTING_FLOAT32["+Value+"]"),
+                            M8->nilValue
+                        );
+                    }
                 }
 
                 if (number!=R->F32) {
