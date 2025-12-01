@@ -2221,7 +2221,7 @@ namespace m8p {
         int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
         if (psize<2) {
             return std::make_pair(
-                errorf("asserteq requires two parameters"),
+                errorf("asserteq requires at least two parameters"),
                 M8->nilValue
             );
         }
