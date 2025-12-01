@@ -60,17 +60,18 @@ vdb_instance MYDB4 dim=16 max_elements=500 M=16 ef_construction=200
 store <r1> DPR/XML Modelo IVA
 llm_embed <r1> <rv1> dim=16 ## always set dim, dim by default is 1570
 vdb_add MYDB4 <rv1> <r1> # third parameter (<r1>) is what is returned on search match (tokenized)
+vdb_destroy MYDB4
 vdb_search MYDB4 <rv1> <rv37> distance=0.019 # set distance to -1 to bypass check
 llm_detokenize <rv37> <result_text> ## will fail if no search is match
 return <result_text>
 
 mat8 <r1> 1 2 3 4 5 6 7 8
-align <r1> 16
+pad <r1> 16
 mat8 <r2> 10 20 30 40 50 60 70 80
-align <r2> 16
+pad <r2> 16
 mat8 <r3> 90 100 200 300 400 500 600 700
-align <r3> 16
-vdb_instance MYDB dim=16 max_elements=500 M=16 ef_construction=200
+pad <r3> 16
+vdb_instance MYDB dim=16 max_elements=3 M=16 ef_construction=200
 vdb_add MYDB <r1> 1 2 3 4 5 6 7 8
 vdb_add MYDB <r2> 10 20 30 40 50 60 70 80
 vdb_add MYDB <r3> 90 100 200 300 400 500 600 700

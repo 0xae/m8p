@@ -23,12 +23,12 @@ pip install cmake
 
 Build (requires LIBCURL)
 ```bash
-cmake -B build
+cmake -B build -DLLAMA_CURL=OFF
 ```
 
 Check AVX support
 ```bash
-g++ -mavx512f -mavx512vnni -mavx512bf16 -dM -E - < /dev/null | grep AVX
+ 
 ```
 
 Build to enable AVX (Advanced vector eXtensions)
