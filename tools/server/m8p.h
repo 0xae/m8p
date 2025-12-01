@@ -2272,6 +2272,11 @@ namespace m8p {
             );            
         }
 
+        return std::make_pair(
+            M8_Err_nil,
+            M8->true_
+        );
+
         // if (REG.count(rsource)) {
         //     M8_Obj *R = REG[rsource]; 
         //     if (R==nullptr){
@@ -2401,6 +2406,7 @@ namespace m8p {
                     M8_Err_nil,
                     R
                 );
+
             } else {
                 return std::make_pair(
                     errorf("ASSERTION_FAILED["+rsource+"]"),
