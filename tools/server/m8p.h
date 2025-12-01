@@ -2405,7 +2405,7 @@ namespace m8p {
 
             } else {
                 return std::make_pair(
-                    errorf("ASSERTION_FAILED["+rsource+"]"),
+                    errorf("ASSERTION_FAILED['"+ haystack + " NOT CONTAIN '" + query +"']"),
                     M8->nilValue
                 );
             }
