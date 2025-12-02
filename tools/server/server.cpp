@@ -7140,7 +7140,7 @@ std::string M8_BANNER =
             if (runner.joinable()) {
                 runner.join();
             }
-        };
+
         // const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
         //     try {
         //         std::string id_session = "";
