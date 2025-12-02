@@ -7066,7 +7066,7 @@ std::string M8_BANNER =
             return;
         }
 
-        const auto chunked_content_provider = [task_ids, &ctx_server](size_t, httplib::DataSink &sink) {
+        const auto chunked_content_provider = [&ctx_server,&g_session](size_t, httplib::DataSink &sink) {
             try {
                 std::string id_session = "";
                 m8p::M8System *m8;
