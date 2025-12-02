@@ -4402,7 +4402,7 @@ struct M8Session {
     m8p::M8System *m8;
     std::map<std::string, vectordb_index> G_Vector_DB;
     std::map<std::string, instance_data> LLMInstance_DB;
-    httplib::DataSink sink;
+    httplib::DataSink *sink;
 };
 
 struct vectordb_index {
