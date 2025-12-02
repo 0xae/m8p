@@ -5447,7 +5447,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
     std::string rsource = params.at(1);// dont forget 0 is for the op_code
 
     if (GlobalSession.count(M8->Name)) {
-        auto session_id = GlobalSession[M8->Name];
+        auto session = &GlobalSession[M8->Name];
         if (!session.has_sink) {
             return std::make_pair(
                 m8p::errorf("stream not available in this session "),
