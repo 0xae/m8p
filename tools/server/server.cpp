@@ -5429,6 +5429,59 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
     );
 }
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
+    server_context *ctx_server,
+    m8p::M8System* M8, 
+    std::vector<std::string> params) {
+
+    // std::cout << "LLAMA VIRTUAL\n";
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize<1) {
+        return std::make_pair(
+            m8p::errorf("stream requires an input"),
+            M8->nilValue
+        );
+    }
+
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+    std::string rsource = params.at(1);// dont forget 0 is for the op_code
+
+    if (GlobalSession.count(M8->Name)) {
+        auto session = GlobalSession[M8->Name];
+        if (!session.has_sink) {
+            return std::make_pair(
+                m8p::errorf("stream not available in this session "),
+                M8->false
+            );
+        }
+
+        auto sink = session.sink;
+
+        if (!server_sent_event(sink, json{{"event", rsource}})) {
+            return std::make_pair(
+                m8p::errorf("failed to send server event from session " + M8->Name + " : " + rsource),
+                M8->false_
+            );
+        }
+
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->true_
+        );
+
+    } else {
+        return std::make_pair(
+            m8p::errorf("failed to stream : Sessio " + M8->Name + " not found!"),
+            M8->nilValue
+        );
+    }
+
+    return std::make_pair(
+        m8p::errorf("failed to stream"),
+        M8->nilValue
+    );
+}
+
 std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
     server_context *ctx_server,
     m8p::M8System* M8, 
@@ -5622,58 +5675,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
 
 // END HNSWLIB
 
-std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
-    common_params *gpt_params,
-    m8p::M8System* M8, 
-    std::vector<std::string> params) {
 
-    // std::cout << "LLAMA VIRTUAL\n";
-    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
-    if (psize<1) {
-        return std::make_pair(
-            m8p::errorf("stream requires an input"),
-            M8->nilValue
-        );
-    }
-
-    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
-    std::string rsource = params.at(1);// dont forget 0 is for the op_code
-
-    if (GlobalSession.count(M8->Name)) {
-        auto session = GlobalSession.get(M8->Name);
-        if (!session.has_sink) {
-            return std::make_pair(
-                m8p::errorf("stream not available in this session "),
-                M8->false
-            );
-        }
-
-        auto sink = session.sink;
-
-        if (!server_sent_event(sink, json{{"event", rsource}})) {
-            return std::make_pair(
-                m8p::errorf("failed to send server event from session " + M8->Name + " : " + rsource),
-                M8->false
-            );
-        }
-
-        return std::make_pair(
-            m8p::M8_Err_nil,
-            M8->true_
-        );
-
-    } else {
-        return std::make_pair(
-            m8p::errorf("failed to stream : Sessio " + M8->Name + " not found!"),
-            M8->nilValue
-        );
-    }
-
-    return std::make_pair(
-        m8p::errorf("failed to stream"),
-        M8->nilValue
-    );
-}
 
 std::pair<m8p::M8_Error, m8p::M8_Obj*> GPT_PARAMS(
     common_params *gpt_params,
