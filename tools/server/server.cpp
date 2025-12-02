@@ -5956,6 +5956,8 @@ std::string M8_BANNER =
     svr->set_read_timeout (params.timeout_read);
     svr->set_write_timeout(params.timeout_write);
 
+    svr->set_tcp_nodelay(true);
+
     std::unordered_map<std::string, std::string> log_data;
 
     log_data["hostname"] = params.hostname;
