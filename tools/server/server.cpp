@@ -7065,9 +7065,8 @@ std::string M8_BANNER =
             res_error(res, format_error_response("Empty Code_Buf", ERROR_TYPE_INVALID_REQUEST));
             return;
         }
-
-        std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
-        const auto chunked_content_provider = [&ctx_server, &code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
+        // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
+        const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
             try {
                 std::string id_session = "";
                 m8p::M8System *m8;
