@@ -7075,72 +7075,54 @@ std::string M8_BANNER =
         }
 
         // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
-        const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t offset, httplib::DataSink &sink) {
-            std::thread runner([&]() {
+        const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
+            try {
                 std::string id_session = "";
-                m8p::M8System *m8 = nullptr;
+                m8p::M8System *m8;
+                {
+                    const std::lock_guard<std::mutex> lock(g_session);
+                    do {
+                        id_session = get_uuid();
+                    } while (GlobalSession.count(id_session)!=0);
 
-                try {
-                    // --- Session Setup ---
-                    {
-                        std::lock_guard<std::mutex> lock(g_session);
-                        do {
-                            id_session = get_uuid();
-                        } while (GlobalSession.count(id_session) != 0);
-
-                        GlobalSession[id_session].name = id_session;
-                        GlobalSession[id_session].exec_calls = 0;
-                        // Store the POINTER to the sink (safe because we join below)
-                        GlobalSession[id_session].sink = &sink; 
-                        GlobalSession[id_session].has_sink = true;
-                        
-                        m8 = m8p::M8P_Instance(id_session);
-                        GlobalSession[id_session].m8 = m8;
-                    }
-
-                    // --- Execution ---
-                    m8p::RegisterVirtual(m8, "__all__", virtualvm);
-                    
-                    // This runs in the separate thread
-                    std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
-
-                    // Signal success to client
-                    sink.done();
-
-                    // --- Cleanup ---
-                    {
-                        std::lock_guard<std::mutex> lock(g_session);
-                        GlobalSession.erase(id_session);
-                    }
-                    if (m8) m8p::DestroyMP8(m8);
-
-                } catch (const std::exception &e) {
-                    // Handle exceptions inside the thread
-                    json Resp;
-                    Resp["Status"] = "FAILED";
-                    Resp["R"] = "An error occurred: on session execution";
-                    Resp["Trace"] = e.what();
-                    std::cerr << "ERROR: " << e.what() << std::endl;
-
-                    // Write error to sink safely
-                    server_sent_event(sink, Resp);
-                    sink.done();
-
-                    // Cleanup on error
-                    {
-                        std::lock_guard<std::mutex> lock(g_session);
-                        if (!id_session.empty()) GlobalSession.erase(id_session);
-                    }
-                    if (m8) m8p::DestroyMP8(m8);
+                    GlobalSession[id_session].name = id_session;
+                    GlobalSession[id_session].exec_calls = 0;
+                    GlobalSession[id_session].m8 = m8;
+                    GlobalSession[id_session].sink = &sink;
+                    GlobalSession[id_session].has_sink = true;
+                    m8 = m8p::M8P_Instance(id_session);
                 }
-            });
 
-            // 2. CRITICAL: Wait for the thread to finish.
-            // This keeps the 'sink' reference alive while the thread is working.
-            if (runner.joinable()) {
-                runner.join();
+                // will handle all custom instr
+                m8p::RegisterVirtual(m8, "__all__", virtualvm);
+                std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
+
+                sink.done();
+
+                // sleep(2);
+                {
+                    const std::lock_guard<std::mutex> lock(g_session);
+                    GlobalSession.erase(id_session);
+                }
+                m8p::DestroyMP8(m8);
+                return false;
+
+            } catch (std::exception &e) {
+                json Resp;
+                Resp["Status"] = "FAILED";
+                Resp["R"] = "An error ocurred: on session execution";
+                Resp["Trace"] = e.what();
+                std::cout << "ERROR: " 
+                    << e.what()
+                    << std::endl;
+    
+                server_sent_event(sink, Resp);
+                sink.done();
+                return true;
             }
 
+            return true;
+        };
         // const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
         //     try {
         //         std::string id_session = "";
