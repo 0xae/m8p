@@ -5456,8 +5456,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         }
 
         auto sink = GlobalSession[M8->Name].sink;
+        auto was_sent = server_sent_event(*sink, json{{"event", rsource}});
+        sink.done();
 
-        if (!server_sent_event(*sink, json{{"event", rsource}})) {
+        if (!was_sent) {
             return std::make_pair(
                 m8p::errorf("failed to send server event from session " + M8->Name + " : " + rsource),
                 M8->false_
@@ -7095,8 +7097,6 @@ std::string M8_BANNER =
                 ss << " " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " [µs], "
                    << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << " [ns]";
 
-                sink.done();
-
                 if (Ret.first.Type!=m8p::M8_Err_nil.Type) {
                     json Resp;
                     Resp["Status"] = "FAILED";
@@ -7159,6 +7159,8 @@ std::string M8_BANNER =
                     GlobalSession.erase(id_session);
                 }
                 m8p::DestroyMP8(m8);
+
+                sink.done();
 
                 return false;
             } catch (std::exception &e) {
