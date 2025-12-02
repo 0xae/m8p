@@ -7066,6 +7066,7 @@ std::string M8_BANNER =
             return;
         }
 
+        std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
         const auto chunked_content_provider = [&ctx_server, &code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
             try {
                 std::string id_session = "";
@@ -7088,7 +7089,6 @@ std::string M8_BANNER =
                 m8p::RegisterVirtual(m8, "__all__", virtualvm);
 
                 std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-                std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
                 std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
 
                 std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
