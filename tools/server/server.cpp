@@ -5456,10 +5456,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         }
 
         auto sink = GlobalSession[M8->Name].sink;
-        rsource += "\n";
+        std::string output += "data: " + rsource + "\n\n";
+        sink->write(output.data(), output.size());
         // auto was_sent = server_sent_event(*sink, json{{"event", rsource}});
         // sink->done();
-        sink->write(rsource.data(), rsource.size());
         // std::string nl = "\n";
         // sink->write(nl, nl.size());
         // if (!was_sent) {
