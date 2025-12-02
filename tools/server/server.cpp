@@ -7073,6 +7073,7 @@ std::string M8_BANNER =
             res_error(res, format_error_response("Empty Code_Buf", ERROR_TYPE_INVALID_REQUEST));
             return;
         }
+
         // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
         const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
             try {
@@ -7098,7 +7099,12 @@ std::string M8_BANNER =
                 // sink.done();
 
                 std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+                server_sent_event(sink, json{{"etype", "BEFORE RUN-M8"}});
+
                 std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
+
+                server_sent_event(sink, json{{"etype", "BEFORE AFTER-M8"}});
 
                 std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
                 std::stringstream ss;
