@@ -5457,7 +5457,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
 
         auto sink = GlobalSession[M8->Name].sink;
         auto was_sent = server_sent_event(*sink, json{{"event", rsource}});
-        *sink.done();
+        sink->done();
 
         if (!was_sent) {
             return std::make_pair(
