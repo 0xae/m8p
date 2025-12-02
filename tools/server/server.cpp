@@ -4402,7 +4402,7 @@ struct M8Session {
     m8p::M8System *m8;
     std::map<std::string, vectordb_index> G_Vector_DB;
     std::map<std::string, instance_data> LLMInstance_DB;
-    httplib::DataSink &sink;
+    httplib::DataSink sink;
 };
 
 struct vectordb_index {
@@ -7066,7 +7066,7 @@ std::string M8_BANNER =
             return;
         }
 
-        const auto chunked_content_provider = [&ctx_server,&g_session](size_t, httplib::DataSink &sink) {
+        const auto chunked_content_provider = [&ctx_server, &code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
             try {
                 std::string id_session = "";
                 m8p::M8System *m8;
