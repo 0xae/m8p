@@ -7088,7 +7088,7 @@ std::string M8_BANNER =
                 m8p::RegisterVirtual(m8, "__all__", virtualvm);
 
                 std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-                // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
+                std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
                 std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
 
                 std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -7176,6 +7176,7 @@ std::string M8_BANNER =
         };
 
         auto on_complete = [&ctx_server] (bool) {
+            std::cout << "on_complete\n" << std::endl;
         };
 
         res.set_chunked_content_provider("text/event-stream", chunked_content_provider, on_complete);
