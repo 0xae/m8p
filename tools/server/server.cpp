@@ -7179,7 +7179,7 @@ std::string M8_BANNER =
         };
 
         res.set_chunked_content_provider("text/event-stream", chunked_content_provider, on_complete);
-    }
+    };
 
     const auto handle_run_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
         const httplib::Request &req, 
