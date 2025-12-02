@@ -5457,7 +5457,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
 
         auto sink = GlobalSession[M8->Name].sink;
 
-        if (sink && *sink && !server_sent_event(sink, json{{"event", rsource}})) {
+        if (sink && *sink && !server_sent_event(*sink, json{{"event", rsource}})) {
             return std::make_pair(
                 m8p::errorf("failed to send server event from session " + M8->Name + " : " + rsource),
                 M8->false_
