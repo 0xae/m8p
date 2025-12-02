@@ -3259,6 +3259,14 @@ struct server_context {
     }
 
     // receive the results from task(s), in stream mode
+    void sink_stream(const std::function<void()> &result_handle){
+        int i=0;
+        while(i++<1) {
+            result_handle();
+            break;
+        }
+    }
+
     void receive_cmpl_results_stream(
             const std::unordered_set<int> & id_tasks,
             const std::function<bool(server_task_result_ptr&)> & result_handler,
@@ -5456,7 +5464,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         }
 
         auto sink = GlobalSession[M8->Name].sink;
-        server_sent_event(*sink, json{{"event", rsource}});
+        auto result_handle = [sink, &rsource]() {
+            server_sent_event(*sink, json{{"event", rsource}});
+        } 
+
+        ctx_server->sink_stream(result_handle);
         // std::string output = "data: " + rsource + "\n\n";
         // sink->os << output << std::flush;
         // sink->write(output.data(), output.size());
