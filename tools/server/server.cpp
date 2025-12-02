@@ -7111,7 +7111,7 @@ std::string M8_BANNER =
                 ss << " " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " [µs], "
                    << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << " [ns]";
 
-                sink.done();
+                // sink.done();
 
                 if (Ret.first.Type!=m8p::M8_Err_nil.Type) {
                     json Resp;
@@ -7168,6 +7168,8 @@ std::string M8_BANNER =
                     }
                     server_sent_event(sink, Resp);
                 }
+                
+                sink.done();
 
                 // sleep(2);
                 {
@@ -7185,9 +7187,13 @@ std::string M8_BANNER =
                 std::cout << "ERROR: " 
                     << e.what()
                     << std::endl;
+    
                 server_sent_event(sink, Resp);
+                sink.done();
                 return true;
             }
+
+            return true;
         };
 
         auto on_complete = [&ctx_server] (bool) {
