@@ -5464,11 +5464,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         }
 
         auto sink = GlobalSession[M8->Name].sink;
-        auto result_handle = [sink, &rsource]() {
+        // auto result_handle = [sink, &rsource]() {
             server_sent_event(*sink, json{{"event", rsource}});
-        };
-
-        ctx_server->sink_stream(result_handle);
+        // };
+        // ctx_server->sink_stream(result_handle);
         // std::string output = "data: " + rsource + "\n\n";
         // sink->os << output << std::flush;
         // sink->write(output.data(), output.size());
@@ -7108,6 +7107,62 @@ std::string M8_BANNER =
                 // will handle all custom instr
                 m8p::RegisterVirtual(m8, "__all__", virtualvm);
                 std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
+
+                if (Ret.first.Type!=m8p::M8_Err_nil.Type) {
+                    json Resp;
+                    Resp["Status"] = "FAILED";
+                    Resp["Tms"] = ss.str();
+                    Resp["Error"] = Ret.first.Details;
+                    Resp["Type"] = "<error>";
+                    server_sent_event(sink, Resp);
+                } else {
+                    json Resp;
+                    Resp["Status"] = "OK";
+                    Resp["Tms"] = ss.str();
+                    if (Ret.second!=nullptr) {
+                        if (Ret.second->Type==m8p::MP8_I32) {
+                            Resp["R"] = Ret.second->I32;
+
+                        } else if (Ret.second->Type==m8p::MP8_F32) {
+                            Resp["R"] = Ret.second->F32;
+
+                        } else if (Ret.second->Type==m8p::MP8_DI32) {
+                            Resp["R"] = Ret.second->AR_I32;
+
+                        } else if (Ret.second->Type==m8p::MP8_OLIST) {
+                            json slots = json::array();
+                            std::vector<m8p::M8_Obj*>::iterator i=Ret.second->AR_OBJ.begin();
+                            for (; i!=Ret.second->AR_OBJ.end(); ++i) {
+                                m8p::M8_Obj *obj = *i;
+                                if (obj!=nullptr) {
+                                    if (obj->Type==m8p::MP8_I32) {
+                                        slots.push_back(obj->I32);
+                                    } else if (obj->Type==m8p::MP8_F32) {
+                                        slots.push_back(obj->F32);
+                                    } else if (obj->Type==m8p::MP8_DI32) {
+                                        slots.push_back(obj->AR_I32);
+                                    } else if (obj->Type==m8p::MP8_DF32) {
+                                        slots.push_back(obj->AR_F32);
+                                    } else if (obj->Type==m8p::MP8_STRING) {
+                                        slots.push_back(obj->Value);
+                                    } else {
+                                        slots.push_back(m8p::TypeStr(obj->Type));
+                                    }
+                                }
+                            }
+                            Resp["R"] = slots;
+
+                        } else if (Ret.second->Type==m8p::MP8_DF32) {
+                            Resp["R"] = Ret.second->AR_F32;
+
+                        } else {
+                            Resp["R"] = Ret.second->Value;
+                        }
+
+                        Resp["Type"] = m8p::TypeStr(Ret.second->Type);
+                    }
+                    server_sent_event(sink, Resp);
+                }
 
                 sink.done();
 
