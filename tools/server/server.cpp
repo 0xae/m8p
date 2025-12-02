@@ -4398,9 +4398,11 @@ struct M8Session {
     int32_t exec_calls;
     std::mutex rlock;
     bool IsLock = false;
+    bool has_sink = false;
     m8p::M8System *m8;
     std::map<std::string, vectordb_index> G_Vector_DB;
     std::map<std::string, instance_data> LLMInstance_DB;
+    httplib::DataSink &sink;
 };
 
 struct vectordb_index {
@@ -4430,6 +4432,11 @@ std::map<std::string, M8Session> GlobalSession;
 // DECLARATIONS
 //
 std::pair<m8p::M8_Error, m8p::M8_Obj*> GPT_PARAMS(
+    common_params *gpt_params,
+    m8p::M8System* M8, 
+    std::vector<std::string> params);
+
+std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
     common_params *gpt_params,
     m8p::M8System* M8, 
     std::vector<std::string> params);
@@ -5615,6 +5622,59 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
 
 // END HNSWLIB
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
+    common_params *gpt_params,
+    m8p::M8System* M8, 
+    std::vector<std::string> params) {
+
+    // std::cout << "LLAMA VIRTUAL\n";
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize<1) {
+        return std::make_pair(
+            m8p::errorf("stream requires an input"),
+            M8->nilValue
+        );
+    }
+
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+    std::string rsource = params.at(1);// dont forget 0 is for the op_code
+
+    if (GlobalSession.count(M8->Name)) {
+        auto session = GlobalSession.get(M8->Name);
+        if (!session.has_sink) {
+            return std::make_pair(
+                m8p::errorf("stream not available in this session "),
+                M8->false
+            );
+        }
+
+        auto sink = session.sink;
+
+        if (!server_sent_event(sink, json{{"event", rsource}})) {
+            return std::make_pair(
+                m8p::errorf("failed to send server event from session " + M8->Name + " : " + rsource),
+                M8->false
+            );
+        }
+
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->true_
+        );
+
+    } else {
+        return std::make_pair(
+            m8p::errorf("failed to stream : Sessio " + M8->Name + " not found!"),
+            M8->nilValue
+        );
+    }
+
+    return std::make_pair(
+        m8p::errorf("failed to stream"),
+        M8->nilValue
+    );
+}
+
 std::pair<m8p::M8_Error, m8p::M8_Obj*> GPT_PARAMS(
     common_params *gpt_params,
     m8p::M8System* M8, 
@@ -5721,6 +5781,9 @@ public:
             return VECTOR_SEARCH(this->ctx_server, M8, params);
         } else if (opCode=="vdb_destroy") {
             return VECTOR_INSTANCE_DESTROY(this->ctx_server, M8, params);
+
+        } else if (opCode=="stream") {
+            return STREAM_SINK(this->ctx_server, M8, params);
 
         // } else if (opCode=="llm_infill") {
         //     return LLM_INFILL(this->ctx_server, M8, params);
@@ -6986,6 +7049,136 @@ std::string M8_BANNER =
         }
     };
 
+    const auto handle_stream_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
+        const httplib::Request &req, 
+        httplib::Response &res) {
+        json data = json::parse(req.body);
+        if (data.count("code")==0) {
+            res_error(res, format_error_response(".code property must contain valid code", ERROR_TYPE_INVALID_REQUEST));
+            return;
+        }
+
+        std::string code_buf = data.at("code");
+        if (code_buf.size()==0) {
+            res_error(res, format_error_response("Empty Code_Buf", ERROR_TYPE_INVALID_REQUEST));
+            return;
+        }
+
+        const auto chunked_content_provider = [task_ids, &ctx_server](size_t, httplib::DataSink &sink) {
+            try {
+                std::string id_session = "";
+                m8p::M8System *m8;
+                {
+                    const std::lock_guard<std::mutex> lock(g_session);
+                    do {
+                        id_session = get_uuid();
+                    } while (GlobalSession.count(id_session)!=0);
+
+                    GlobalSession[id_session].name = id_session;
+                    GlobalSession[id_session].exec_calls = 0;
+                    GlobalSession[id_session].m8 = m8;
+                    GlobalSession[id_session].sink = sink;
+                    GlobalSession[id_session].has_sink = true;
+                    m8 = m8p::M8P_Instance(id_session);
+                }
+
+                // will handle all custom instr
+                m8p::RegisterVirtual(m8, "__all__", virtualvm);
+
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
+                std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
+
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                std::stringstream ss;
+                ss << " " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " [µs], "
+                   << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << " [ns]";
+
+                sink.done();
+
+                if (Ret.first.Type!=m8p::M8_Err_nil.Type) {
+                    json Resp;
+                    Resp["Status"] = "FAILED";
+                    Resp["Tms"] = ss.str();
+                    Resp["Error"] = Ret.first.Details;
+                    Resp["Type"] = "<error>";
+                    server_sent_event(sink, Resp);
+                } else {
+                    json Resp;
+                    Resp["Status"] = "OK";
+                    Resp["Tms"] = ss.str();
+                    if (Ret.second!=nullptr) {
+                        if (Ret.second->Type==m8p::MP8_I32) {
+                            Resp["R"] = Ret.second->I32;
+
+                        } else if (Ret.second->Type==m8p::MP8_F32) {
+                            Resp["R"] = Ret.second->F32;
+
+                        } else if (Ret.second->Type==m8p::MP8_DI32) {
+                            Resp["R"] = Ret.second->AR_I32;
+
+                        } else if (Ret.second->Type==m8p::MP8_OLIST) {
+                            json slots = json::array();
+                            std::vector<m8p::M8_Obj*>::iterator i=Ret.second->AR_OBJ.begin();
+                            for (; i!=Ret.second->AR_OBJ.end(); ++i) {
+                                m8p::M8_Obj *obj = *i;
+                                if (obj!=nullptr) {
+                                    if (obj->Type==m8p::MP8_I32) {
+                                        slots.push_back(obj->I32);
+                                    } else if (obj->Type==m8p::MP8_F32) {
+                                        slots.push_back(obj->F32);
+                                    } else if (obj->Type==m8p::MP8_DI32) {
+                                        slots.push_back(obj->AR_I32);
+                                    } else if (obj->Type==m8p::MP8_DF32) {
+                                        slots.push_back(obj->AR_F32);
+                                    } else if (obj->Type==m8p::MP8_STRING) {
+                                        slots.push_back(obj->Value);
+                                    } else {
+                                        slots.push_back(m8p::TypeStr(obj->Type));
+                                    }
+                                }
+                            }
+                            Resp["R"] = slots;
+
+                        } else if (Ret.second->Type==m8p::MP8_DF32) {
+                            Resp["R"] = Ret.second->AR_F32;
+
+                        } else {
+                            Resp["R"] = Ret.second->Value;
+                        }
+
+                        Resp["Type"] = m8p::TypeStr(Ret.second->Type);
+                    }
+                    server_sent_event(sink, Resp);
+                }
+
+                sleep(2);
+                {
+                    const std::lock_guard<std::mutex> lock(g_session);
+                    GlobalSession.erase(id_session);
+                }
+                m8p::DestroyMP8(m8);
+
+                return false;
+            } catch (std::exception &e) {
+                json Resp;
+                Resp["Status"] = "FAILED";
+                Resp["R"] = "An error ocurred: on session execution";
+                Resp["Trace"] = e.what();
+                std::cout << "ERROR: " 
+                    << e.what()
+                    << std::endl;
+                server_sent_event(sink, Resp);
+                return true;
+            }
+        };
+
+        auto on_complete = [&ctx_server] (bool) {
+        };
+
+        res.set_chunked_content_provider("text/event-stream", chunked_content_provider, on_complete);
+    }
+
     const auto handle_run_Session = [virtualvm, &g_session, &GlobalSession, &res_error, &res_ok](
         const httplib::Request &req, 
         httplib::Response &res) {
@@ -7433,6 +7626,7 @@ std::string M8_BANNER =
     svr->Post("/api/v1/m8/dry-run",   handle_Run);
     svr->Post("/api/v1/m8/session-create/:id_session",  handle_create_Session);
     svr->Post("/api/v1/m8/session-run/:id_session",  handle_run_Session);
+    svr->Post("/api/v1/m8/session-stream",  handle_stream_Session);
     svr->Post("/api/v1/m8/:id_session/session-run",  handle_run_Session);
     svr->Post("/api/v1/m8/session-check/:id_session",  handle_check_Session);
     svr->Post("/api/v1/m8/session-destroy/:id_session",  handle_destroy_Session);

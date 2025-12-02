@@ -2736,21 +2736,21 @@ namespace m8p {
             } else if (opCode=="align"||opCode=="pad") {
                 lastRet = ALIGN_OP(M8, instr_tokens);
             #ifdef __AVX__
-                        } else if (opCode=="xmatadd") {
+                        } else if (opCode=="matadd") {
                             lastRet = MatFlex_OP("add", M8, instr_tokens);
-                        } else if (opCode=="xmatsub") {
+                        } else if (opCode=="matsub") {
                             lastRet = MatFlex_OP("sub", M8, instr_tokens);
-                        } else if (opCode=="xmatmul") {
+                        } else if (opCode=="matmul") {
                             lastRet = MatFlex_OP("mul", M8, instr_tokens);
 
-                        } else if (opCode=="matadd") {
-                            lastRet = Mat8_OP("add", M8, instr_tokens);
+                        // } else if (opCode=="matadd") {
+                        //     lastRet = Mat8_OP("add", M8, instr_tokens);
 
-                        } else if (opCode=="matsub") {
-                            lastRet = Mat8_OP("sub", M8, instr_tokens);
+                        // } else if (opCode=="matsub") {
+                        //     lastRet = Mat8_OP("sub", M8, instr_tokens);
 
-                        } else if (opCode=="matmul") {
-                            lastRet = Mat8_OP("mul", M8, instr_tokens);
+                        // } else if (opCode=="matmul") {
+                        //     lastRet = Mat8_OP("mul", M8, instr_tokens);
 
                         } else if (opCode=="matdot") {
                             lastRet = MatDotProd_OP(M8, instr_tokens);
