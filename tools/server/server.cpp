@@ -7076,125 +7076,119 @@ std::string M8_BANNER =
 
         // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
         const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
-            try {
+            std::thread runner([&]() {
                 std::string id_session = "";
-                m8p::M8System *m8;
-                {
-                    const std::lock_guard<std::mutex> lock(g_session);
-                    do {
-                        id_session = get_uuid();
-                    } while (GlobalSession.count(id_session)!=0);
+                m8p::M8System *m8 = nullptr;
 
-                    GlobalSession[id_session].name = id_session;
-                    GlobalSession[id_session].exec_calls = 0;
-                    GlobalSession[id_session].m8 = m8;
-                    GlobalSession[id_session].sink = &sink;
-                    GlobalSession[id_session].has_sink = true;
-                    m8 = m8p::M8P_Instance(id_session);
-                }
+                try {
+                    // --- Session Setup ---
+                    {
+                        std::lock_guard<std::mutex> lock(g_session);
+                        do {
+                            id_session = get_uuid();
+                        } while (GlobalSession.count(id_session) != 0);
 
-                // will handle all custom instr
-                m8p::RegisterVirtual(m8, "__all__", virtualvm);
+                        GlobalSession[id_session].name = id_session;
+                        GlobalSession[id_session].exec_calls = 0;
+                        // Store the POINTER to the sink (safe because we join below)
+                        GlobalSession[id_session].sink = &sink; 
+                        GlobalSession[id_session].has_sink = true;
+                        
+                        m8 = m8p::M8P_Instance(id_session);
+                        GlobalSession[id_session].m8 = m8;
+                    }
 
-                // sink.done();
+                    // --- Execution ---
+                    m8p::RegisterVirtual(m8, "__all__", virtualvm);
+                    
+                    // This runs in the separate thread
+                    std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
 
-                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                    // Signal success to client
+                    sink.done();
 
-                server_sent_event(sink, json{{"etype", "BEFORE RUN-M8"}});
+                    // --- Cleanup ---
+                    {
+                        std::lock_guard<std::mutex> lock(g_session);
+                        GlobalSession.erase(id_session);
+                    }
+                    if (m8) m8p::DestroyMP8(m8);
 
-                std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
-
-                server_sent_event(sink, json{{"etype", "BEFORE AFTER-M8"}});
-
-                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-                std::stringstream ss;
-                ss << " " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " [µs], "
-                   << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << " [ns]";
-
-                // sink.done();
-
-                if (Ret.first.Type!=m8p::M8_Err_nil.Type) {
+                } catch (const std::exception &e) {
+                    // Handle exceptions inside the thread
                     json Resp;
                     Resp["Status"] = "FAILED";
-                    Resp["Tms"] = ss.str();
-                    Resp["Error"] = Ret.first.Details;
-                    Resp["Type"] = "<error>";
+                    Resp["R"] = "An error occurred: on session execution";
+                    Resp["Trace"] = e.what();
+                    std::cerr << "ERROR: " << e.what() << std::endl;
+
+                    // Write error to sink safely
                     server_sent_event(sink, Resp);
-                } else {
-                    json Resp;
-                    Resp["Status"] = "OK";
-                    Resp["Tms"] = ss.str();
-                    if (Ret.second!=nullptr) {
-                        if (Ret.second->Type==m8p::MP8_I32) {
-                            Resp["R"] = Ret.second->I32;
+                    sink.done();
 
-                        } else if (Ret.second->Type==m8p::MP8_F32) {
-                            Resp["R"] = Ret.second->F32;
-
-                        } else if (Ret.second->Type==m8p::MP8_DI32) {
-                            Resp["R"] = Ret.second->AR_I32;
-
-                        } else if (Ret.second->Type==m8p::MP8_OLIST) {
-                            json slots = json::array();
-                            std::vector<m8p::M8_Obj*>::iterator i=Ret.second->AR_OBJ.begin();
-                            for (; i!=Ret.second->AR_OBJ.end(); ++i) {
-                                m8p::M8_Obj *obj = *i;
-                                if (obj!=nullptr) {
-                                    if (obj->Type==m8p::MP8_I32) {
-                                        slots.push_back(obj->I32);
-                                    } else if (obj->Type==m8p::MP8_F32) {
-                                        slots.push_back(obj->F32);
-                                    } else if (obj->Type==m8p::MP8_DI32) {
-                                        slots.push_back(obj->AR_I32);
-                                    } else if (obj->Type==m8p::MP8_DF32) {
-                                        slots.push_back(obj->AR_F32);
-                                    } else if (obj->Type==m8p::MP8_STRING) {
-                                        slots.push_back(obj->Value);
-                                    } else {
-                                        slots.push_back(m8p::TypeStr(obj->Type));
-                                    }
-                                }
-                            }
-                            Resp["R"] = slots;
-
-                        } else if (Ret.second->Type==m8p::MP8_DF32) {
-                            Resp["R"] = Ret.second->AR_F32;
-
-                        } else {
-                            Resp["R"] = Ret.second->Value;
-                        }
-
-                        Resp["Type"] = m8p::TypeStr(Ret.second->Type);
+                    // Cleanup on error
+                    {
+                        std::lock_guard<std::mutex> lock(g_session);
+                        if (!id_session.empty()) GlobalSession.erase(id_session);
                     }
-                    server_sent_event(sink, Resp);
+                    if (m8) m8p::DestroyMP8(m8);
                 }
-                
-                sink.done();
+            });
 
-                // sleep(2);
-                {
-                    const std::lock_guard<std::mutex> lock(g_session);
-                    GlobalSession.erase(id_session);
-                }
-                m8p::DestroyMP8(m8);
-                return false;
-
-            } catch (std::exception &e) {
-                json Resp;
-                Resp["Status"] = "FAILED";
-                Resp["R"] = "An error ocurred: on session execution";
-                Resp["Trace"] = e.what();
-                std::cout << "ERROR: " 
-                    << e.what()
-                    << std::endl;
-    
-                server_sent_event(sink, Resp);
-                sink.done();
-                return true;
+            // 2. CRITICAL: Wait for the thread to finish.
+            // This keeps the 'sink' reference alive while the thread is working.
+            if (runner.joinable()) {
+                runner.join();
             }
-
-            return true;
         };
+        // const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
+        //     try {
+        //         std::string id_session = "";
+        //         m8p::M8System *m8;
+        //         {
+        //             const std::lock_guard<std::mutex> lock(g_session);
+        //             do {
+        //                 id_session = get_uuid();
+        //             } while (GlobalSession.count(id_session)!=0);
+
+        //             GlobalSession[id_session].name = id_session;
+        //             GlobalSession[id_session].exec_calls = 0;
+        //             GlobalSession[id_session].m8 = m8;
+        //             GlobalSession[id_session].sink = &sink;
+        //             GlobalSession[id_session].has_sink = true;
+        //             m8 = m8p::M8P_Instance(id_session);
+        //         }
+
+        //         // will handle all custom instr
+        //         m8p::RegisterVirtual(m8, "__all__", virtualvm);
+        //         std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
+
+        //         sink.done();
+
+        //         // sleep(2);
+        //         {
+        //             const std::lock_guard<std::mutex> lock(g_session);
+        //             GlobalSession.erase(id_session);
+        //         }
+        //         m8p::DestroyMP8(m8);
+        //         return false;
+
+        //     } catch (std::exception &e) {
+        //         json Resp;
+        //         Resp["Status"] = "FAILED";
+        //         Resp["R"] = "An error ocurred: on session execution";
+        //         Resp["Trace"] = e.what();
+        //         std::cout << "ERROR: " 
+        //             << e.what()
+        //             << std::endl;
+    
+        //         server_sent_event(sink, Resp);
+        //         sink.done();
+        //         return true;
+        //     }
+
+        //     return true;
+        // };
 
         auto on_complete = [&ctx_server] (bool) {
             std::cout << "on_complete\n" << std::endl;
