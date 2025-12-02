@@ -7092,6 +7092,8 @@ std::string M8_BANNER =
                 // will handle all custom instr
                 m8p::RegisterVirtual(m8, "__all__", virtualvm);
 
+                sink.done();
+
                 std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
                 std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
 
