@@ -5466,7 +5466,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         auto sink = GlobalSession[M8->Name].sink;
         auto result_handle = [sink, &rsource]() {
             server_sent_event(*sink, json{{"event", rsource}});
-        } 
+        };
 
         ctx_server->sink_stream(result_handle);
         // std::string output = "data: " + rsource + "\n\n";
