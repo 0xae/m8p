@@ -7075,7 +7075,7 @@ std::string M8_BANNER =
         }
 
         // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
-        const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
+        const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](httplib::DataSink &sink) {
             std::thread runner([&]() {
                 std::string id_session = "";
                 m8p::M8System *m8 = nullptr;
