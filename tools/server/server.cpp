@@ -5451,7 +5451,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         if (!session.has_sink) {
             return std::make_pair(
                 m8p::errorf("stream not available in this session "),
-                M8->false
+                M8->false_
             );
         }
 
