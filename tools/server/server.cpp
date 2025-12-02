@@ -5448,14 +5448,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
 
     if (GlobalSession.count(M8->Name)) {
         auto session = &GlobalSession[M8->Name];
-        if (!session.has_sink) {
+        if (!session->has_sink) {
             return std::make_pair(
                 m8p::errorf("stream not available in this session "),
                 M8->false_
             );
         }
 
-        auto sink = session.sink;
+        auto sink = GlobalSession[M8->Name].sink;
 
         if (!server_sent_event(sink, json{{"event", rsource}})) {
             return std::make_pair(
