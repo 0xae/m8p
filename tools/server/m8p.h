@@ -1932,8 +1932,9 @@ namespace m8p {
 
             // 7. Store Result
             // We store the scalar result as a single-element vector to maintain MP8_DF32 type consistency
-            REG[rOut] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-            REG[rOut]->AR_F32 = { similarity }; 
+            REG[rOut] = m8_obj(M8, similarity);
+            // REG[rOut] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+            // REG[rOut]->AR_F32 = { similarity }; 
 
             return std::make_pair(M8_Err_nil, REG[rOut]);
         }
