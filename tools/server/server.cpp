@@ -7105,6 +7105,16 @@ std::string M8_BANNER =
             return;
         }
 
+        res.set_header("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.set_header("Pragma", "no-cache");
+        res.set_header("Expires", "0");
+
+        // 2. THE CRITICAL FIX: Tell Nginx/Proxies to disable buffering for this request
+        res.set_header("X-Accel-Buffering", "no");
+
+        // 3. Ensure the content type is strictly correct
+        res.set_header("Content-Type", "text/event-stream");
+
         // std::cout << "RUNNING: CODE_BUF: " << code_buf << std::endl;
         const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
             try {
