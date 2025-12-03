@@ -2255,7 +2255,7 @@ namespace m8p {
             }
 
             // 6. Store Result
-            REG[rOut] = m8p::m8_obj(M8, dot_product);
+            REG[rOut] = m8p::m8_obj(M8, (float)dot_product);
             return std::make_pair(M8_Err_nil, REG[rOut]);
         }
     #endif
