@@ -5464,7 +5464,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
     // seems like rsource is a register, lets get its content
     // into a string and stream that
     if (REG.count(rsource)) {
-        M8_Obj *R = REG[rsource]; 
+        m8p::M8_Obj *R = REG[rsource]; 
         if (R!=nullptr){
             rsource = m8p::to_string(R);
         }
