@@ -664,6 +664,7 @@ namespace m8p {
         }
 
         __trim(rsource);
+        __trim(value);
 
         std::map<std::string, M8_Obj*> &REG = M8->Registers;
         { // AI-GENERATED
