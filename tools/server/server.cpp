@@ -5466,7 +5466,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
     if (REG.count(rsource)) {
         m8p::M8_Obj *R = REG[rsource]; 
         if (R!=nullptr){
-            rsource = m8p::to_string(R);
+            rsource = m8p::to_string(M8, R);
         }
     }
 
