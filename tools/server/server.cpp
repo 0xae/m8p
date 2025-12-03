@@ -5504,17 +5504,16 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
     //         rsource = m8p::to_string(M8, R);
     //     }
     // }
-
-    std::cout << "stream[rsource] = " 
-        << rsource 
-        << "\n" << std::endl;
+    // std::cout << "stream[rsource] = " 
+    //     << rsource 
+    //     << "\n" << std::endl;
 
     if (GlobalSession.count(M8->Name)) {
         auto session = &GlobalSession[M8->Name];
         if (!session->has_sink) {
             return std::make_pair(
                 m8p::errorf("stream not available in this session!"),
-                M8->false_
+                M8->nilValue
             );
         }
 
@@ -5526,7 +5525,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         } else {
             return std::make_pair(
                 m8p::errorf("Session has been closed!"),
-                M8->false_
+                M8->nilValue
             );
         }
         // };
@@ -5552,13 +5551,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
     } else {
         return std::make_pair(
             m8p::errorf("failed to stream : Sessio " + M8->Name + " not found!"),
-            M8->false_
+            M8->nilValue
         );
     }
 
     return std::make_pair(
         m8p::errorf("failed to stream"),
-        M8->false_
+        M8->nilValue
     );
 }
 
