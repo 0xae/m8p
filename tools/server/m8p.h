@@ -245,6 +245,7 @@ namespace m8p {
         std::pair<M8_Error, M8_Obj*> MatCosim_OP(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatCosim_OP_Flex(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatL2Dist_OP(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> MatL2Dist_OP2(M8System* M8, std::vector<std::string> params);
     #endif
     // matrix api
     std::pair<M8_Error, M8_Obj*> Mat8Set_OP(M8System* M8, std::vector<std::string> params);
@@ -2021,6 +2022,74 @@ namespace m8p {
             );
         }
 
+        std::pair<M8_Error, M8_Obj*> MatL2Dist_OP2(M8System* M8, std::vector<std::string> params) {
+            // 1. Validate Parameter Count (matl2dist <rA> <rB> <rOut>)
+            if (params.size() < 4) {
+                return std::make_pair(
+                    errorf(params[0] + " requires 3 parameters"),
+                    M8->nilValue
+                );
+            }
+
+            const std::string rA = params[1];
+            const std::string rB = params[2];
+            const std::string rOut = params[3];
+
+            auto& REG = M8->Registers;
+            M8_Obj* A = REG[rA];
+            M8_Obj* B = REG[rB];
+
+            // 2. Validate Types
+            if (!IsValid_DF32(M8, A) || !IsValid_DF32(M8, B)) {
+                return std::make_pair(
+                    errorf("matl2dist operands must be matrices"),
+                    M8->nilValue
+                );
+            }
+
+            auto& vA = A->AR_F32;
+            auto& vB = B->AR_F32;
+
+            // 3. Validate Dimensions
+            if (vA.size() != vB.size()) {
+                return std::make_pair(
+                    errorf("Dimension mismatch: vectors must be same size"),
+                    M8->nilValue
+                );
+            }
+
+            size_t N = vA.size();
+
+            // Accumulator for sum of squared differences
+            double sum_sq_diff = 0.0;
+
+            const size_t CHUNK = AVX_V_SIZE;
+            size_t i = 0;
+
+            // 4. Chunked Processing Loop
+            for (; i + CHUNK <= N; i += CHUNK) {
+                for (size_t j = 0; j < CHUNK; j++) {
+                    float diff = vA[i + j] - vB[i + j];
+                    sum_sq_diff += diff * diff;
+                }
+            }
+
+            // 5. Scalar Fallback
+            for (; i < N; ++i) {
+                float diff = vA[i] - vB[i];
+                sum_sq_diff += diff * diff;
+            }
+
+            // 6. Final Calculation
+            float distance = (float)std::sqrt(sum_sq_diff);
+
+            // 7. Store Result
+            REG[rOut] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+            REG[rOut]->AR_F32 = { distance };
+
+            return std::make_pair(M8_Err_nil, REG[rOut]);
+        }
+
         std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params) {
             int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
             if (params.size() < 2) {
@@ -2861,7 +2930,10 @@ namespace m8p {
                             lastRet = MatCosim_OP(M8, instr_tokens);
 
                         } else if (opCode=="matl2d") {
+                            lastRet = MatL2Dist_OP2(M8, instr_tokens);
+                        } else if (opCode=="xmatl2d") {
                             lastRet = MatL2Dist_OP(M8, instr_tokens);
+
             #endif
 
             } else if (opCode=="f32set") {
