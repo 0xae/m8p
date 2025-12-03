@@ -5916,7 +5916,7 @@ public:
             //         common_params *gpt_params,
             //         m8p::M8System* M8, 
             //         std::vector<std::string> params) {
-            return LLM_MODELSTATS(this->ctx_server, this->params, M8, params);
+            return LLM_MODELSTATS(this->ctx_server, this->server_params, M8, params);
 
         } else {
             return std::make_pair(
