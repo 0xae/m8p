@@ -5454,11 +5454,31 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
     std::string rsource = params.at(1);// dont forget 0 is for the op_code
 
+    if (psize>1) {
+        for (uint32_t i=2; i<params.size(); ++i) {
+            string v = params.at(i);
+            rsource = rsource + " " + v;
+        }
+    }
+
+    // seems like rsource is a register, lets get its content
+    // into a string and stream that
+    if (REG.count(rsource)) {
+        M8_Obj *R = REG[rsource]; 
+        if (R!=nullptr){
+            rsource = m8p::to_string(R);
+        }
+    }
+
+    std::cout << "stream[rsource] = " 
+        << rsource 
+        << "\n" << std::endl;
+
     if (GlobalSession.count(M8->Name)) {
         auto session = &GlobalSession[M8->Name];
         if (!session->has_sink) {
             return std::make_pair(
-                m8p::errorf("stream not available in this session "),
+                m8p::errorf("stream not available in this session!"),
                 M8->false_
             );
         }
@@ -5489,13 +5509,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
     } else {
         return std::make_pair(
             m8p::errorf("failed to stream : Sessio " + M8->Name + " not found!"),
-            M8->nilValue
+            M8->false_
         );
     }
 
     return std::make_pair(
         m8p::errorf("failed to stream"),
-        M8->nilValue
+        M8->false_
     );
 }
 
@@ -7195,54 +7215,6 @@ std::string M8_BANNER =
 
             return true;
         };
-        // const auto chunked_content_provider = [&ctx_server, code_buf, &virtualvm, &g_session](size_t, httplib::DataSink &sink) {
-        //     try {
-        //         std::string id_session = "";
-        //         m8p::M8System *m8;
-        //         {
-        //             const std::lock_guard<std::mutex> lock(g_session);
-        //             do {
-        //                 id_session = get_uuid();
-        //             } while (GlobalSession.count(id_session)!=0);
-
-        //             GlobalSession[id_session].name = id_session;
-        //             GlobalSession[id_session].exec_calls = 0;
-        //             GlobalSession[id_session].m8 = m8;
-        //             GlobalSession[id_session].sink = &sink;
-        //             GlobalSession[id_session].has_sink = true;
-        //             m8 = m8p::M8P_Instance(id_session);
-        //         }
-
-        //         // will handle all custom instr
-        //         m8p::RegisterVirtual(m8, "__all__", virtualvm);
-        //         std::pair<m8p::M8_Error, m8p::M8_Obj*> Ret = m8p::Run(m8, code_buf);
-
-        //         sink.done();
-
-        //         // sleep(2);
-        //         {
-        //             const std::lock_guard<std::mutex> lock(g_session);
-        //             GlobalSession.erase(id_session);
-        //         }
-        //         m8p::DestroyMP8(m8);
-        //         return false;
-
-        //     } catch (std::exception &e) {
-        //         json Resp;
-        //         Resp["Status"] = "FAILED";
-        //         Resp["R"] = "An error ocurred: on session execution";
-        //         Resp["Trace"] = e.what();
-        //         std::cout << "ERROR: " 
-        //             << e.what()
-        //             << std::endl;
-    
-        //         server_sent_event(sink, Resp);
-        //         sink.done();
-        //         return true;
-        //     }
-
-        //     return true;
-        // };
 
         auto on_complete = [&ctx_server] (bool) {
             std::cout << "on_complete\n" << std::endl;
