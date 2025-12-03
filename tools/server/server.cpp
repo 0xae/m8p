@@ -5461,14 +5461,49 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         }
     }
 
+    size_t c_start = rsource.find('#');
+    if (c_start!=std::string::npos) {
+        rsource = rsource.substr(0, c_start);
+    }
+    __trim(rsource);
+
+    { 
+        std::string interpolated;
+        interpolated.reserve(rsource.size());
+        for (size_t i = 0; i < rsource.size();) {
+            if (rsource[i] == '<') {
+                size_t end = rsource.find('>', i + 1);
+                if (end != std::string::npos) {
+                    std::string varname = rsource.substr(i + 1, end - i - 1);
+                    auto it = REG.find("<"+varname+">");
+                    // std::cout << "==> LOOKING [" << varname << "] ";
+                    if (it != REG.end() && it->second && !m8p::is_nil(M8, it->second)) {
+                        // std::cout << "FOUND VAR\n";
+                        interpolated += to_string(M8, it->second);
+                    } else {
+                        // std::cout << "NOT FOUND\n";
+                        // if not found, keep literal form
+                        interpolated += "<" + varname + ">";
+                    }
+                    i = end + 1;
+                    continue;
+                }
+            }
+
+            interpolated.push_back(rsource[i]);
+            ++i;
+        }
+        rsource = interpolated;
+    }
+
     // seems like rsource is a register, lets get its content
     // into a string and stream that
-    if (REG.count(rsource)) {
-        m8p::M8_Obj *R = REG[rsource]; 
-        if (R!=nullptr){
-            rsource = m8p::to_string(M8, R);
-        }
-    }
+    // if (REG.count(rsource)) {
+    //     m8p::M8_Obj *R = REG[rsource]; 
+    //     if (R!=nullptr){
+    //         rsource = m8p::to_string(M8, R);
+    //     }
+    // }
 
     std::cout << "stream[rsource] = " 
         << rsource 
