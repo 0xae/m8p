@@ -5465,7 +5465,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
     if (c_start!=std::string::npos) {
         rsource = rsource.substr(0, c_start);
     }
-    __trim(rsource);
+    m8p::__trim(rsource);
 
     { 
         std::string interpolated;
