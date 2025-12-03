@@ -2197,6 +2197,67 @@ namespace m8p {
                 REG[rdest]
             );
         }
+
+        std::pair<M8_Error, M8_Obj*> MatDotProd_OP2(M8System* M8, std::vector<std::string> params) {
+            // 1. Validate Parameter Count (matdot <rA> <rB> <rOut>)
+            if (params.size() < 4) {
+                return std::make_pair(
+                    errorf(params[0] + " requires 3 parameters"),
+                    M8->nilValue
+                );
+            }
+
+            const std::string rA = params[1];
+            const std::string rB = params[2];
+            const std::string rOut = params[3];
+
+            auto& REG = M8->Registers;
+            M8_Obj* A = REG[rA];
+            M8_Obj* B = REG[rB];
+
+            // 2. Validate Types
+            if (!IsValid_DF32(M8, A) || !IsValid_DF32(M8, B)) {
+                return std::make_pair(
+                    errorf("matdot operands must be matrices"),
+                    M8->nilValue
+                );
+            }
+
+            auto& vA = A->AR_F32;
+            auto& vB = B->AR_F32;
+
+            // 3. Validate Dimensions
+            if (vA.size() != vB.size()) {
+                return std::make_pair(
+                    errorf("Dimension mismatch: vectors must be same size"),
+                    M8->nilValue
+                );
+            }
+
+            size_t N = vA.size();
+
+            // Accumulator for dot product
+            double dot_product = 0.0;
+
+            const size_t CHUNK = AVX_V_SIZE;
+            size_t i = 0;
+
+            // 4. Chunked Processing Loop
+            for (; i + CHUNK <= N; i += CHUNK) {
+                for (size_t j = 0; j < CHUNK; j++) {
+                    dot_product += vA[i + j] * vB[i + j];
+                }
+            }
+
+            // 5. Scalar Fallback
+            for (; i < N; ++i) {
+                dot_product += vA[i] * vB[i];
+            }
+
+            // 6. Store Result
+            REG[rOut] = m8p::m8_obj(M8, dot_product);
+            return std::make_pair(M8_Err_nil, REG[rOut]);
+        }
     #endif
 
     std::pair<M8_Error, M8_Obj*> MatNSet_OP(M8System* M8, std::vector<std::string> params){
@@ -2913,6 +2974,8 @@ namespace m8p {
                         //     lastRet = Mat8_OP("mul", M8, instr_tokens);
 
                         } else if (opCode=="matdot") {
+                            lastRet = MatDotProd_OP2(M8, instr_tokens);
+                        } else if (opCode=="xmatdot") {
                             lastRet = MatDotProd_OP(M8, instr_tokens);
 
                         } else if (opCode=="matnorm") {
