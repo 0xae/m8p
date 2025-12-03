@@ -2073,20 +2073,15 @@ namespace m8p {
                     sum_sq_diff += diff * diff;
                 }
             }
-
             // 5. Scalar Fallback
             for (; i < N; ++i) {
                 float diff = vA[i] - vB[i];
                 sum_sq_diff += diff * diff;
             }
-
             // 6. Final Calculation
             float distance = (float)std::sqrt(sum_sq_diff);
-
             // 7. Store Result
-            REG[rOut] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
-            REG[rOut]->AR_F32 = { distance };
-
+            REG[rOut] = m8p::m8_obj(M8,distance);
             return std::make_pair(M8_Err_nil, REG[rOut]);
         }
 
