@@ -5456,7 +5456,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
 
     if (psize>1) {
         for (uint32_t i=2; i<params.size(); ++i) {
-            string v = params.at(i);
+            std::string v = params.at(i);
             rsource = rsource + " " + v;
         }
     }
