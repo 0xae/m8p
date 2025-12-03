@@ -243,6 +243,7 @@ namespace m8p {
         std::pair<M8_Error, M8_Obj*> MatDotProd_OP(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatCosim_OP(M8System* M8, std::vector<std::string> params);
+        std::pair<M8_Error, M8_Obj*> MatCosim_OP_Flex(M8System* M8, std::vector<std::string> params);
         std::pair<M8_Error, M8_Obj*> MatL2Dist_OP(M8System* M8, std::vector<std::string> params);
     #endif
     // matrix api
@@ -1845,7 +1846,7 @@ namespace m8p {
             );
         }
 
-        std::pair<M8_Error, M8_Obj*> MatCosim_OP2(M8System* M8, std::vector<std::string> params) {
+        std::pair<M8_Error, M8_Obj*> MatCosim_OP_Flex(M8System* M8, std::vector<std::string> params) {
             // 1. Validate Parameter Count (matcosim <rA> <rB> <rOut>)
             // params[0] is opcode, so we need 4 items total
             if (params.size() < 4) {
@@ -2854,7 +2855,10 @@ namespace m8p {
                             lastRet = MatNorm_OP(M8, instr_tokens);
 
                         } else if (opCode=="matcosim") {
-                            lastRet = MatCosim_OP2(M8, instr_tokens);
+                            lastRet = MatCosim_OP_Flex(M8, instr_tokens);
+
+                        } else if (opCode=="xmatcosim") { // xmatcosim is faster as it operates on a fixed size (AVX_V_SIZE)
+                            lastRet = MatCosim_OP(M8, instr_tokens);
 
                         } else if (opCode=="matl2d") {
                             lastRet = MatL2Dist_OP(M8, instr_tokens);
