@@ -5805,38 +5805,38 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> GPT_PARAMS(
     );
 }
 
-std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MODELSTATS(
-        server_context *server,
-        common_params *gpt_params,
-        m8p::M8System* M8, 
-        std::vector<std::string> params) {
-    // int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+// std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MODELSTATS(
+//         server_context *server,
+//         common_params *gpt_params,
+//         m8p::M8System* M8, 
+//         std::vector<std::string> params) {
+//     // int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
 
-    // std::cout << "\n============================\n";
-    // std::cout << "\n======== MODEL DETAILS =====\n";
-    // std::cout << "\n============================\n";
-    // return json {{ "success", true }};
+//     // std::cout << "\n============================\n";
+//     // std::cout << "\n======== MODEL DETAILS =====\n";
+//     // std::cout << "\n============================\n";
+//     // return json {{ "success", true }};
 
-    std::cout << "model: " << gpt_params->model_alias << "\n";
-    std::cout << "vocab_type: " << llama_vocab_type(server->model) << "\n";
-    std::cout << "n_vocab: " << llama_n_vocab(server->model) << "\n";
-    std::cout << "n_ctx_train: " << llama_n_ctx_train(server->model) << "\n";
-    std::cout << "n_embd: " << llama_n_embd(server->model) << "\n";
-    std::cout << "n_params: " << llama_model_n_params(server->model) << "\n";
-    std::cout << "size: " << llama_model_size(server->model) << "\n";
+//     std::cout << "model: " << gpt_params->model_alias << "\n";
+//     std::cout << "vocab_type: " << llama_vocab_type(server->model) << "\n";
+//     std::cout << "n_vocab: " << llama_n_vocab(server->model) << "\n";
+//     std::cout << "n_ctx_train: " << llama_n_ctx_train(server->model) << "\n";
+//     std::cout << "n_embd: " << llama_n_embd(server->model) << "\n";
+//     std::cout << "n_params: " << llama_model_n_params(server->model) << "\n";
+//     std::cout << "size: " << llama_model_size(server->model) << "\n";
 
-    // {"n_vocab",     llama_n_vocab(model)},
-    // {"n_ctx_train", llama_n_ctx_train   (model)},
-    // {"n_embd",      llama_n_embd        (model)},
-    // {"n_params",    llama_model_n_params(model)},
-    // {"size",        llama_model_size    (model)},
-    std::cout << "\n============================\n";
+//     // {"n_vocab",     llama_n_vocab(model)},
+//     // {"n_ctx_train", llama_n_ctx_train   (model)},
+//     // {"n_embd",      llama_n_embd        (model)},
+//     // {"n_params",    llama_model_n_params(model)},
+//     // {"size",        llama_model_size    (model)},
+//     std::cout << "\n============================\n";
 
-    return std::make_pair(
-        m8p::M8_Err_nil,
-        M8->nilValue
-    );
-}
+//     return std::make_pair(
+//         m8p::M8_Err_nil,
+//         M8->nilValue
+//     );
+// }
 
 
 class LLamaInstr : public m8p::VInstr {
@@ -5910,13 +5910,13 @@ public:
         // } else if (opCode=="llm_taskstats") {
         //     return LLM_TASKSTATS(this->ctx_server, M8, params);
 
-        } else if (opCode=="llm_modelstats") {
-            // std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MODELSTATS(
-            //         server_context *server,
-            //         common_params *gpt_params,
-            //         m8p::M8System* M8, 
-            //         std::vector<std::string> params) {
-            return LLM_MODELSTATS(this->ctx_server, this->server_params, M8, params);
+        // } else if (opCode=="llm_modelstats") {
+        //     // std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MODELSTATS(
+        //     //         server_context *server,
+        //     //         common_params *gpt_params,
+        //     //         m8p::M8System* M8, 
+        //     //         std::vector<std::string> params) {
+        //     return LLM_MODELSTATS(this->ctx_server, this->params, M8, params);
 
         } else {
             return std::make_pair(

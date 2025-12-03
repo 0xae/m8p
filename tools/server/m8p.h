@@ -1845,6 +1845,99 @@ namespace m8p {
             );
         }
 
+        std::pair<M8_Error, M8_Obj*> MatCosim_OP2(M8System* M8, std::vector<std::string> params) {
+            // 1. Validate Parameter Count (matcosim <rA> <rB> <rOut>)
+            // params[0] is opcode, so we need 4 items total
+            if (params.size() < 4) {
+                return std::make_pair(
+                    errorf(params[0] + " requires 3 parameters"),
+                    M8->nilValue
+                );
+            }
+
+            const std::string rA = params[1];
+            const std::string rB = params[2];
+            const std::string rOut = params[3];
+
+            auto& REG = M8->Registers;
+            M8_Obj* A = REG[rA];
+            M8_Obj* B = REG[rB];
+
+            // 2. Validate Types
+            if (!IsValid_DF32(M8, A) || !IsValid_DF32(M8, B)) {
+                return std::make_pair(
+                    errorf("matcosim operands must be matrices"),
+                    M8->nilValue
+                );
+            }
+
+            auto& vA = A->AR_F32;
+            auto& vB = B->AR_F32;
+
+            // 3. Validate Dimensions (Must be exact match for Cosine Similarity)
+            if (vA.size() != vB.size()) {
+                return std::make_pair(
+                    errorf("Dimension mismatch: vectors must be same size"),
+                    M8->nilValue
+                );
+            }
+
+            size_t N = vA.size();
+
+            // Accumulators (using double for precision stability during summation)
+            double dot_product = 0.0;
+            double mag_a_sq = 0.0;
+            double mag_b_sq = 0.0;
+
+            const size_t CHUNK = AVX_V_SIZE;
+            size_t i = 0;
+
+            // 4. Chunked Processing Loop
+            // This structure allows you to swap the inner logic for _mm256 intrinsics later
+            for (; i + CHUNK <= N; i += CHUNK) {
+                // Pointer arithmetic or iterator usage for the current chunk
+                for (size_t j = 0; j < CHUNK; j++) {
+                    float valA = vA[i + j];
+                    float valB = vB[i + j];
+                    
+                    dot_product += valA * valB;
+                    mag_a_sq    += valA * valA;
+                    mag_b_sq    += valB * valB;
+                }
+                
+                /* NOTE: If you implement actual AVX intrinsics here later, 
+                   you would accumulate into __m256 registers inside this loop 
+                   and perform a horizontal add after the loop finishes.
+                */
+            }
+
+            // 5. Scalar Fallback for Remainder
+            for (; i < N; ++i) {
+                float valA = vA[i];
+                float valB = vB[i];
+
+                dot_product += valA * valB;
+                mag_a_sq    += valA * valA;
+                mag_b_sq    += valB * valB;
+            }
+
+            // 6. Final Calculation
+            float similarity = 0.0f;
+            if (mag_a_sq > 0 && mag_b_sq > 0) {
+                similarity = (float)(dot_product / (std::sqrt(mag_a_sq) * std::sqrt(mag_b_sq)));
+            } else {
+                // Handle zero-vector case (mathematically undefined, usually returns 0)
+                similarity = 0.0f;
+            }
+
+            // 7. Store Result
+            // We store the scalar result as a single-element vector to maintain MP8_DF32 type consistency
+            REG[rOut] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+            REG[rOut]->AR_F32 = { similarity }; 
+
+            return std::make_pair(M8_Err_nil, REG[rOut]);
+        }
+
         std::pair<M8_Error, M8_Obj*> MatL2Dist_OP(M8System* M8, std::vector<std::string> params){
             int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
             if (psize<3) {
@@ -2760,7 +2853,7 @@ namespace m8p {
                             lastRet = MatNorm_OP(M8, instr_tokens);
 
                         } else if (opCode=="matcosim") {
-                            lastRet = MatCosim_OP(M8, instr_tokens);
+                            lastRet = MatCosim_OP2(M8, instr_tokens);
 
                         } else if (opCode=="matl2d") {
                             lastRet = MatL2Dist_OP(M8, instr_tokens);
