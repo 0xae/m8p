@@ -4555,8 +4555,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
             // tokens = tokenize_mixed(server->vocab, contents, false, false);
             auto tokenized_prompts = tokenize_input_prompts(server->vocab, server->mctx, prompt.at("contents"), true, true);
             int embd_normalize = 2; 
-
-            LOG_INFO("=====================> PROMPT OBJ: ", prompt);
+            // LOG_INFO("=====================> PROMPT OBJ: ", prompt);
             
             bool error = false;
             std::unordered_set<int> task_ids;
@@ -4616,13 +4615,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
                     // }
                 }
 
-                LOG_INFO("=====================> EMBEEDING with dim and count ", {{"dim", dim, 
-                                                                                  "count",count,
-                                                                                  "osize", osize}});
+                // LOG_INFO("=====================> EMBEEDING with dim and count ", {{"dim", dim, 
+                //                                                                   "count",count,
+                //                                                                   "osize", osize}});
 
             }, [&](const json & error_data) {
                 error = true;
-                LOG_ERROR("=====================> EMBEEDING FAILED ", error_data);
+                // LOG_ERROR("=====================> EMBEEDING FAILED ", error_data);
             }, is_connection_closed);
 
             server->queue_results.remove_waiting_task_ids(task_ids);
