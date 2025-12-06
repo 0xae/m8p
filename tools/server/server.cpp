@@ -4585,9 +4585,16 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_EMBED(
 
             // get the result
             server->receive_multi_results(task_ids, [dim, M8, &REG, &rdest](std::vector<server_task_result_ptr> &results) {
-                REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+                auto DEST = REG[rdest];
+                if (!m8p::is_nil(M8, DEST) && DEST->Type==m8p::MP8_DF32) {
+                    // optimization for when the user reuses the register
+                } else {
+                    REG[rdest] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
+                    DEST = REG[rdest];
+                }
                 REG[rdest]->AR_F32.clear();
                 json responses = json::array();
+
                 size_t count=0;
                 size_t osize=0;
 
