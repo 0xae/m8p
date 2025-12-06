@@ -27,6 +27,7 @@ now check support for avx in you processor
 lscpu
 ````
 
+
 The ouputs of lscpu will give you the complete capabilities of machine processor.
 According to your settings set the CXX_FLAGS according to your processor support for either avx2 or avx512 (default is avx2):
 
@@ -50,6 +51,25 @@ cp flags.make tools/server/CMakeFiles/llama-server.dir && make -j 17 llama-serve
 Build without AVX (Advanced vector eXtensions), example for inference only mat instructions wont be available
 ```bash
 make -j 17 llama-server
+```
+
+# Run
+If build successful.
+```bash
+./bin/llama-server -m ~/models/nomic-embed-text-v1.5.Q4_K_M.gguf  -t 4 --port 8090  --host 127.0.0.1  --jinja
+```
+
+# Some Models
+https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/blob/main/tinyllama-1.1b-chat-v1.0.Q2_K.gguf
+https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/blob/main/nomic-embed-text-v1.5.f32.gguf
+https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/tree/main
+https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF/blob/main/gemma-3-1b-it-Q4_K_M.gguf
+
+# Bonus
+
+If you're in Ubuntu and dont have rcp, here's the command to install
+```bash
+apt-get update && apt-get install rsh-redone-client 
 ```
 
 To which the output will be something like (for GPU):

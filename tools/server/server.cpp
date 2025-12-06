@@ -5399,8 +5399,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_ADD_POINT(
 
             for (int j=0; j<dim; j++) {
                 int idx=j+(i*dim);
-                std::cout << "data[" << idx << "] = " 
-                          << src_data[j] << ",\n";
                 rowstore[j] = src_data[j];
             }
 
