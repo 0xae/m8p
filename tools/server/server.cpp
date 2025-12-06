@@ -5659,11 +5659,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
             int max_elements = VectorDB[ins_name].max_elements;
             // int max_elements = 5;
 
-            std::cout << "query_data = [";
-            for (int i = 0; i<dim; i++) {
-                std::cout << data[i] << ",";
-            }
-            std::cout << "]\n";
+            // std::cout << "query_data = [";
+            // for (int i = 0; i<dim; i++) {
+            //     std::cout << data[i] << ",";
+            // }
+            // std::cout << "]\n";
 
             float min_dist = 0;
             int matches = 0;
@@ -5671,7 +5671,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
             for (int i = 0; i < 1; i++) {
                 // int i = 0;
                 std::priority_queue<std::pair<float, hnswlib::labeltype>> result = alg_hnsw->searchKnn(data, 3);
-                std::cout << "\n search_results = [ ";
+                // std::cout << "\n search_results = [ ";
                 while (!result.empty()) {
                     hnswlib::labeltype label = result.top().second;
                     float dist = result.top().first;
@@ -5679,23 +5679,23 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
                         min_dist = dist;
                         flabel = label;
                     }
-                    std::cout << "{distance=" << dist << ", label=" << label << "}, ";
+                    // std::cout << "{distance=" << dist << ", label=" << label << "}, ";
                     result.pop();
                     matches += 1;
                 }
 
-                std::cout << "]\n" << std::endl;
-                // std::cout << "{min_dist=" << min_dist << ", flabel=" << flabel << "}, " << std::endl;
-                LOG_INFO("[SHOW] min_dist found and distance requested", {{
-                    "min_dist", min_dist,
-                    "distance", distance
-                }});
+                // std::cout << "]\n" << std::endl;
+                // // std::cout << "{min_dist=" << min_dist << ", flabel=" << flabel << "}, " << std::endl;
+                // LOG_INFO("[SHOW] min_dist found and distance requested", {{
+                //     "min_dist", min_dist,
+                //     "distance", distance
+                // }});
 
                 if (distance>-1 && min_dist>distance) {
-                    LOG_INFO("[FILTER] min_dist is above distance requested.", {{
-                        "min_dist", min_dist,
-                        "distance", distance
-                    }});
+                    // LOG_INFO("[FILTER] min_dist is above distance requested.", {{
+                    //     "min_dist", min_dist,
+                    //     "distance", distance
+                    // }});
                 }
 
                 if (matches>0 && (distance==-1 || (distance>-1 && (min_dist<=distance))) ) {
