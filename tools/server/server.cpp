@@ -4816,7 +4816,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
     int32_t n_predict = 20;
     size_t MAX_PROMPT_SIZE = 10200;
     float temp=0;
-    std::string stream=false;
+    std::string stream="false";
     std::string force="false";
     std::string prompt = "what is your name";
 
@@ -4989,7 +4989,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
             return false; // fool it thinking this is a connection
         };
 
-         ctx_server->receive_multi_results(task_ids, [&LLMDB, &ins_name](std::vector<server_task_result_ptr> &results) {
+         ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
             LLMDB[ins_name].Status = 1; // success
             if (results.size() == 1) {
                 LLMDB[ins_name].arr = results[0]->to_json();
