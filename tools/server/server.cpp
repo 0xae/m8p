@@ -4999,7 +4999,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                         auto sink = GlobalSession[M8->Name].sink;
                         if (sink->is_writable()) {
                             std::cout << "stream " << "\n";
-                            server_sent_event(*sink, json{{"event", outxf}});     
+                            // server_sent_event(*sink, json{{"event", outxf}});
+                            server_sent_event(*sink,outxf);
                         }
                     }
                 }
@@ -5007,22 +5008,31 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                 LLMDB[ins_name].arr = outxf;
             } else {
                 json arr = json::array();
-                for (auto & res : results) {
-                    auto outxf=res->to_json();
-                    if (stream=="true") {
-                        if (GlobalSession.count(M8->Name)) {
-                            auto session = &GlobalSession[M8->Name];
-                            if (session->has_sink) {
-                                auto sink = GlobalSession[M8->Name].sink;
+
+                if (stream=="true") {
+                    if (GlobalSession.count(M8->Name)) {
+                        auto session = &GlobalSession[M8->Name];
+                        if (session->has_sink) {
+                            auto sink = GlobalSession[M8->Name].sink;
+                            for (auto & res : results) {
+                                auto outxf=res->to_json();
                                 if (sink->is_writable()) {
                                     std::cout << "stream " << "\n";
-                                    server_sent_event(*sink, json{{"event", outxf}});     
+                                    // server_sent_event(*sink, json{{"event", }});     
+                                    server_sent_event(*sink,outxf);
                                 }
+                                arr.push_back(outxf);
                             }
                         }
                     }
-                    arr.push_back(outxf);
+
+                } else {                
+                    for (auto & res : results) {
+                        auto outxf=res->to_json();
+                        arr.push_back(outxf);
+                    }
                 }
+
                 LLMDB[ins_name].arr = arr;
             }
 
