@@ -4904,25 +4904,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
     } else {
         // ::ALLOC::
         json data = {
-            // { "system_prompt",                ctx_server->system_prompt.c_str() },
-            // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
-            // { "total_slots",                  ctx_server->params.n_parallel },
-            // int32_t n_keep =  0; // number of tokens to keep from initial prompt
-            // int32_t n_discard =  0; // number of tokens after n_keep that may be discarded when shifting context, 0 defaults to half
+            { "system_prompt", ctx_server->system_prompt.c_str() },
+            { "total_slots", ctx_server->params.n_parallel },
             {"prompt", prompt},
             {"n_predict", n_predict},
             {"temperature", temp},
+            // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
+            // int32_t n_keep =  0; // number of tokens to keep from initial prompt
+            // int32_t n_discard =  0; // number of tokens after n_keep that may be discarded when shifting context, 0 defaults to half
         };
 
         // // ::ALLOC::
-        // server_task_cmpl_type cmpl_type = SERVER_TASK_CMPL_TYPE_NORMAL;
-        // std::vector<server_task> tasks = ctx_server->create_tasks_cmpl(data, cmpl_type);
-        // ctx_server->queue_results.add_waiting_tasks(tasks);
-        // ctx_server->queue_tasks.post(tasks);
-
-        // // const auto task_ids = server_task::get_list_id(tasks);
-        // std::unordered_set<int> task_ids;
-
         // LLMDB[ins_name].tasks = task_ids;
         LLMDB[ins_name].Status = 2; // IN PROCESSING
         LLMDB[ins_name].prompt = prompt;
