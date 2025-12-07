@@ -4904,11 +4904,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
     } else {
         // ::ALLOC::
         json data = {
-            { "system_prompt", ctx_server->system_prompt.c_str() },
-            { "total_slots", ctx_server->params.n_parallel },
             {"prompt", prompt},
             {"n_predict", n_predict},
             {"temperature", temp},
+            // { "system_prompt", ctx_server->system_prompt.c_str() },
+            // { "total_slots", ctx_server->params.n_parallel },
             // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
             // int32_t n_keep =  0; // number of tokens to keep from initial prompt
             // int32_t n_discard =  0; // number of tokens after n_keep that may be discarded when shifting context, 0 defaults to half
