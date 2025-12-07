@@ -5008,12 +5008,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                 LLMDB[ins_name].arr = outxf;
             } else {
                 json arr = json::array();
+                bool hasRun=false;
 
                 if (stream=="true") {
                     if (GlobalSession.count(M8->Name)) {
                         auto session = &GlobalSession[M8->Name];
                         if (session->has_sink) {
                             auto sink = GlobalSession[M8->Name].sink;
+                            hasRun = true;
                             for (auto & res : results) {
                                 auto outxf=res->to_json();
                                 if (sink->is_writable()) {
@@ -5025,8 +5027,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                             }
                         }
                     }
+                }
 
-                } else {                
+                if (!hasRun || arr.size()==0) {
                     for (auto & res : results) {
                         auto outxf=res->to_json();
                         arr.push_back(outxf);
