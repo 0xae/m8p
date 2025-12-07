@@ -4816,6 +4816,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
     int32_t n_predict = 20;
     size_t MAX_PROMPT_SIZE = 10200;
     float temp=0;
+    std::string stream=false;
     std::string force="false";
     std::string prompt = "what is your name";
 
@@ -4856,6 +4857,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         options = m8p::parseOptions(3, params);
         if (options.count("force")>0) {
             force = options["force"];
+        }
+        if (options.count("stream")>0) {
+            stream = options["stream"];
         }
 
         if (options.count("n_predict")>0) {
@@ -4992,7 +4996,19 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
             } else {
                 json arr = json::array();
                 for (auto & res : results) {
-                    arr.push_back(res->to_json());
+                    auto outxf=res->to_json();
+                    if (stream=="true") {
+                        if (GlobalSession.count(M8->Name)) {
+                            auto session = &GlobalSession[M8->Name];
+                            if (session->has_sink) {
+                                auto sink = GlobalSession[M8->Name].sink;
+                                if (sink->is_writable()) {
+                                    server_sent_event(*sink, json{{"event", outxf}});     
+                                }
+                            }
+                        }
+                    }
+                    arr.push_back(outxf);
                 }
                 LLMDB[ins_name].arr = arr;
             }
