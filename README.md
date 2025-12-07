@@ -33,7 +33,7 @@ According to your settings set the CXX_FLAGS according to your processor support
 
 Then lets set support for avx:
 ```bash
-cat > flags.cmake
+cat > flags.make
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = -DGGML_BACKEND_SHARED -DGGML_SHARED -DGGML_USE_CPU -DLLAMA_SHARED
 CXX_INCLUDES = -I/workspace/m8p/tools/server -I/workspace/m8p/build/tools/server -I/workspace/m8p/tools/server/../mtmd -I/workspace/m8p -I/workspace/m8p/common/. -I/workspace/m8p/common/../vendor -I/workspace/m8p/src/../include -I/workspace/m8p/ggml/src/../include -I/workspace/m8p/tools/mtmd/.

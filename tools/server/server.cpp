@@ -7814,32 +7814,33 @@ std::string M8_BANNER =
     // svr->Get("/api/v1/m8/session-activity",  handle_stats_Activity);
 
     // if (true) {
-    //     LOG_INF("Web UI is disabled\n");
-    // } else {
-    //     // register static assets routes
-    //     if (!params.public_path.empty()) {
-    //         // Set the base directory for serving static files
-    //         bool is_found = svr->set_mount_point(params.api_prefix + "/", params.public_path);
-    //         if (!is_found) {
-    //             LOG_ERR("%s: static assets path not found: %s\n", __func__, params.public_path.c_str());
-    //             return 1;
-    //         }
-    //     } else {
-    //         // using embedded static index.html
-    //         svr->Get(params.api_prefix + "/", [](const httplib::Request & req, httplib::Response & res) {
-    //             if (req.get_header_value("Accept-Encoding").find("gzip") == std::string::npos) {
-    //                 res.set_content("Error: gzip is not supported by this browser", "text/plain");
-    //             } else {
-    //                 res.set_header("Content-Encoding", "gzip");
-    //                 // COEP and COOP headers, required by pyodide (python interpreter)
-    //                 res.set_header("Cross-Origin-Embedder-Policy", "require-corp");
-    //                 res.set_header("Cross-Origin-Opener-Policy", "same-origin");
-    //                 res.set_content(reinterpret_cast<const char*>(index_html_gz), index_html_gz_len, "text/html; charset=utf-8");
-    //             }
-    //             return false;
-    //         });
-    //     }
-    // }
+    if (false) {
+        LOG_INF("Web UI is disabled\n");
+    } else {
+        // register static assets routes
+        if (!params.public_path.empty()) {
+            // Set the base directory for serving static files
+            bool is_found = svr->set_mount_point(params.api_prefix + "/", params.public_path);
+            if (!is_found) {
+                LOG_ERR("%s: static assets path not found: %s\n", __func__, params.public_path.c_str());
+                return 1;
+            }
+        } else {
+            // using embedded static index.html
+            svr->Get(params.api_prefix + "/", [](const httplib::Request & req, httplib::Response & res) {
+                if (req.get_header_value("Accept-Encoding").find("gzip") == std::string::npos) {
+                    res.set_content("Error: gzip is not supported by this browser", "text/plain");
+                } else {
+                    res.set_header("Content-Encoding", "gzip");
+                    // COEP and COOP headers, required by pyodide (python interpreter)
+                    res.set_header("Cross-Origin-Embedder-Policy", "require-corp");
+                    res.set_header("Cross-Origin-Opener-Policy", "same-origin");
+                    res.set_content(reinterpret_cast<const char*>(index_html_gz), index_html_gz_len, "text/html; charset=utf-8");
+                }
+                return false;
+            });
+        }
+    }
 
     // register API routes
     svr->Get (params.api_prefix + "/health",              handle_health); // public endpoint (no API key check)
