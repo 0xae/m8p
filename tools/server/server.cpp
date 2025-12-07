@@ -4992,7 +4992,18 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
          ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
             LLMDB[ins_name].Status = 1; // success
             if (results.size() == 1) {
-                LLMDB[ins_name].arr = results[0]->to_json();
+                auto outxf = results[0]->to_json();
+                if (GlobalSession.count(M8->Name)) {
+                    auto session = &GlobalSession[M8->Name];
+                    if (session->has_sink) {
+                        auto sink = GlobalSession[M8->Name].sink;
+                        if (sink->is_writable()) {
+                            server_sent_event(*sink, json{{"event", outxf}});     
+                        }
+                    }
+                }
+
+                LLMDB[ins_name].arr = outxf;
             } else {
                 json arr = json::array();
                 for (auto & res : results) {
