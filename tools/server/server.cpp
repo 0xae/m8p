@@ -5020,8 +5020,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                                 auto outxf=res->to_json();
                                 if (sink->is_writable()) {
                                     std::cout << "stream " << "\n";
-                                    // server_sent_event(*sink, json{{"event", }});     
-                                    server_sent_event(*sink,outxf);
+                                    server_sent_event(*sink, json{{"event", outxf}});     
+                                    // server_sent_event(*sink,outxf);
                                 }
                                 arr.push_back(outxf);
                             }
