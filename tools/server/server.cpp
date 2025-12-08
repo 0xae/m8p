@@ -4907,6 +4907,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
             {"prompt", prompt},
             {"n_predict", n_predict},
             {"temperature", temp},
+            {"stream", (stream=="true")},
             // { "system_prompt", ctx_server->system_prompt.c_str() },
             // { "total_slots", ctx_server->params.n_parallel },
             // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
@@ -4958,6 +4959,311 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
 
                 // OAI-compat
                 task.params.oaicompat = OAICOMPAT_TYPE_NONE;
+                task.params.oaicompat_cmpl_id = completion_id;
+                // oaicompat_model is already populated by params_from_json_cmpl
+                tasks.push_back(std::move(task));
+            }
+
+            task_ids = server_task::get_list_id(tasks);
+            ctx_server->queue_results.add_waiting_tasks(tasks);
+            ctx_server->queue_tasks.post(std::move(tasks));
+
+        } catch (const std::exception &e) {
+            LLMDB[ins_name].Status = 0; // an error ocurred
+            return std::make_pair(
+                m8p::errorf("An error ocurred during execution"),
+                M8->nilValue
+            );
+        //     LOG_ERROR("=====================> ERROR: ", error_data);
+            // LLMDB[ins_name].arr = format_error_response(e.what(), ERROR_TYPE_INVALID_REQUEST);
+        }
+
+        auto is_connection_closed = []() -> bool {
+            return false; // fool it thinking this is a connection
+        };
+
+         ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
+            LLMDB[ins_name].Status = 1; // success
+            if (results.size() == 1) {
+                auto outxf = results[0]->to_json();
+                if (GlobalSession.count(M8->Name)) {
+                    auto session = &GlobalSession[M8->Name];
+                    if (session->has_sink) {
+                        auto sink = GlobalSession[M8->Name].sink;
+                        if (sink->is_writable()) {
+                            std::cout << "stream " << "\n";
+                            // server_sent_event(*sink, json{{"event", outxf}});
+                            server_sent_event(*sink,outxf);
+                        }
+                    }
+                }
+
+                LLMDB[ins_name].arr = outxf;
+            } else {
+                json arr = json::array();
+                bool hasRun=false;
+
+                if (stream=="true") {
+                    if (GlobalSession.count(M8->Name)) {
+                        auto session = &GlobalSession[M8->Name];
+                        if (session->has_sink) {
+                            auto sink = GlobalSession[M8->Name].sink;
+                            hasRun = true;
+                            for (auto & res : results) {
+                                auto outxf=res->to_json();
+                                if (sink->is_writable()) {
+                                    std::cout << "stream " << "\n";
+                                    server_sent_event(*sink,outxf);
+                                    // server_sent_event(*sink, json{{"event", outxf}});     
+                                }
+                                arr.push_back(outxf);
+                            }
+                        }
+                    }
+                }
+
+                if (!hasRun || arr.size()==0) {
+                    for (auto & res : results) {
+                        auto outxf=res->to_json();
+                        arr.push_back(outxf);
+                    }
+                }
+
+                LLMDB[ins_name].arr = arr;
+            }
+
+        }, [&LLMDB, &ins_name](json error_data) {
+            LLMDB[ins_name].Status = 0; // an error ocurred
+            LLMDB[ins_name].arr = error_data;
+        }, is_connection_closed);
+
+        ctx_server->queue_results.remove_waiting_task_ids(task_ids);
+
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->true_
+        );
+    }
+
+}
+
+std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params) 
+{
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize < 2) {
+        return std::make_pair(
+            m8p::errorf("llm_openai requires at least 2 parameters (Register and instance name)"),
+            M8->nilValue
+        );
+    }
+
+    std::string sessionId = M8->Name;
+    std::map<std::string, instance_data> &LLMDB = GlobalSession[sessionId].LLMInstance_DB;
+
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+
+    // llm_instance <r1> I001 n_predict=20 async=True|false frequency_penalty=123
+    std::string rsource = params.at(1);// prompt register
+    std::string ins_name = params.at(2); // instance name
+    m8p::__trim(ins_name);
+
+    int32_t n_predict = 20;
+    size_t MAX_PROMPT_SIZE = 10200;
+    float temp=0;
+    std::string stream="false";
+    std::string force="false";
+    std::string prompt = "what is your name";
+
+    m8p::M8_Obj *R = REG[rsource];
+    if (R==nullptr){
+        return std::make_pair(
+            m8p::errorf("NULL_REGISTER["+rsource+"]"),
+            M8->nilValue
+        );
+    }
+
+    if (!m8p::is_nil(M8, R) && R->Type==m8p::MP8_STRING) {
+        if (R->Value.size()>0 && R->Value.size()<MAX_PROMPT_SIZE)  {
+            prompt = R->Value;
+        } else if (R->Value.size()==0) {
+            return std::make_pair(
+                m8p::errorf("EMPTY_PROMPT_RECEIVED["+rsource+"]"),
+                M8->nilValue
+            );
+
+        } else if (R->Value.size()>MAX_PROMPT_SIZE) {
+            return std::make_pair(
+                m8p::errorf("EXCEED_MAX_PROMPT_SIZE["+rsource+"]"),
+                M8->nilValue
+            );
+        }
+
+    } else {
+        return std::make_pair(
+            m8p::errorf("EMPTY_PROMPT["+rsource+"]"),
+            M8->nilValue
+        );        
+    }
+
+    std::map<std::string, std::string> options;
+
+    if (psize>2) {
+        options = m8p::parseOptions(3, params);
+        if (options.count("force")>0) {
+            force = options["force"];
+        }
+        if (options.count("stream")>0) {
+            stream = options["stream"];
+        }
+
+        if (options.count("n_predict")>0) {
+            int32_t number=0;
+            std::string Value = options["n_predict"];
+            try {
+                number=std::stof(Value);
+                n_predict = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[n_predict, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        if (options.count("temperature")>0) {
+            std::string Value = options["temperature"];
+            try {
+                float number=0;
+                number=std::stof(Value);
+                temp=number;
+            }
+            catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_FLOAT32[temperature, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+    }
+
+    if (LLMDB.count(ins_name) > 0 && force=="false") {
+        // instance_data &Ref = LLMDB[ins_name];
+        // instance_data &Ref = LLMDB[ins_name];
+        // REG[rdest] = m8_obj(M8, (int32_t)Ref.Status);
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->true_
+        );
+
+    } else {
+        json messages = {
+            {{"role", "system"}, {"content", "You are a helpful assistant."}},
+            {{"role", "user"},   {"content", prompt}}
+        };
+
+        json tools_static = {
+            {
+                {"type", "function"},
+                {"function", {
+                    {"name", "get_current_weather"},
+                    {"description", "Get the current weather in a given location"},
+                    {"parameters", {
+                        {"type", "object"},
+                        {"properties", {
+                            {"location", {
+                                {"type", "string"},
+                                {"description", "The city and state, e.g. San Francisco, CA"}
+                            }},
+                            {"unit", {
+                                {"type", "string"},
+                                {"enum", {"celsius", "fahrenheit"}}
+                            }}
+                        }},
+                        {"required", {"location"}}
+                    }}
+                }}
+            },
+            // Add more tools here...
+            {
+                {"type", "function"},
+                {"function", {
+                    {"name", "get_stock_price"},
+                    {"description", "Get the current stock price for a symbol"},
+                    {"parameters", {
+                        {"type", "object"},
+                        {"properties", {
+                            {"symbol", {
+                                {"type", "string"},
+                                {"description", "The stock symbol"}
+                            }}
+                        }},
+                        {"required", {"symbol"}}
+                    }}
+                }}
+            }
+        };
+
+        // ::ALLOC::
+        json data = {
+            {"messages", messages},
+            {"max_tokens", n_predict},
+            {"temperature", temp},
+            {"tools", tools_static},
+            {"stream", (stream=="true")},
+            // { "system_prompt", ctx_server->system_prompt.c_str() },
+            // { "total_slots", ctx_server->params.n_parallel },
+            // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
+            // int32_t n_keep =  0; // number of tokens to keep from initial prompt
+            // int32_t n_discard =  0; // number of tokens after n_keep that may be discarded when shifting context, 0 defaults to half
+        };
+
+        // // ::ALLOC::
+        // LLMDB[ins_name].tasks = task_ids;
+        LLMDB[ins_name].Status = 2; // IN PROCESSING
+        LLMDB[ins_name].prompt = prompt;
+        LLMDB[ins_name].instance_name = ins_name;
+
+        auto completion_id = gen_chatcmplid();
+        server_task_type type = SERVER_TASK_TYPE_COMPLETION; // SERVER_TASK_TYPE_INFILL
+        std::unordered_set<int> task_ids;
+        try {
+            std::vector<server_task> tasks;
+            std::vector<server_tokens> inputs;
+            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, prompt, true, true);
+            const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
+            tasks.reserve(inputs.size());
+            for (size_t i = 0; i < inputs.size(); i++) {
+                auto n_prompt_tokens = inputs[i].size();
+                if (n_prompt_tokens >= n_ctx_slot) {
+                    json error_data = format_error_response("the request exceeds the available context size, try increasing it", ERROR_TYPE_EXCEED_CONTEXT_SIZE);
+                    LLMDB[ins_name].Status = 0;
+                    LLMDB[ins_name].arr = error_data;
+                    // error_data["n_prompt_tokens"] = n_prompt_tokens;
+                    // error_data["n_ctx"] = n_ctx_slot;
+                    // res_error(res, error_data);
+                    return std::make_pair(
+                        m8p::errorf("the request exceeds the available context size, try increasing it"),
+                        M8->nilValue
+                    );
+                }
+
+                server_task task = server_task(type);
+
+                task.id =  ctx_server->queue_tasks.get_new_id();
+                task.index = i;
+
+                task.tokens = std::move(inputs[i]);
+                task.params = server_task::params_from_json_cmpl(
+                         ctx_server->ctx,
+                         ctx_server->params_base,
+                        data);
+                task.id_slot = json_value(data, "id_slot", -1);
+
+                // OAI-compat
+                task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
                 task.params.oaicompat_cmpl_id = completion_id;
                 // oaicompat_model is already populated by params_from_json_cmpl
                 tasks.push_back(std::move(task));
