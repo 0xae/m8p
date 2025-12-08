@@ -5164,7 +5164,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {{"role", "user"},   {"content", prompt}}
         };
 
-        json tools_static = {
+        json tools_static = json::array({
             {
                 {"type", "function"},
                 {"function", {
@@ -5204,7 +5204,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                     }}
                 }}
             }
-        };
+        });
 
         // ::ALLOC::
         json data = {
