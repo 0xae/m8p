@@ -5302,7 +5302,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                         hasRun = true;
                         // std::cout << "stream " << "\n";
                         // server_sent_event(*sink, json{{"event", outxf}});
-                        server_sent_event(*sink,outxf);
+                        // server_sent_event(*sink,outxf);
                         if (res_json.is_array()) {
                             for (const auto & res : res_json) {
                                 if (!server_sent_event(*sink, res)) {
