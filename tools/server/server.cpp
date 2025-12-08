@@ -693,6 +693,15 @@ struct server_task_result {
     virtual ~server_task_result() = default;
 };
 
+void replaceAll2(std::string& str, std::string &from, std::string &to) {
+    size_t start_pos = 0;
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // Advance past the replaced text
+    }
+}
+
+
 // using shared_ptr for polymorphism of server_task_result
 using server_task_result_ptr = std::unique_ptr<server_task_result>;
 
@@ -4902,7 +4911,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         );
 
     } else {
-        m8p::replaceAll(prompt, "<<<NL>>>", "\n");
+        replaceAll2(prompt, "<<<NL>>>", "\n");
 
         // ::ALLOC::
         json data = {
@@ -5203,7 +5212,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             }
         });
 
-        m8p::replaceAll(prompt, "<<<NL>>>", "\n");
+        replaceAll2(prompt, "<<<NL>>>", "\n");
 
         json messages = {
             {{"role", "system"}, {"content", "You are a helpful assistant."}},
