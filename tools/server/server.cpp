@@ -5212,7 +5212,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {"max_tokens", n_predict},
             {"temperature", temp},
             {"tools", tools_static},
-            // {"stream", (stream=="true")},
+            {"stream", (stream=="true")},
             // { "system_prompt", ctx_server->system_prompt.c_str() },
             // { "total_slots", ctx_server->params.n_parallel },
             // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
@@ -5287,56 +5287,90 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             return false; // fool it thinking this is a connection
         };
 
-         ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
+         // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
+         ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, stream, M8, &ins_name](server_task_result_ptr & result) -> bool {
             LLMDB[ins_name].Status = 1; // success
-            if (results.size() == 1) {
-                auto outxf = results[0]->to_json();
-                if (GlobalSession.count(M8->Name)) {
-                    auto session = &GlobalSession[M8->Name];
-                    if (session->has_sink) {
-                        auto sink = GlobalSession[M8->Name].sink;
-                        if (sink->is_writable()) {
-                            std::cout << "stream " << "\n";
-                            // server_sent_event(*sink, json{{"event", outxf}});
-                            server_sent_event(*sink,outxf);
-                        }
-                    }
-                }
+            json res_json = result->to_json();
+            bool hasRun = false;
+            json arr = json::array();
 
-                LLMDB[ins_name].arr = outxf;
-            } else {
-                json arr = json::array();
-                bool hasRun=false;
-
-                if (stream=="true") {
-                    if (GlobalSession.count(M8->Name)) {
-                        auto session = &GlobalSession[M8->Name];
-                        if (session->has_sink) {
-                            auto sink = GlobalSession[M8->Name].sink;
-                            hasRun = true;
-                            for (auto & res : results) {
-                                auto outxf=res->to_json();
-                                if (sink->is_writable()) {
-                                    std::cout << "stream " << "\n";
-                                    server_sent_event(*sink,outxf);
-                                    // server_sent_event(*sink, json{{"event", outxf}});     
+            if (GlobalSession.count(M8->Name)) {
+                auto session = &GlobalSession[M8->Name];
+                if (session->has_sink) {
+                    auto sink = GlobalSession[M8->Name].sink;
+                    if (sink->is_writable()) {
+                        hasRun = true;
+                        // std::cout << "stream " << "\n";
+                        // server_sent_event(*sink, json{{"event", outxf}});
+                        server_sent_event(*sink,outxf);
+                        if (res_json.is_array()) {
+                            for (const auto & res : res_json) {
+                                if (!server_sent_event(*sink, res)) {
+                                    return false;
                                 }
-                                arr.push_back(outxf);
                             }
+                            return true;
+                        } else {
+                            return server_sent_event(*sink, res_json);
                         }
                     }
                 }
-
-                if (!hasRun || arr.size()==0) {
-                    for (auto & res : results) {
-                        auto outxf=res->to_json();
-                        arr.push_back(outxf);
-                    }
-                }
-
-                LLMDB[ins_name].arr = arr;
             }
 
+            if (!hasRun) {
+                for (auto res : res_json) {
+                    arr.push_back(res);
+                }
+            }
+
+            // if (results.size() == 1) {
+            //     auto outxf = results[0]->to_json();
+            //     if (GlobalSession.count(M8->Name)) {
+            //         auto session = &GlobalSession[M8->Name];
+            //         if (session->has_sink) {
+            //             auto sink = GlobalSession[M8->Name].sink;
+            //             if (sink->is_writable()) {
+            //                 // std::cout << "stream " << "\n";
+            //                 // server_sent_event(*sink, json{{"event", outxf}});
+            //                 server_sent_event(*sink,outxf);
+            //             }
+            //         }
+            //     }
+
+            //     LLMDB[ins_name].arr = outxf;
+            // } else {
+            //     bool hasRun=false;
+
+            //     if (stream=="true") {
+            //         if (GlobalSession.count(M8->Name)) {
+            //             auto session = &GlobalSession[M8->Name];
+            //             if (session->has_sink) {
+            //                 auto sink = GlobalSession[M8->Name].sink;
+            //                 hasRun = true;
+            //                 for (auto & res : results) {
+            //                     auto outxf=res->to_json();
+            //                     if (sink->is_writable()) {
+            //                         std::cout << "stream " << "\n";
+            //                         server_sent_event(*sink,outxf);
+            //                         // server_sent_event(*sink, json{{"event", outxf}});     
+            //                     }
+            //                     arr.push_back(outxf);
+            //                 }
+            //             }
+            //         }
+            //     }
+
+            //     if (!hasRun || arr.size()==0) {
+            //         for (auto & res : results) {
+            //             auto outxf=res->to_json();
+            //             arr.push_back(outxf);
+            //         }
+            //     }
+
+            //     LLMDB[ins_name].arr = arr;
+            // }
+            LLMDB[ins_name].arr = arr;
+            return true;
         }, [&LLMDB, &ins_name](json error_data) {
             LLMDB[ins_name].Status = 0; // an error ocurred
             LLMDB[ins_name].arr = error_data;
