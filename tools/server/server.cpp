@@ -5337,7 +5337,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             bool hasRun = false;
             json arr = json::array();
 
-            if (GlobalSession.count(M8->Name)) {
+            if ((stream=="true") && GlobalSession.count(M8->Name)) {
                 auto session = &GlobalSession[M8->Name];
                 if (session->has_sink) {
                     auto sink = GlobalSession[M8->Name].sink;
