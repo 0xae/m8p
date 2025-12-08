@@ -5213,6 +5213,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {"temperature", temp},
             {"tools", tools_static},
             {"stream", (stream=="true")},
+            {"tool_choice", "auto"},
             // { "system_prompt", ctx_server->system_prompt.c_str() },
             // { "total_slots", ctx_server->params.n_parallel },
             // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
@@ -5300,9 +5301,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                     auto sink = GlobalSession[M8->Name].sink;
                     if (sink->is_writable()) {
                         hasRun = true;
-                        // std::cout << "stream " << "\n";
-                        // server_sent_event(*sink, json{{"event", outxf}});
-                        // server_sent_event(*sink,outxf);
                         if (res_json.is_array()) {
                             for (const auto & res : res_json) {
                                 if (!server_sent_event(*sink, res)) {
@@ -5323,52 +5321,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                 }
             }
 
-            // if (results.size() == 1) {
-            //     auto outxf = results[0]->to_json();
-            //     if (GlobalSession.count(M8->Name)) {
-            //         auto session = &GlobalSession[M8->Name];
-            //         if (session->has_sink) {
-            //             auto sink = GlobalSession[M8->Name].sink;
-            //             if (sink->is_writable()) {
-            //                 // std::cout << "stream " << "\n";
-            //                 // server_sent_event(*sink, json{{"event", outxf}});
-            //                 server_sent_event(*sink,outxf);
-            //             }
-            //         }
-            //     }
-
-            //     LLMDB[ins_name].arr = outxf;
-            // } else {
-            //     bool hasRun=false;
-
-            //     if (stream=="true") {
-            //         if (GlobalSession.count(M8->Name)) {
-            //             auto session = &GlobalSession[M8->Name];
-            //             if (session->has_sink) {
-            //                 auto sink = GlobalSession[M8->Name].sink;
-            //                 hasRun = true;
-            //                 for (auto & res : results) {
-            //                     auto outxf=res->to_json();
-            //                     if (sink->is_writable()) {
-            //                         std::cout << "stream " << "\n";
-            //                         server_sent_event(*sink,outxf);
-            //                         // server_sent_event(*sink, json{{"event", outxf}});     
-            //                     }
-            //                     arr.push_back(outxf);
-            //                 }
-            //             }
-            //         }
-            //     }
-
-            //     if (!hasRun || arr.size()==0) {
-            //         for (auto & res : results) {
-            //             auto outxf=res->to_json();
-            //             arr.push_back(outxf);
-            //         }
-            //     }
-
-            //     LLMDB[ins_name].arr = arr;
-            // }
             LLMDB[ins_name].arr = arr;
             return true;
         }, [&LLMDB, &ins_name](json error_data) {
