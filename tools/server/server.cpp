@@ -5160,7 +5160,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
     } else {
         json messages = {
-            {{"role", "system"}, {"content", "You are a helpful assistant."}},
+            {{"role", "assistant"}, {"content", "You are a helpful assistant."}},
+            // {{"role", "assistant"}, {"content", "You are a helpful assistant."}},
             {{"role", "user"},   {"content", prompt}}
         };
 
@@ -5209,11 +5210,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         // ::ALLOC::
         json data = {
             {"messages", messages},
-            {"max_tokens", n_predict},
             {"temperature", temp},
-            {"tools", tools_static},
+            {"max_tokens", n_predict},
+            {"model", "default"},
             {"stream", (stream=="true")},
             {"tool_choice", "auto"},
+            {"tools", tools_static},
             // { "system_prompt", ctx_server->system_prompt.c_str() },
             // { "total_slots", ctx_server->params.n_parallel },
             // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
@@ -5242,9 +5244,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                     json error_data = format_error_response("the request exceeds the available context size, try increasing it", ERROR_TYPE_EXCEED_CONTEXT_SIZE);
                     LLMDB[ins_name].Status = 0;
                     LLMDB[ins_name].arr = error_data;
-                    // error_data["n_prompt_tokens"] = n_prompt_tokens;
-                    // error_data["n_ctx"] = n_ctx_slot;
-                    // res_error(res, error_data);
                     return std::make_pair(
                         m8p::errorf("the request exceeds the available context size, try increasing it"),
                         M8->nilValue
@@ -5261,6 +5260,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                          ctx_server->ctx,
                          ctx_server->params_base,
                         data);
+
                 task.id_slot = json_value(data, "id_slot", -1);
 
                 // OAI-compat
@@ -5280,8 +5280,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                 m8p::errorf("An error ocurred during execution"),
                 M8->nilValue
             );
-        //     LOG_ERROR("=====================> ERROR: ", error_data);
-            // LLMDB[ins_name].arr = format_error_response(e.what(), ERROR_TYPE_INVALID_REQUEST);
         }
 
         auto is_connection_closed = []() -> bool {
