@@ -6228,6 +6228,10 @@ public:
 
         } else if (opCode=="llm_instance") {
             return LLM_INSTANCE(this->ctx_server, M8, params);
+
+        } else if (opCode=="llm_openai") {
+            return LLM_OPENAI(this->ctx_server, M8, params);
+
         } else if (opCode=="llm_instancestatus") {
             return LLM_INSTANCE_STATUS(this->ctx_server, M8, params);
 
