@@ -228,7 +228,7 @@ namespace m8p {
     int InitMP8(M8System *m8);
     void DestroyMP8(M8System *m8);
     std::vector<std::string> __split(std::string s, std::string delimiter);
-
+    replaceAll(std::string& str, const std::string& from, const std::string& to);
     std::pair<M8_Error, M8_Obj*> NO_OP(M8System* m8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> Store_OP(M8System* M8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> Clear_OP(M8System* M8, std::vector<std::string> params);
@@ -615,6 +615,14 @@ namespace m8p {
         return v>0? v : -v;
     }
 
+    void replaceAll(std::string& str, const std::string& from, const std::string& to) {
+        size_t start_pos = 0;
+        while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+            str.replace(start_pos, from.length(), to);
+            start_pos += to.length(); // Advance past the replaced text
+        }
+    }
+
     std::map<std::string, std::string> parseOptions(int start, std::vector<std::string> &params) {
         std::map<std::string, std::string> options;
         for (uint32_t i=start; i<params.size(); ++i) {
@@ -706,6 +714,8 @@ namespace m8p {
             REG[rsource] = M8->false_;
 
         } else {
+            // <<<NL>>>
+            replaceAll(value, "<<<NL>>", "\n");
             m8p::M8_Obj *R = REG[rsource];
             if (R!=nullptr && !m8p::is_nil(M8, R) && R->Type==m8p::MP8_STRING) {
                 R->Value = value;

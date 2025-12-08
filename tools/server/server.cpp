@@ -4902,6 +4902,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         );
 
     } else {
+        m8p::replaceAll(prompt, "<<<NL>>>", "\n");
+
         // ::ALLOC::
         json data = {
             {"prompt", prompt},
@@ -5200,6 +5202,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                 }}
             }
         });
+
+        m8p::replaceAll(prompt, "<<<NL>>>", "\n");
 
         json messages = {
             {{"role", "system"}, {"content", "You are a helpful assistant."}},
@@ -7554,6 +7558,10 @@ std::string M8_BANNER =
                     GlobalSession[id_session].has_sink = true;
                     m8 = m8p::M8P_Instance(id_session);
                 }
+
+                // if (data.count("tools")>0) {
+                //     auto tools = data["tools"];
+                // }
 
                 // will handle all custom instr
                 m8p::RegisterVirtual(m8, "__all__", virtualvm);
