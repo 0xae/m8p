@@ -5180,7 +5180,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             } else {
                 if(tools_supp.find("<")!=std::string::npos && tools_supp.find(">")!=std::string::npos) {
                     auto RGEO=REG[tools_supp];
-                    if (RGEO!=nullptr && !m8p::is_nil(RGEO) && RGEO->Type==m8p::MP8_STRING) {
+                    if (RGEO!=nullptr && !m8p::is_nil(M8,RGEO) && RGEO->Type==m8p::MP8_STRING) {
                         try {
                             tools_static = json::parse(RGEO->Value);
                         } catch (json::parse_error& e) {
