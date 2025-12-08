@@ -5087,6 +5087,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
     std::string stream="false";
     std::string force="false";
     std::string prompt = "what is your name";
+    std::string tools = "no";
 
     m8p::M8_Obj *R = REG[rsource];
     if (R==nullptr){
@@ -5120,6 +5121,48 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
     }
 
     std::map<std::string, std::string> options;
+    json tools_static = json::array();
+    // json tools_static = json::array({
+    //     {
+    //         {"type", "function"},
+    //         {"function", {
+    //             {"name", "get_current_weather"},
+    //             {"description", "Get the current weather in a given location"},
+    //             {"parameters", {
+    //                 {"type", "object"},
+    //                 {"properties", {
+    //                     {"location", {
+    //                         {"type", "string"},
+    //                         {"description", "The city and state, e.g. San Francisco, CA"}
+    //                     }},
+    //                     {"unit", {
+    //                         {"type", "string"},
+    //                         {"enum", {"celsius", "fahrenheit"}}
+    //                     }}
+    //                 }},
+    //                 {"required", {"location"}}
+    //             }}
+    //         }}
+    //     },
+    //     // Add more tools here...
+    //     {
+    //         {"type", "function"},
+    //         {"function", {
+    //             {"name", "get_stock_price"},
+    //             {"description", "Get the current stock price for a symbol"},
+    //             {"parameters", {
+    //                 {"type", "object"},
+    //                 {"properties", {
+    //                     {"symbol", {
+    //                         {"type", "string"},
+    //                         {"description", "The stock symbol"}
+    //                     }}
+    //                 }},
+    //                 {"required", {"symbol"}}
+    //             }}
+    //         }}
+    //     }
+    // });
 
     if (psize>2) {
         options = m8p::parseOptions(3, params);
@@ -5128,6 +5171,28 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         }
         if (options.count("stream")>0) {
             stream = options["stream"];
+        }
+        if (options.count("tools")>0) {
+            // REG[rdest]
+            auto tools_supp = options["tools"];
+            m8p::__trim(tools_supp);
+            if (tools_supp=="no"||tools_supp=="false"||tools_supp==""){
+            } else {
+                if(tools_supp.find("<")!=std::string::npos && tools_supp.find(">")!=std::string::npos) {
+                    auto RGEO=REG[tools_supp];
+                    if (RGEO!=nullptr && !m8p::is_nil(RGEO) && RGEO->Type==m8p::MP8_STRING) {
+                        try {
+                            tools_static = json::parse(RGEO->Value);
+                        } catch (json::parse_error& e) {
+                            return std::make_pair(
+                                m8p::errorf("MALFORMED JSON ON REGISTER["+tools_supp+", "+RGEO->Value+"]"),
+                                M8->nilValue
+                            );
+                        }
+                    }
+                }                
+            }
+
         }
 
         if (options.count("n_predict")>0) {
@@ -5170,48 +5235,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         );
 
     } else {
-        json tools_static = json::array({
-            {
-                {"type", "function"},
-                {"function", {
-                    {"name", "get_current_weather"},
-                    {"description", "Get the current weather in a given location"},
-                    {"parameters", {
-                        {"type", "object"},
-                        {"properties", {
-                            {"location", {
-                                {"type", "string"},
-                                {"description", "The city and state, e.g. San Francisco, CA"}
-                            }},
-                            {"unit", {
-                                {"type", "string"},
-                                {"enum", {"celsius", "fahrenheit"}}
-                            }}
-                        }},
-                        {"required", {"location"}}
-                    }}
-                }}
-            },
-            // Add more tools here...
-            {
-                {"type", "function"},
-                {"function", {
-                    {"name", "get_stock_price"},
-                    {"description", "Get the current stock price for a symbol"},
-                    {"parameters", {
-                        {"type", "object"},
-                        {"properties", {
-                            {"symbol", {
-                                {"type", "string"},
-                                {"description", "The stock symbol"}
-                            }}
-                        }},
-                        {"required", {"symbol"}}
-                    }}
-                }}
-            }
-        });
-
         replaceAll2(prompt, "<<<NL>>>", "\n");
 
         json messages = {
@@ -5310,7 +5333,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
          // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
          ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, stream, M8, &ins_name](server_task_result_ptr & result) -> bool {
-            LLMDB[ins_name].Status = 1; // success
             json res_json = result->to_json();
             bool hasRun = false;
             json arr = json::array();
@@ -5341,6 +5363,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                 }
             }
 
+            LLMDB[ins_name].Status = 1; // success
             LLMDB[ins_name].arr = arr;
             return true;
         }, [&LLMDB, &ins_name](json error_data) {
