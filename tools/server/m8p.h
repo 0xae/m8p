@@ -228,7 +228,7 @@ namespace m8p {
     int InitMP8(M8System *m8);
     void DestroyMP8(M8System *m8);
     std::vector<std::string> __split(std::string s, std::string delimiter);
-    void replaceAll(std::string& str, std::string& from, std::string& to);
+    void replaceAll(std::string& str, const std::string& from, const std::string& to);
     std::pair<M8_Error, M8_Obj*> NO_OP(M8System* m8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> Store_OP(M8System* M8, std::vector<std::string> params);
     std::pair<M8_Error, M8_Obj*> Clear_OP(M8System* M8, std::vector<std::string> params);
