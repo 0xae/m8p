@@ -5203,7 +5203,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
         json messages = {
             {{"role", "system"}, {"content", "You are a helpful assistant."}},
-            {{"role", "tools"},   {"content", tools_static}}
+            {{"role", "tools"},   {"content", tools_static}},
             {{"role", "user"},   {"content", prompt}}
         };
 
