@@ -5242,7 +5242,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         try {
             std::vector<server_task> tasks;
             std::vector<server_tokens> inputs;
-            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, messages, true, true);
+            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, prompt, true, true);
             const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
             tasks.reserve(inputs.size());
             for (size_t i = 0; i < inputs.size(); i++) {
@@ -5271,7 +5271,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                 task.id_slot = json_value(data, "id_slot", -1);
 
                 // OAI-compat
-                task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
+                task.params.oaicompat = OAICOMPAT_TYPE_CHAT;
+                // task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
                 task.params.oaicompat_cmpl_id = completion_id;
                 // oaicompat_model is already populated by params_from_json_cmpl
                 tasks.push_back(std::move(task));
@@ -5283,8 +5284,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
         } catch (const std::exception &e) {
             LLMDB[ins_name].Status = 0; // an error ocurred
+            std::string err = e.what();
             return std::make_pair(
-                m8p::errorf("An error ocurred during execution"),
+                m8p::errorf("An error ocurred during execution Details: " + err),
                 M8->nilValue
             );
         }
