@@ -5213,7 +5213,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {"temperature", temp},
             {"max_tokens", n_predict},
             {"model", "default"},
-            {"stream", false},
+            {"stream", (stream=="true")},
             {"tool_choice", "auto"},
             {"tools", tools_static},
             // { "system_prompt", ctx_server->system_prompt.c_str() },
