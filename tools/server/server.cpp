@@ -5846,6 +5846,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         rsource = interpolated;
     }
 
+    replaceAll2(rsource, "<<<NL>>>", "\n");
+
     // seems like rsource is a register, lets get its content
     // into a string and stream that
     // if (REG.count(rsource)) {
