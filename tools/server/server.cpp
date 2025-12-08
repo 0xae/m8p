@@ -5159,12 +5159,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         );
 
     } else {
-        json messages = {
-            {{"role", "assistant"}, {"content", "You are a helpful assistant."}},
-            // {{"role", "assistant"}, {"content", "You are a helpful assistant."}},
-            {{"role", "user"},   {"content", prompt}}
-        };
-
         json tools_static = json::array({
             {
                 {"type", "function"},
@@ -5207,6 +5201,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             }
         });
 
+        json messages = {
+            {{"role", "system"}, {"content", "You are a helpful assistant."}},
+            {{"role", "tools"},   {"content", tools_static}}
+            {{"role", "user"},   {"content", prompt}}
+        };
+
         // ::ALLOC::
         json data = {
             {"messages", messages},
@@ -5235,7 +5235,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         try {
             std::vector<server_task> tasks;
             std::vector<server_tokens> inputs;
-            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, prompt, true, true);
+            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, messages, true, true);
             const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
             tasks.reserve(inputs.size());
             for (size_t i = 0; i < inputs.size(); i++) {
