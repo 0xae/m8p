@@ -5182,7 +5182,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                     auto RGEO=REG[tools_supp];
                     if (RGEO!=nullptr && !m8p::is_nil(M8,RGEO) && RGEO->Type==m8p::MP8_STRING) {
                         try {
+                            replaceAll2(RGEO->Value, "\n", "<<<NL>>>");
                             tools_static = json::parse(RGEO->Value);
+                            replaceAll2(RGEO->Value, "<<<NL>>>", "\n");
                         } catch (json::parse_error& e) {
                             return std::make_pair(
                                 m8p::errorf("MALFORMED JSON ON REGISTER["+tools_supp+", "+RGEO->Value+"]"),
