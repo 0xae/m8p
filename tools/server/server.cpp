@@ -5226,7 +5226,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         std::vector<raw_buffer> files;
         json data = oaicompat_chat_params_parse(
             body,
-            ctx_server.oai_parser_opt,
+            ctx_server->oai_parser_opt,
             files
         );
 
