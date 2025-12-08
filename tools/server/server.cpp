@@ -5207,7 +5207,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         };
 
         // ::ALLOC::
-        json data = {
+        json body = {
             {"messages", messages},
             {"temperature", temp},
             {"max_tokens", n_predict},
@@ -5221,6 +5221,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             // int32_t n_keep =  0; // number of tokens to keep from initial prompt
             // int32_t n_discard =  0; // number of tokens after n_keep that may be discarded when shifting context, 0 defaults to half
         };
+
+        // auto body = json::parse(req.body);
+        std::vector<raw_buffer> files;
+        json data = oaicompat_chat_params_parse(
+            body,
+            ctx_server.oai_parser_opt,
+            files
+        );
 
         // // ::ALLOC::
         // LLMDB[ins_name].tasks = task_ids;
