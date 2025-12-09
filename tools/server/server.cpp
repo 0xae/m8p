@@ -5577,8 +5577,20 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             return has_session_been_cancelled; // fool it thinking this is a connection
         };
 
+        auto is_connection_active = [&GlobalSession, &M8]() -> bool {
+            if (GlobalSession.count(M8->Name)) {
+                auto session = &GlobalSession[M8->Name];
+                if (session->has_sink) {
+                    auto sink = GlobalSession[M8->Name].sink;
+                    return sink->is_writable();
+                }
+            }
+
+            return false;
+        }
+
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
-            if (has_session_been_cancelled) {
+            if (has_session_been_cancelled || !is_connection_active()) {
                 std::cout << "Multiturn " << ins_name << " CANCELLED "
                          << "[w2s=" << w2_session 
                          << ", turn_sleep=" << turn_sleep 
@@ -5601,24 +5613,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             if (current_turn>0) {
                 {
                     const std::lock_guard<std::mutex> lock(*g_session);
+                    if (!is_connection_active()) {
+                        std::cout << "Multiturn " << w2_session << " INTERRUPT . "
+                                  << "| CurrentTurn = " 
+                                  <<  current_turn
+                                  << "\n" 
+                                  << std::endl;
+
+                        break;
+                    }
+
                     if (GlobalSession.count(w2_session)==0) {
-                        if (GlobalSession.count(M8->Name)) {
-                            auto session = &GlobalSession[M8->Name];
-                            if (session->has_sink) {
-                                auto sink = GlobalSession[M8->Name].sink;
-                                if (!sink->is_writable()) {
-            
-                                    std::cout << "Multiturn " << w2_session << " INTERRUPT . "
-                                              << "| CurrentTurn = " 
-                                              <<  current_turn
-                                              << "\n" 
-                                              << std::endl;
-
-                                    break;
-                                }
-                            }
-                        }
-
                         std::cout << "Multiturn " << w2_session << " SESSION NOT AVAILABLE, will sleep. "
                                   << "| CurrentTurn = " 
                                   <<  current_turn
@@ -5676,19 +5681,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 }
             }
 
-            if (GlobalSession.count(M8->Name)) {
-                auto session = &GlobalSession[M8->Name];
-                if (session->has_sink) {
-                    auto sink = GlobalSession[M8->Name].sink;
-                    if (!sink->is_writable()) {
-                        std::cout << "Multiturn " << w2_session << " INTERRUPT . "
-                                  << "| CurrentTurn = " 
-                                  <<  current_turn
-                                  << "\n" 
-                                  << std::endl;
-                        break;
-                    }
-                }
+            if (!is_connection_active()) {
+                std::cout << "Multiturn " << w2_session << " INTERRUPT . "
+                          << "| CurrentTurn = " 
+                          <<  current_turn
+                          << "\n" 
+                          << std::endl;
+
+                break;
             }
 
             if (!hasSession) {
@@ -5720,6 +5720,16 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             auto completion_id = gen_chatcmplid();
             server_task_type type = SERVER_TASK_TYPE_COMPLETION; // SERVER_TASK_TYPE_INFILL
             std::unordered_set<int> task_ids;
+
+            if (!is_connection_active()) {
+                std::cout << "Multiturn " << w2_session << " INTERRUPT . "
+                          << "| CurrentTurn = " 
+                          <<  current_turn
+                          << "\n" 
+                          << std::endl;
+
+                break;
+            }
 
             try {
                 std::vector<server_task> tasks;
