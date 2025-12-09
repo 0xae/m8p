@@ -5612,6 +5612,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     std::cout << "Multiturn " << w2_session << " SESSION NOT AVAILABLE, will sleep. "
                               << "\n" 
                               << std::endl;
+
                     continue;
                 }
 
@@ -5631,7 +5632,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         {                        
                             m8p::M8_Obj *RXO = REG_X[varname_x];
                             if (RXO!=nullptr) {
-                                if (m8p::is_nil(M8_S, RXO) && RXO->Type==m8p::MP8_STRING) {
+                                if (!m8p::is_nil(M8_S, RXO) && RXO->Type==m8p::MP8_STRING) {
                                     std::cout << " FOUND " 
                                         << " FOR REGISTER ["
                                         << varname_x
