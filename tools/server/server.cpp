@@ -5576,6 +5576,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         };
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
+            if (current_turn>0) {
+                sleep(turn_sleep);
+            }
+
             if (has_session_been_cancelled) {
                 std::cout << "Multiturn " << ins_name << " CANCELLED "
                          << "[w2s=" << w2_session 
@@ -5586,12 +5590,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             }
 
             {
-                const std::lock_guard<std::mutex> lock(g_session);
+                // const std::lock_guard<std::mutex> lock(g_session);
                 if (GlobalSession.count(w2_session)==0){
                     std::cout << "Multiturn " << ins_name << " SESSION NOT AVAILABLE, will sleep. "
                               << "\n" 
                               << std::endl;
-                  return;
+                    continue;
+                  
                 }
 
                 try {
@@ -5625,12 +5630,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 }
             }
 
-            json messages = {
-                {{"role", "system"}, {"content", "You are a helpful assistant."}},
-                {{"role", "user"},   {"content", prompt}}
-            };
-
-            // ::ALLOC::
+            json messages = json::array();
             json body = {
                 {"messages", messages},
                 {"temperature", temp},
@@ -5759,8 +5759,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 << " | Current Turn: "
                 << current_turn 
                 << "\n" << std::endl;
-
-            sleep(turn_sleep);
         }
 
         return std::make_pair(
