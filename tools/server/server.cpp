@@ -5407,7 +5407,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
     std::string ins_name = params.at(2); // instance name
     m8p::__trim(ins_name);
     std::string w2_session="none";
-    const int MAX_TURNS = 100;
+    const int MAX_TURNS = 200;
     int32_t turns = 3; // MAX_TURNS = 40
 
     int32_t n_predict = 20;
@@ -5603,12 +5603,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 sleep(turn_sleep);
             }
 
-            json messages = {
-                {{"role", "system"}, {"content", "You are a helpful assistant."}},
-                {{"role", "user"},   {"content", prompt}}
-            };
-
             bool hasSession = (current_turn==0);
+            std::string userReply = "";
 
             if (current_turn>0) {
                 {
@@ -5658,6 +5654,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                                 << RXO->Value
                                                 << "]\n";
 
+                                            userReply = RXO->Value;
                                             hasSession = true;
                                             REG_X[varname_x] = M8_S->nilValue; // reset to avoid infinit stuff
                                         }
@@ -5693,6 +5690,21 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
             if (!hasSession) {
                 continue;
+            }
+
+            m8p::__trim(userReply);
+            std::string system_prompt = "You are a helpful assistant.";
+
+            json messages = {
+                {{"role", "system"}, {"content", system_prompt}},
+                {{"role", "user"},   {"content", prompt}}
+            };
+
+            if (userReply!=""){
+                messages = {
+                    {{"role", "system"}, {"content", prompt}},
+                    {{"role", "user"},   {"content", "UserReply: "+userReply+"; Your Reply: "}}
+                };
             }
 
             json body = {
@@ -6738,7 +6750,7 @@ public:
         } else if (opCode=="llm_openai") {
             return LLM_OPENAI(this->ctx_server, M8, params);
 
-        } else if (opCode=="llm_mturn") {
+        } else if (opCode=="llm_mturn" || opCode=="llm_turn") {
             if (this->g_session!=nullptr) {
                 return LLM_MULTI_TURN(
                     this->ctx_server, 
