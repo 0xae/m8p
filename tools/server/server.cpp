@@ -5386,6 +5386,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         server_context *ctx_server,
         m8p::M8System* M8, 
+        std::muted *g_session,
         std::vector<std::string> params) 
 {
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
@@ -6632,7 +6633,7 @@ class LLamaInstr : public m8p::VInstr {
 private:
     server_context *ctx_server = nullptr;
     common_params *server_params = nullptr;
-    std::mutex *g_session;
+    std::mutex *g_session = nullptr;
 
 public:
     LLamaInstr(server_context *server, common_params *pms, std::mutex *gss) 
@@ -6681,7 +6682,20 @@ public:
             return LLM_OPENAI(this->ctx_server, M8, params);
 
         } else if (opCode=="llm_mturn") {
-            return LLM_MULTI_TURN(this->ctx_server, M8, params);
+            if (this.g_session!=nullptr) {
+                return LLM_MULTI_TURN(
+                    this->ctx_server, 
+                    M8, 
+                    params,
+                    this->g_session
+                );
+
+            } else {
+                return std::make_pair(
+                    m8p::errorf("llm_mturn is not able to lock vm"),
+                    M8->nilValue
+                );
+            }
 
         } else if (opCode=="llm_instancestatus") {
             return LLM_INSTANCE_STATUS(this->ctx_server, M8, params);
