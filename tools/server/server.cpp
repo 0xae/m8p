@@ -5614,13 +5614,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                             << varname_x
                             << "]\n";
 
-                        m8p::M8_Obj *R = REG_X[varname_x];
-                        if (R!=nullptr && !m8p::is_nil(M8_S, R) && R->Type==m8p::MP8_STRING) {
+                        m8p::M8_Obj *RXO = REG_X[varname_x];
+                        if (RXO!=nullptr && !m8p::is_nil(M8_S, RXO) && RXO->Type==m8p::MP8_STRING) {
                             std::cout << " FOUND " 
                                 << " FOR REGISTER ["
                                 << varname_x
                                 << " = "
-                                << R->Value
+                                << RXO->Value
                                 << "]\n";
 
                         } else {
