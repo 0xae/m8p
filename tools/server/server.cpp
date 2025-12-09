@@ -5666,6 +5666,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     }
                 }
 
+                return false;
+
             }, [&LLMDB, &ins_name](json error_data) {
                 LLMDB[ins_name].Status = 0; // an error ocurred
                 LLMDB[ins_name].arr = error_data;
