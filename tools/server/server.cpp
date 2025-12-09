@@ -5644,7 +5644,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     << res_json.dump()
                     << "\n" << std::endl;
 
-                if (GlobalSession.count(M8->Name) && sink->is_writable()) {
+                if (GlobalSession.count(M8->Name)) {
                     auto session = &GlobalSession[M8->Name];
                     if (session->has_sink) {
                         auto sink = GlobalSession[M8->Name].sink;
