@@ -5405,7 +5405,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
     std::string rsource = params.at(1);// prompt register
     std::string ins_name = params.at(2); // instance name
     m8p::__trim(ins_name);
-    std::string session_id="none";
+    std::string w2_session="none";
     const int MAX_TURNS = 100;
     int32_t turns = 3; // MAX_TURNS = 40
 
@@ -5460,11 +5460,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         //     stream = options["stream"];
         // }
         if (options.count("session")>0) {
-            session = options["session"];
-            m8p::__trim(session);
-            if (session.size()==0 || session.size()<6 || session.size()>200) {
+            w2_session = options["session"];
+            m8p::__trim(w2_session);
+            if (w2_session.size()==0 || w2_session.size()<6 || w2_session.size()>200) {
                 return std::make_pair(
-                    m8p::errorf("SESSION_INVALID_RANGE_PROVIDED[0, 200, provided="+session+"]"),
+                    m8p::errorf("SESSION_INVALID_RANGE_PROVIDED[0, 200, provided="+w2_session+"]"),
                     M8->nilValue
                 );
             }
