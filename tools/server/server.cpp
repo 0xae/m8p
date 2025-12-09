@@ -6632,11 +6632,14 @@ class LLamaInstr : public m8p::VInstr {
 private:
     server_context *ctx_server = nullptr;
     common_params *server_params = nullptr;
+    std::mutex *g_session;
 
 public:
-    LLamaInstr(server_context *server, common_params *pms) 
+    LLamaInstr(server_context *server, common_params *pms, std::mutex *gss) 
         : ctx_server(server), 
-        server_params(pms) {
+        server_params(pms),
+        g_session(gss)
+         {
 #ifdef FAISS_INCL
     std::cout << "LLamaInstr()" << "faiss is included. \n" << std::endl;
 #endif
@@ -6795,8 +6798,12 @@ std::string M8_BANNER =
     LOG_INF("%s\n", common_params_get_system_info(params).c_str());
     LOG_INF("\n");
 
-    m8p::VInstr* virtualvm = new LLamaInstr(&ctx_server, &params);
     std::mutex g_session; // lock used for GlobalSession
+    m8p::VInstr* virtualvm = new LLamaInstr(
+        &ctx_server, 
+        &params, 
+        &g_session
+    );
 
     std::unique_ptr<httplib::Server> svr;
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
@@ -8029,7 +8036,10 @@ std::string M8_BANNER =
                     Resp["Tms"] = ss.str();
                     Resp["Error"] = Ret.first.Details;
                     Resp["Type"] = "<error>";
-                    server_sent_event(sink, Resp);
+                    if (sink.is_writable()) {
+                        server_sent_event(sink, Resp);
+                    }
+
                 } else {
                     json Resp;
                     Resp["Status"] = "OK";
@@ -8076,7 +8086,10 @@ std::string M8_BANNER =
 
                         Resp["Type"] = m8p::TypeStr(Ret.second->Type);
                     }
-                    server_sent_event(sink, Resp);
+
+                    if (sink.is_writable()) {
+                        server_sent_event(sink, Resp);
+                    }
                 }
 
                 sink.done();
