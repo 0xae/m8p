@@ -5386,8 +5386,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         server_context *ctx_server,
         m8p::M8System* M8, 
-        std::muted *g_session,
-        std::vector<std::string> params) 
+        std::vector<std::string> params,
+        std::muted *g_session) 
 {
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 2) {
@@ -6682,7 +6682,7 @@ public:
             return LLM_OPENAI(this->ctx_server, M8, params);
 
         } else if (opCode=="llm_mturn") {
-            if (this.g_session!=nullptr) {
+            if (this->g_session!=nullptr) {
                 return LLM_MULTI_TURN(
                     this->ctx_server, 
                     M8, 
