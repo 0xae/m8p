@@ -5607,6 +5607,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                             if (session->has_sink) {
                                 auto sink = GlobalSession[M8->Name].sink;
                                 if (!sink->is_writable()) {
+            
+                                    std::cout << "Multiturn " << w2_session << " INTERRUPT . "
+                                              << "| CurrentTurn = " 
+                                              <<  current_turn
+                                              << "\n" 
+                                              << std::endl;
+
                                     break;
                                 }
                             }
@@ -5618,6 +5625,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                   << "\n" 
                                   << std::endl;
                     } else {
+
+
+                        std::cout << "Multiturn " << w2_session << " SESSION WAS FOUND, will sleep. "
+                                  << "| CurrentTurn = " 
+                                  <<  current_turn
+                                  << "\n" 
+                                  << std::endl;
 
                         try {
                             m8p::M8System *M8_S = GlobalSession[w2_session].m8;
