@@ -5387,7 +5387,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         server_context *ctx_server,
         m8p::M8System* M8, 
         std::vector<std::string> params,
-        std::muted *g_session) 
+        std::mutex *g_session) 
 {
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 2) {
