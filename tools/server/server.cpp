@@ -5595,7 +5595,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 {{"role", "user"},   {"content", prompt}}
             };
 
-            if (current_turn>0) {
+            if (current_turn>0) {{
                 const std::lock_guard<std::mutex> lock(*g_session);
                 if (GlobalSession.count(w2_session)==0){
                     if (GlobalSession.count(M8->Name)) {
@@ -5658,7 +5658,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         M8->nilValue
                     );
                 }
-            }
+            
+            }}
 
             json body = {
                 {"messages", messages},
