@@ -5596,7 +5596,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                               << "\n" 
                               << std::endl;
                     continue;
-                  
                 }
 
                 try {
@@ -5627,6 +5626,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 } catch (const std::exception &e) {
                     std::string err = e.what();
                     std::cout << "Multiturn " << ins_name << " FAILED ON SESSION _CHECK\n" << std::endl;
+                    return std::make_pair(
+                        m8p::errorf("FAILED ON SESSION _CHECK: " + err),
+                        M8->nilValue
+                    );
                 }
             }
 
