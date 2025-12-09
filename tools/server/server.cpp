@@ -5571,7 +5571,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
         std::string last_prompt = prompt;
         bool has_session_been_cancelled = false;
-        std::string varname_x="r_turn_"+ins_name;
+        std::string varname_x="<rt1>";
 
         auto is_connection_closed = [&has_session_been_cancelled]() -> bool {
             return has_session_been_cancelled; // fool it thinking this is a connection
@@ -5670,6 +5670,21 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                 M8->nilValue
                             );
                         }
+                    }
+                }
+            }
+
+            if (GlobalSession.count(M8->Name)) {
+                auto session = &GlobalSession[M8->Name];
+                if (session->has_sink) {
+                    auto sink = GlobalSession[M8->Name].sink;
+                    if (!sink->is_writable()) {
+                        std::cout << "Multiturn " << w2_session << " INTERRUPT . "
+                                  << "| CurrentTurn = " 
+                                  <<  current_turn
+                                  << "\n" 
+                                  << std::endl;
+                        break;
                     }
                 }
             }
