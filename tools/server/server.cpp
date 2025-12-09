@@ -5589,10 +5589,15 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 break;
             }
 
-            {
+            json messages = {
+                {{"role", "system"}, {"content", "You are a helpful assistant."}},
+                {{"role", "user"},   {"content", prompt}}
+            };
+
+            if (current_turn>0) {
                 // const std::lock_guard<std::mutex> lock(g_session);
                 if (GlobalSession.count(w2_session)==0){
-                    std::cout << "Multiturn " << ins_name << " SESSION NOT AVAILABLE, will sleep. "
+                    std::cout << "Multiturn " << w2_session << " SESSION NOT AVAILABLE, will sleep. "
                               << "\n" 
                               << std::endl;
                     continue;
@@ -5620,6 +5625,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
                         } else {
                             std::cout << " NOT FOUND "  << " FOR REGISTER [" << varname_x << "]\n";
+                            continue;
                         }
                     }
 
@@ -5633,7 +5639,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 }
             }
 
-            json messages = json::array();
             json body = {
                 {"messages", messages},
                 {"temperature", temp},
@@ -5649,7 +5654,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 ctx_server->oai_parser_opt,
                 files
             );
-
 
             std::cout << "Current Turn " << ins_name 
                      << "[w2s=" << w2_session 
