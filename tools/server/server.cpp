@@ -5578,6 +5578,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         };
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
+            if (has_session_been_cancelled) {
+                std::cout << "Multiturn " << ins_name  << " cancelled [w2s="<< w2_session << "]: " << current_turn << "\n" << std::endl;
+                break;
+            }
+
             std::cout << "Current Turn[w2s="<< w2_session << "]: " << current_turn << "\n" << std::endl;
             auto completion_id = gen_chatcmplid();
             server_task_type type = SERVER_TASK_TYPE_COMPLETION; // SERVER_TASK_TYPE_INFILL
