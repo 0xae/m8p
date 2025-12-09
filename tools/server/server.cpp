@@ -5571,6 +5571,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
         std::string last_prompt = prompt;
         bool has_session_been_cancelled = false;
+        std::string varname_x="r_turn_"+ins_name;
 
         auto is_connection_closed = [&has_session_been_cancelled]() -> bool {
             return has_session_been_cancelled; // fool it thinking this is a connection
@@ -5595,71 +5596,72 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 {{"role", "user"},   {"content", prompt}}
             };
 
-            if (current_turn>0) {{
-                const std::lock_guard<std::mutex> lock(*g_session);
-                if (GlobalSession.count(w2_session)==0){
-                    if (GlobalSession.count(M8->Name)) {
-                        auto session = &GlobalSession[M8->Name];
-                        if (session->has_sink) {
-                            auto sink = GlobalSession[M8->Name].sink;
-                            if (!sink->is_writable()) {
-                                has_session_been_cancelled = true;
-                                continue;
-                            }
-                        }
-                    }
+            bool hasSession = (current_turn==0);
 
-                    std::cout << "Multiturn " << w2_session << " SESSION NOT AVAILABLE, will sleep. "
-                              << "\n" 
-                              << std::endl;
-
-                    continue;
-                }
-
-                try {
-                    m8p::M8System *M8_S = GlobalSession[w2_session].m8;
-                    if (M8_S) {
-                        std::map<std::string, m8p::M8_Obj*> &REG_X = M8_S->Registers;
-                        std::string varname_x="r_turn_"+ins_name;
-                        std::cout << "LOOKINK UP ON " 
-                            << w2_session 
-                            << " FOR REGISTER ["
-                            << varname_x
-                            << "]\n";
-                        
-                        bool is_found=false;
-                        
-                        {                        
-                            m8p::M8_Obj *RXO = REG_X[varname_x];
-                            if (RXO!=nullptr) {
-                                if (!m8p::is_nil(M8_S, RXO) && RXO->Type==m8p::MP8_STRING) {
-                                    std::cout << " FOUND " 
-                                        << " FOR REGISTER ["
-                                        << varname_x
-                                        << " = "
-                                        << RXO->Value
-                                        << "]\n";
-                                    is_found = true;        
+            if (current_turn>0) {
+                {
+                    const std::lock_guard<std::mutex> lock(*g_session);
+                    if (GlobalSession.count(w2_session)==0) {
+                        if (GlobalSession.count(M8->Name)) {
+                            auto session = &GlobalSession[M8->Name];
+                            if (session->has_sink) {
+                                auto sink = GlobalSession[M8->Name].sink;
+                                if (!sink->is_writable()) {
+                                    break;
                                 }
                             }
                         }
 
-                        if (!is_found) {
-                            std::cout << " NOT FOUND "  << " FOR REGISTER [" << varname_x << "]\n";
-                            continue;                            
+                        std::cout << "Multiturn " << w2_session << " SESSION NOT AVAILABLE, will sleep. "
+                                  << "\n" 
+                                  << std::endl;
+                    } else {
+
+                        try {
+                            m8p::M8System *M8_S = GlobalSession[w2_session].m8;
+                            if (M8_S) {
+                                std::map<std::string, m8p::M8_Obj*> &REG_X = M8_S->Registers;
+                                std::cout << "LOOKINK UP ON " 
+                                    << w2_session 
+                                    << " FOR REGISTER ["
+                                    << varname_x
+                                    << "]\n";
+
+                                {
+                                    m8p::M8_Obj *RXO = REG_X[varname_x];
+                                    if (RXO!=nullptr) {
+                                        if (!m8p::is_nil(M8_S, RXO) && RXO->Type==m8p::MP8_STRING) {
+                                            std::cout << " FOUND " 
+                                                << " FOR REGISTER ["
+                                                << varname_x
+                                                << " = "
+                                                << RXO->Value
+                                                << "]\n";
+                                            hasSession = true;        
+                                        }
+                                    }
+                                }
+
+                                if (!hasSession) {
+                                    std::cout << " NOT FOUND "  << " FOR REGISTER [" << varname_x << "]\n";
+                                }
+                            }
+
+                        } catch (const std::exception &e) {
+                            std::string err = e.what();
+                            std::cout << "Multiturn " << ins_name << " FAILED ON SESSION _CHECK\n" << std::endl;
+                            return std::make_pair(
+                                m8p::errorf("FAILED ON SESSION _CHECK: " + err),
+                                M8->nilValue
+                            );
                         }
                     }
-
-                } catch (const std::exception &e) {
-                    std::string err = e.what();
-                    std::cout << "Multiturn " << ins_name << " FAILED ON SESSION _CHECK\n" << std::endl;
-                    return std::make_pair(
-                        m8p::errorf("FAILED ON SESSION _CHECK: " + err),
-                        M8->nilValue
-                    );
                 }
-            
-            }}
+            }
+
+            if (!hasSession) {
+                continue;
+            }
 
             json body = {
                 {"messages", messages},
