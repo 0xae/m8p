@@ -5626,14 +5626,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                   << std::endl;
                     } else {
 
-
-                        std::cout << "Multiturn " << w2_session << " SESSION WAS FOUND, will sleep. "
-                                  << "| CurrentTurn = " 
-                                  <<  current_turn
-                                  << "\n" 
-                                  << std::endl;
-
                         try {
+                            std::cout << "Multiturn " << w2_session << " SESSION WAS FOUND "
+                                      << "| CurrentTurn = " 
+                                      <<  current_turn
+                                      << "\n" 
+                                      << std::endl;
+
                             m8p::M8System *M8_S = GlobalSession[w2_session].m8;
                             if (M8_S) {
                                 std::map<std::string, m8p::M8_Obj*> &REG_X = M8_S->Registers;
