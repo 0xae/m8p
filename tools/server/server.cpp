@@ -5002,7 +5002,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                     if (session->has_sink) {
                         auto sink = GlobalSession[M8->Name].sink;
                         if (sink->is_writable()) {
-                            std::cout << "stream " << "\n";
+                            // std::cout << "stream " << "\n";
                             // server_sent_event(*sink, json{{"event", outxf}});
                             server_sent_event(*sink,outxf);
                         }
@@ -5023,7 +5023,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                             for (auto & res : results) {
                                 auto outxf=res->to_json();
                                 if (sink->is_writable()) {
-                                    std::cout << "stream " << "\n";
+                                    // std::cout << "stream " << "\n";
                                     server_sent_event(*sink,outxf);
                                     // server_sent_event(*sink, json{{"event", outxf}});     
                                 }
@@ -5374,6 +5374,309 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         }, is_connection_closed);
 
         ctx_server->queue_results.remove_waiting_task_ids(task_ids);
+
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->true_
+        );
+    }
+
+}
+
+std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params) 
+{
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize < 2) {
+        return std::make_pair(
+            m8p::errorf("llm_mturn requires at least 2 parameters (Prompt String Register and instance name)"),
+            M8->nilValue
+        );
+    }
+
+    std::string sessionId = M8->Name;
+    std::map<std::string, instance_data> &LLMDB = GlobalSession[sessionId].LLMInstance_DB;
+
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+
+    // llm_instance <r1> I001 n_predict=20 async=True|false frequency_penalty=123
+    std::string rsource = params.at(1);// prompt register
+    std::string ins_name = params.at(2); // instance name
+    m8p::__trim(ins_name);
+    std::string session_id="none";
+    const int MAX_TURNS = 100;
+    int32_t turns = 3; // MAX_TURNS = 40
+
+    int32_t n_predict = 20;
+    size_t MAX_PROMPT_SIZE = 10200;
+    float temp=0;
+    std::string stream="true"; // multi_turn is available in streamming only
+    std::string force="true";
+    std::string prompt = "what is your name";
+    std::string tools = "no";
+
+    m8p::M8_Obj *R = REG[rsource];
+    if (R==nullptr){
+        return std::make_pair(
+            m8p::errorf("NULL_REGISTER["+rsource+"]"),
+            M8->nilValue
+        );
+    }
+
+    if (!m8p::is_nil(M8, R) && R->Type==m8p::MP8_STRING) {
+        if (R->Value.size()>0 && R->Value.size()<MAX_PROMPT_SIZE)  {
+            prompt = R->Value;
+        } else if (R->Value.size()==0) {
+            return std::make_pair(
+                m8p::errorf("EMPTY_PROMPT_RECEIVED["+rsource+"]"),
+                M8->nilValue
+            );
+
+        } else if (R->Value.size()>MAX_PROMPT_SIZE) {
+            return std::make_pair(
+                m8p::errorf("EXCEED_MAX_PROMPT_SIZE["+rsource+"]"),
+                M8->nilValue
+            );
+        }
+
+    } else {
+        return std::make_pair(
+            m8p::errorf("EMPTY_PROMPT["+rsource+"]"),
+            M8->nilValue
+        );        
+    }
+
+    std::map<std::string, std::string> options;
+    json tools_static = json::array();
+
+    if (psize>2) {
+        options = m8p::parseOptions(3, params);
+        // if (options.count("force")>0) {
+        //     force = options["force"];
+        // }
+        // if (options.count("stream")>0) {
+        //     stream = options["stream"];
+        // }
+        if (options.count("session")>0) {
+            session = options["session"];
+            m8p::__trim(session);
+            if (session.size()==0 || session.size()<6 || session.size()>200) {
+                return std::make_pair(
+                    m8p::errorf("SESSION_INVALID_RANGE_PROVIDED[0, 200, provided="+session+"]"),
+                    M8->nilValue
+                );
+            }
+        } else {
+            return std::make_pair(
+                m8p::errorf("MISSING_SESSION_PARAM[session=..,]"),
+                M8->nilValue
+            );
+        }
+
+        // std::max
+
+        if (options.count("turns")>0) {
+            int32_t t_number=0;
+            std::string Value = options["turns"];
+            try {
+                t_number=std::stof(Value);
+                if (t_number>MAX_TURNS) {
+                    return std::make_pair(
+                        m8p::errorf("TURN IS TOO BIG [turn=..,]"),
+                        M8->nilValue
+                    );
+                }
+                turns = t_number;
+
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[turn, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        if (options.count("n_predict")>0) {
+            int32_t number=0;
+            std::string Value = options["n_predict"];
+            try {
+                number=std::stof(Value);
+                n_predict = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[n_predict, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        if (options.count("temperature")>0) {
+            std::string Value = options["temperature"];
+            try {
+                float number=0;
+                number=std::stof(Value);
+                temp=number;
+            }
+            catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_FLOAT32[temperature, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+    }
+
+    if (LLMDB.count(ins_name) > 0 && force=="false") {
+        // instance_data &Ref = LLMDB[ins_name];
+        // instance_data &Ref = LLMDB[ins_name];
+        // REG[rdest] = m8_obj(M8, (int32_t)Ref.Status);
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->true_
+        );
+
+    } else {
+        json messages = {
+            {{"role", "system"}, {"content", "You are a helpful assistant."}},
+            {{"role", "user"},   {"content", prompt}}
+        };
+
+        // ::ALLOC::
+        json body = {
+            {"messages", messages},
+            {"temperature", temp},
+            {"max_tokens", n_predict},
+            {"model", "default"},
+            {"stream", true},
+        };
+
+        // auto body = json::parse(req.body);
+        std::vector<raw_buffer> files;
+        json data = oaicompat_chat_params_parse(
+            body,
+            ctx_server->oai_parser_opt,
+            files
+        );
+
+        // // ::ALLOC::
+        // LLMDB[ins_name].tasks = task_ids;
+        LLMDB[ins_name].Status = 2; // IN PROCESSING
+        LLMDB[ins_name].prompt = prompt;
+        LLMDB[ins_name].instance_name = ins_name;
+
+        int32_t current_turn = 0 ;
+        const int32_t M_TURN = turns;
+
+        auto is_connection_closed = []() -> bool {
+            return false; // fool it thinking this is a connection
+        };
+
+        std::string last_prompt = prompt;
+
+        for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
+            std::cout << "Current Turn: " << current_turn << "\n" << std::endl;
+            auto completion_id = gen_chatcmplid();
+            server_task_type type = SERVER_TASK_TYPE_COMPLETION; // SERVER_TASK_TYPE_INFILL
+            std::unordered_set<int> task_ids;
+
+            try {
+                std::vector<server_task> tasks;
+                std::vector<server_tokens> inputs;
+                inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, last_prompt, true, true);
+
+                const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
+                tasks.reserve(inputs.size());
+                for (size_t i = 0; i < inputs.size(); i++) {
+                    auto n_prompt_tokens = inputs[i].size();
+                    if (n_prompt_tokens >= n_ctx_slot) {
+                        json error_data = format_error_response("the request exceeds the available context size, try increasing it", ERROR_TYPE_EXCEED_CONTEXT_SIZE);
+                        LLMDB[ins_name].Status = 0;
+                        LLMDB[ins_name].arr = error_data;
+                        return std::make_pair(
+                            m8p::errorf("the request exceeds the available context size, try increasing it"),
+                            M8->nilValue
+                        );
+                    }
+
+                    server_task task = server_task(type);
+
+                    task.id =  ctx_server->queue_tasks.get_new_id();
+                    task.index = i;
+
+                    task.tokens = std::move(inputs[i]);
+                    task.params = server_task::params_from_json_cmpl(
+                             ctx_server->ctx,
+                             ctx_server->params_base,
+                            data);
+
+                    task.id_slot = json_value(data, "id_slot", -1);
+
+                    // OAI-compat
+                    task.params.oaicompat = OAICOMPAT_TYPE_CHAT;
+                    // task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
+                    task.params.oaicompat_cmpl_id = completion_id;
+                    // oaicompat_model is already populated by params_from_json_cmpl
+                    tasks.push_back(std::move(task));
+                }
+
+                task_ids = server_task::get_list_id(tasks);
+                ctx_server->queue_results.add_waiting_tasks(tasks);
+                ctx_server->queue_tasks.post(std::move(tasks));
+
+            } catch (const std::exception &e) {
+                LLMDB[ins_name].Status = 0; // an error ocurred
+                std::string err = e.what();
+                return std::make_pair(
+                    m8p::errorf("An error ocurred during execution Details: " + err),
+                    M8->nilValue
+                );
+            }  
+
+            // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
+            ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, M8, &ins_name](server_task_result_ptr & result) -> bool {
+                json res_json = result->to_json();
+                bool hasRun = false;
+                // json arr = json::array();
+
+                std::cout << "DEBUG: res_json: "
+                    << res_json.dump()
+                    << "\n" << std::endl;
+
+                if (GlobalSession.count(M8->Name)) {
+                    auto session = &GlobalSession[M8->Name];
+                    if (session->has_sink) {
+                        auto sink = GlobalSession[M8->Name].sink;
+                        if (sink->is_writable()) {
+                            if (res_json.is_array()) {
+                                for (const auto & res : res_json) {
+                                    if (!server_sent_event(*sink, res)) {
+                                        return false;
+                                    }
+                                }
+                                return true;
+                            } else {
+                                return server_sent_event(*sink, res_json);
+                            }
+                        }
+                    }
+                }
+
+            }, [&LLMDB, &ins_name](json error_data) {
+                LLMDB[ins_name].Status = 0; // an error ocurred
+                LLMDB[ins_name].arr = error_data;
+            }, is_connection_closed);
+
+            ctx_server->queue_results.remove_waiting_task_ids(task_ids);
+
+            std::cout << "Sleeping for next Turn: " << (current_turn+1) 
+                << " | Current Turn: "
+                << current_turn 
+                << "\n" << std::endl;
+
+            sleep(0.5);
+        }
 
         return std::make_pair(
             m8p::M8_Err_nil,
@@ -5882,7 +6185,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> STREAM_SINK(
         rsource = interpolated;
     }
 
-    replaceAll2(rsource, "<<<NL>>>", "\n");
+    // replaceAll2(rsource, "<<<NL>>>", "\n");
 
     // seems like rsource is a register, lets get its content
     // into a string and stream that
@@ -6275,6 +6578,9 @@ public:
 
         } else if (opCode=="llm_openai") {
             return LLM_OPENAI(this->ctx_server, M8, params);
+
+        } else if (opCode=="llm_mturn") {
+            return LLM_MULTI_TURN(this->ctx_server, M8, params);
 
         } else if (opCode=="llm_instancestatus") {
             return LLM_INSTANCE_STATUS(this->ctx_server, M8, params);
