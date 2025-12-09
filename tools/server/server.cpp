@@ -5652,7 +5652,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                                 << " = "
                                                 << RXO->Value
                                                 << "]\n";
-                                            hasSession = true;        
+
+                                            hasSession = true;
+                                            REG_X[varname_x] = M8_S->nilValue; // reset to avoid infinit stuff
                                         }
                                     }
                                 }
