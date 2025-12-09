@@ -5538,28 +5538,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         );
 
     } else {
-        json messages = {
-            {{"role", "system"}, {"content", "You are a helpful assistant."}},
-            {{"role", "user"},   {"content", prompt}}
-        };
-
-        // ::ALLOC::
-        json body = {
-            {"messages", messages},
-            {"temperature", temp},
-            {"max_tokens", n_predict},
-            {"model", "default"},
-            {"stream", true},
-        };
-
-        // auto body = json::parse(req.body);
-        std::vector<raw_buffer> files;
-        json data = oaicompat_chat_params_parse(
-            body,
-            ctx_server->oai_parser_opt,
-            files
-        );
-
         // // ::ALLOC::
         // LLMDB[ins_name].tasks = task_ids;
         LLMDB[ins_name].Status = 2; // IN PROCESSING
@@ -5578,6 +5556,28 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         };
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
+            json messages = {
+                {{"role", "system"}, {"content", "You are a helpful assistant."}},
+                {{"role", "user"},   {"content", prompt}}
+            };
+
+            // ::ALLOC::
+            json body = {
+                {"messages", messages},
+                {"temperature", temp},
+                {"max_tokens", n_predict},
+                {"model", "default"},
+                {"stream", true},
+            };
+
+            // auto body = json::parse(req.body);
+            std::vector<raw_buffer> files;
+            json data = oaicompat_chat_params_parse(
+                body,
+                ctx_server->oai_parser_opt,
+                files
+            );
+
             if (has_session_been_cancelled) {
                 std::cout << "Multiturn " << ins_name  << " cancelled [w2s="<< w2_session << "]: " << current_turn << "\n" << std::endl;
                 break;
