@@ -5412,6 +5412,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
     int32_t n_predict = 20;
     size_t MAX_PROMPT_SIZE = 10200;
     float temp=0;
+    float turn_sleep = 0.600;// 600ms 
     std::string stream="true"; // multi_turn is available in streamming only
     std::string force="true";
     std::string prompt = "what is your name";
@@ -5526,6 +5527,26 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 );
             }
         }
+        if (options.count("tsleep")>0) {
+            std::string Value = options["tsleep"];
+            try {
+                float number=0;
+                number=std::stof(Value);
+                if (number<=0 || number>10) {
+                    return std::make_pair(
+                        m8p::errorf("INVALID_SLEEP_PROVIDED[tsleep, range=[0.1s->10s], got="+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+                turn_sleep=number;
+            }
+            catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_FLOAT32[tsleep, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
     }
 
     if (LLMDB.count(ins_name) > 0 && force=="false") {
@@ -5546,7 +5567,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
         int32_t current_turn = 0 ;
         const int32_t M_TURN = turns;
-
 
         std::string last_prompt = prompt;
         bool has_session_been_cancelled = false;
@@ -5579,11 +5599,20 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             );
 
             if (has_session_been_cancelled) {
-                std::cout << "Multiturn " << ins_name  << " cancelled [w2s="<< w2_session << "]: " << current_turn << "\n" << std::endl;
+                std::cout << "Multiturn " << ins_name << " CANCELLED "
+                         << "[w2s=" << w2_session 
+                         << ", turn_sleep=" << turn_sleep 
+                         << "]: " 
+                         << current_turn << "\n" << std::endl;
                 break;
             }
 
-            std::cout << "Current Turn[w2s="<< w2_session << "]: " << current_turn << "\n" << std::endl;
+            std::cout << "Current Turn " << ins_name 
+                     << "[w2s=" << w2_session 
+                     << ", turn_sleep=" << turn_sleep 
+                     << "]: " 
+                     << current_turn << "\n" << std::endl;
+
             auto completion_id = gen_chatcmplid();
             server_task_type type = SERVER_TASK_TYPE_COMPLETION; // SERVER_TASK_TYPE_INFILL
             std::unordered_set<int> task_ids;
@@ -5690,7 +5719,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 << current_turn 
                 << "\n" << std::endl;
 
-            sleep(0.5);
+            sleep(turn_sleep);
         }
 
         return std::make_pair(
