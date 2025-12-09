@@ -5577,10 +5577,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         };
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
-            if (current_turn>0) {
-                sleep(turn_sleep);
-            }
-
             if (has_session_been_cancelled) {
                 std::cout << "Multiturn " << ins_name << " CANCELLED "
                          << "[w2s=" << w2_session 
@@ -5588,6 +5584,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                          << "]: " 
                          << current_turn << "\n" << std::endl;
                 break;
+            }
+
+            if (current_turn>0) {
+                sleep(turn_sleep);
             }
 
             json messages = {
@@ -5598,6 +5598,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             if (current_turn>0) {
                 const std::lock_guard<std::mutex> lock(*g_session);
                 if (GlobalSession.count(w2_session)==0){
+                    if (GlobalSession.count(M8->Name)) {
+                        auto session = &GlobalSession[M8->Name];
+                        if (session->has_sink) {
+                            auto sink = GlobalSession[M8->Name].sink;
+                            if (!sink->is_writable()) {
+                                has_session_been_cancelled = true;
+                                continue;
+                            }
+                        }
+                    }
+
                     std::cout << "Multiturn " << w2_session << " SESSION NOT AVAILABLE, will sleep. "
                               << "\n" 
                               << std::endl;
