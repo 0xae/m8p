@@ -5576,6 +5576,55 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         };
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
+            if (has_session_been_cancelled) {
+                std::cout << "Multiturn " << ins_name << " CANCELLED "
+                         << "[w2s=" << w2_session 
+                         << ", turn_sleep=" << turn_sleep 
+                         << "]: " 
+                         << current_turn << "\n" << std::endl;
+                break;
+            }
+
+            {
+                const std::lock_guard<std::mutex> lock(g_session);
+                if (GlobalSession.count(w2_session)==0){
+                    std::cout << "Multiturn " << ins_name << " SESSION NOT AVAILABLE, will sleep. "
+                              << "\n" 
+                              << std::endl;
+                  return;
+                }
+
+                try {
+                    m8p::M8System *M8_S = GlobalSession[w2_session].m8;
+                    if (M8_S) {
+                        std::map<std::string, m8p::M8_Obj*> &REG_X = M8_S->Registers;
+                        std::string varname_x="r_turn_"+ins_name;
+                        std::cout << "LOOKINK UP ON " 
+                            << w2_session 
+                            << " FOR REGISTER ["
+                            << varname_x
+                            << "]\n";
+
+                        m8p::M8_Obj *R = REG_X[varname_x];
+                        if (R!=nullptr && !m8p::is_nil(M8_S, R) && R->Type==m8p::MP8_STRING) {
+                            std::cout << " FOUND " 
+                                << " FOR REGISTER ["
+                                << varname_x
+                                << " = "
+                                << R->Value
+                                << "]\n";
+
+                        } else {
+                            std::cout << " NOT FOUND "  << " FOR REGISTER [" << varname_x << "]\n";
+                        }
+                    }
+
+                } catch (const std::exception &e) {
+                    std::string err = e.what();
+                    std::cout << "Multiturn " << ins_name << " FAILED ON SESSION _CHECK\n" << std::endl;
+                }
+            }
+
             json messages = {
                 {{"role", "system"}, {"content", "You are a helpful assistant."}},
                 {{"role", "user"},   {"content", prompt}}
@@ -5598,14 +5647,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 files
             );
 
-            if (has_session_been_cancelled) {
-                std::cout << "Multiturn " << ins_name << " CANCELLED "
-                         << "[w2s=" << w2_session 
-                         << ", turn_sleep=" << turn_sleep 
-                         << "]: " 
-                         << current_turn << "\n" << std::endl;
-                break;
-            }
 
             std::cout << "Current Turn " << ins_name 
                      << "[w2s=" << w2_session 
