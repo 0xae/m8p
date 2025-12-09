@@ -5613,6 +5613,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         }
 
                         std::cout << "Multiturn " << w2_session << " SESSION NOT AVAILABLE, will sleep. "
+                                  << "| CurrentTurn = " 
+                                  <<  current_turn
                                   << "\n" 
                                   << std::endl;
                     } else {
