@@ -5576,7 +5576,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         std::string last_prompt = prompt;
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
-            std::cout << "Current Turn: " << current_turn << "\n" << std::endl;
+            std::cout << "Current Turn[w2s="<< w2_session << "]: " << current_turn << "\n" << std::endl;
             auto completion_id = gen_chatcmplid();
             server_task_type type = SERVER_TASK_TYPE_COMPLETION; // SERVER_TASK_TYPE_INFILL
             std::unordered_set<int> task_ids;
@@ -5644,7 +5644,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     << res_json.dump()
                     << "\n" << std::endl;
 
-                if (GlobalSession.count(M8->Name)) {
+                if (GlobalSession.count(M8->Name) && sink->is_writable()) {
                     auto session = &GlobalSession[M8->Name];
                     if (session->has_sink) {
                         auto sink = GlobalSession[M8->Name].sink;
@@ -5659,6 +5659,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                             } else {
                                 return server_sent_event(*sink, res_json);
                             }
+
+                        } else {
+                            return false;
                         }
                     }
                 }
