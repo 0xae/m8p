@@ -5872,7 +5872,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     }
                 }
 
-                has_session_been_cancelled = true;
+                // has_session_been_cancelled = true;
                 return false;
 
             }, [&LLMDB, &has_session_been_cancelled, &ins_name](json error_data) {
