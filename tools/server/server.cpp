@@ -5247,7 +5247,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
     } else {
         // replaceAll2(prompt, "<<<NL>>>", "\n");
-
         json messages = {
             {{"role", "system"}, {"content", "You are a helpful assistant."}},
             {{"role", "user"},   {"content", prompt}}
@@ -5286,7 +5285,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         // );
         json data = oaicompat_chat_params_parse(
             body,
-            ctx_server.oai_parser_opt,
+            ctx_server->oai_parser_opt,
             files
         );
 
