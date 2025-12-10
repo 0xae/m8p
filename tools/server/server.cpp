@@ -5132,47 +5132,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
     std::map<std::string, std::string> options;
     json tools_static = json::array();
-    // json tools_static = json::array({
-    //     {
-    //         {"type", "function"},
-    //         {"function", {
-    //             {"name", "get_current_weather"},
-    //             {"description", "Get the current weather in a given location"},
-    //             {"parameters", {
-    //                 {"type", "object"},
-    //                 {"properties", {
-    //                     {"location", {
-    //                         {"type", "string"},
-    //                         {"description", "The city and state, e.g. San Francisco, CA"}
-    //                     }},
-    //                     {"unit", {
-    //                         {"type", "string"},
-    //                         {"enum", {"celsius", "fahrenheit"}}
-    //                     }}
-    //                 }},
-    //                 {"required", {"location"}}
-    //             }}
-    //         }}
-    //     },
-    //     // Add more tools here...
-    //     {
-    //         {"type", "function"},
-    //         {"function", {
-    //             {"name", "get_stock_price"},
-    //             {"description", "Get the current stock price for a symbol"},
-    //             {"parameters", {
-    //                 {"type", "object"},
-    //                 {"properties", {
-    //                     {"symbol", {
-    //                         {"type", "string"},
-    //                         {"description", "The stock symbol"}
-    //                     }}
-    //                 }},
-    //                 {"required", {"symbol"}}
-    //             }}
-    //         }}
-    //     }
-    // });
 
     if (psize>2) {
         options = m8p::parseOptions(3, params);
@@ -5181,6 +5140,16 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         }
         if (options.count("stream")>0) {
             stream = options["stream"];
+        }
+        if (options.count("sysprompt")>0) {
+            std::string r_prt = options["sysprompt"];
+            m8p::__trim(r_prt);
+            m8p::M8_Obj *RXO = REG[r_prt];
+            if (RXO!=nullptr && !m8p::is_nil(M8, RXO) && RXO->Type==m8p::MP8_STRING) {
+                system_prompt = RXO->Value;
+            } else {
+                system_prompt = r_prt;
+            }
         }
         if (options.count("tools")>0) {
             // REG[rdest]
@@ -5254,8 +5223,21 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {{"role", "user"},   {"content", prompt}}
         };
 
+        std::string chat_prompt = "";
+        std::stringstream ss_prompt;
+
+        ss_prompt 
+            << "<start_of_turn>system\n"
+            << system_prompt 
+            << "<end_of_turn>\n"
+            << "<start_of_turn>user\n"
+            << prompt
+            << "<end_of_turn>\n"
+            << "<start_of_turn>model\n";
+
         // ::ALLOC::
         json body = {
+            {"prompt", ss_prompt.str()},
             {"messages", messages},
             {"temperature", temp},
             {"max_tokens", n_predict},
@@ -5271,11 +5253,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {"repeat_penalty", 1},
             {"top_k", 40},
             {"top_p", 0.95},
-            // { "system_prompt", ctx_server->system_prompt.c_str() },
-            // { "total_slots", ctx_server->params.n_parallel },
-            // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
-            // int32_t n_keep =  0; // number of tokens to keep from initial prompt
-            // int32_t n_discard =  0; // number of tokens after n_keep that may be discarded when shifting context, 0 defaults to half
+            {"preserved_tokens", json::array()},
+
+            {"grammar_lazy", false},
+            {"grammar_triggers", json::array()},
+            {"thinking_forced_open", false},
+            {"chat_format", json::array()}
         };
 
         // auto body = json::parse(req.body);
