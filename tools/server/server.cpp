@@ -5723,7 +5723,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     {{"role", "user"}, {"content", last_question}},
                     {{"role", "assistant"}, {"content", last_answer}},
                     {{"role", "user"}, {"content", userReply}},
-                    {{"role", "assistant"},  {"content", "Answer: "}}
                 });
             }
 
@@ -5802,8 +5801,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     task.id_slot = json_value(data, "id_slot", -1);
 
                     // OAI-compat
-                    // task.params.oaicompat = OAICOMPAT_TYPE_CHAT;
-                    task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
+                    task.params.oaicompat = OAICOMPAT_TYPE_CHAT;
+                    // task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
                     task.params.oaicompat_cmpl_id = completion_id;
                     // oaicompat_model is already populated by params_from_json_cmpl
                     tasks.push_back(std::move(task));
@@ -5833,7 +5832,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 //     << "\n" << std::endl;
 
                 if (res_json.size()>0) {
-                    if (res_json.at(0).count("choices")>0) {
+                    if (res_json.is_array() && res_json.at(0).count("choices")>0) {
                         // current_turn
                         auto choices=res_json.at(0)["choices"];
                         if (choices.size()>0 && choices.at(0).count("delta")>0) {
