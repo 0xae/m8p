@@ -5578,10 +5578,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         bool has_session_been_cancelled = false;
         std::string varname_x="<rt1>";
 
-        auto is_connection_closed = [&has_session_been_cancelled]() -> bool {
-            return has_session_been_cancelled; // fool it thinking this is a connection
-        };
-
         auto is_connection_active = [&GlobalSession, &M8]() -> bool {
             if (GlobalSession.count(M8->Name)) {
                 auto session = &GlobalSession[M8->Name];
@@ -5592,6 +5588,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             }
 
             return false;
+        };
+
+        auto is_connection_closed = [&has_session_been_cancelled]() -> bool {
+            return has_session_been_cancelled || !is_connection_active(); // fool it thinking this is a connection
         };
 
         std::vector<std::stringstream> memory;
