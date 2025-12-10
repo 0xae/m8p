@@ -5259,18 +5259,18 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {"messages", messages},
             {"temperature", temp},
             {"max_tokens", n_predict},
-            // {"model", "default"},
-            // {"stream", (stream=="true")},
-            // {"tool_choice", "auto"},
-            // {"tools", tools_static},
-            // {"presence_penalty", 0},
-            // {"reasoning_format", "auto"},
-            // {"repeat_last_n 64", 64},
-            // {"timings_per_token", false},
-            // {"frequency_penalty", 0},
-            // {"repeat_penalty", 1},
-            // {"top_k", 40},
-            // {"top_p", 0.95},
+            {"model", "default"},
+            {"stream", (stream=="true")},
+            {"tool_choice", "auto"},
+            {"tools", tools_static},
+            {"presence_penalty", 0},
+            {"reasoning_format", "auto"},
+            {"repeat_last_n 64", 64},
+            {"timings_per_token", false},
+            {"frequency_penalty", 0},
+            {"repeat_penalty", 1},
+            {"top_k", 40},
+            {"top_p", 0.95},
             // { "system_prompt", ctx_server->system_prompt.c_str() },
             // { "total_slots", ctx_server->params.n_parallel },
             // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
@@ -5336,8 +5336,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
                 // OAI-compat
                 task.params.oaicompat = OAICOMPAT_TYPE_CHAT;
-                // task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
                 task.params.oaicompat_cmpl_id = completion_id;
+                // task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
                 // oaicompat_model is already populated by params_from_json_cmpl
                 tasks.push_back(std::move(task));
             }
