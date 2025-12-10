@@ -5686,7 +5686,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             if (userReply!="" && current_turn>0) {
                 std::string last_answer = memory.at(current_turn-1).str();
                 std::string last_question = qab.at(current_turn-1).str();
-                std::cout << "============================="
+                std::cout << "==========  DIAGNOSTICS ==================="
+                    << "\nsystem_prompt = " << system_prompt
                     << "\nLast Turn = " << (current_turn-1)
                     << "\n  => Q: " << last_question
                     << "\n  => A: " << last_answer
