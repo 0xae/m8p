@@ -5707,7 +5707,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 {{"role", "user"},   {"content", prompt}}
             };
 
-            if (userReply!=""){
+            if (userReply!="") {
+                std::cout << "============================="
+                    << "\nLast Turn = " << (current_turn-1)
+                    << "  => Q: " << "\n"
+                    << "  => A: " << memory.at(current_turn-1).str();
+                    << "\nThis Turn = " << (current_turn)
+                    << "\n"
+                    << std::endl;
+
+                // sleep(2);
+
                 messages = {
                     {{"role", "system"}, {"content", prompt}},
                     {{"role", "user"},   {"content", "UserReply: "+userReply+"; Your Reply: "}}
