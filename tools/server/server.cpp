@@ -7746,7 +7746,10 @@ std::string M8_BANNER =
             ctx_server.oai_parser_opt,
             files);
 
-        LOG_DBG("========> [chatcompletion] request: %s\n", data.dump());
+        std::cout << "========> [chatcompletion] request:"
+            << data.dump()
+            << "\n" << std::endl;
+
         return;
 
         handle_completions_impl(
