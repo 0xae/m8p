@@ -5702,7 +5702,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     {{"role", "system"}, {"content", system_prompt}},
                     {{"role", "user"}, {"content", last_question}},
                     {{"role", "assistant"}, {"content", last_answer}},
-                    {{"role", "user"},   {"content", userReply}}
+                    {{"role", "user"}, {"content", userReply}},
+                    {{"role", "assistant"},  {"content", "Answer:"}}
                 };
             }
 
