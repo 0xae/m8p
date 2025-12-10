@@ -5687,13 +5687,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 std::string last_question = "";
 
                 for (auto it=memory.rbegin(); it!=memory.rend(); ++it) {
-                    if (!it->empty()) {
+                    if (!it->size()==0) {
                         last_answer = *it;
                         break; // Stop at the first one you find
                     }
                 }
                 for (auto it=qab.rbegin(); it!=qab.rend(); ++it) {
-                    if (!it->empty()) {
+                    if (!it->size()==0) {
                         last_question = *it;
                         break; // Stop at the first one you find
                     }
