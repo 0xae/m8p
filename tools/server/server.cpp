@@ -5603,11 +5603,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
             if (has_session_been_cancelled || !is_connection_active()) {
-                std::cout << "Multiturn " << ins_name << " CANCELLED "
-                         << "[w2s=" << w2_session 
-                         << ", turn_sleep=" << turn_sleep 
-                         << "]: " 
-                         << current_turn << "\n" << std::endl;
+                // std::cout << "Multiturn " << ins_name << " CANCELLED "
+                //          << "[w2s=" << w2_session 
+                //          << ", turn_sleep=" << turn_sleep 
+                //          << "]: " 
+                //          << current_turn << "\n" << std::endl;
                 break;
             }
 
@@ -5629,18 +5629,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         try {
                             m8p::M8System *M8_S = GlobalSession[w2_session].m8;
                             if (M8_S) {
-                                std::map<std::string, m8p::M8_Obj*> &REG_X = M8_S->Registers;
                                 {
+                                    std::map<std::string, m8p::M8_Obj*> &REG_X = M8_S->Registers;
                                     m8p::M8_Obj *RXO = REG_X[varname_x];
                                     if (RXO!=nullptr) {
                                         if (!m8p::is_nil(M8_S, RXO) && RXO->Type==m8p::MP8_STRING) {
-                                            std::cout << " FOUND " 
-                                                << " FOR REGISTER ["
-                                                << varname_x
-                                                << " = "
-                                                << RXO->Value
-                                                << "]\n";
-
                                             userReply = RXO->Value;
                                             hasSession = true;
                                             qab[current_turn] << userReply;
