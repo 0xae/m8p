@@ -5678,7 +5678,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             m8p::__trim(userReply);
 
             json messages = json::array({
-                {{"role", "assistant"}, {"content", system_prompt}},
+                {{"role", "system"}, {"content", system_prompt}},
                 {{"role", "user"},   {"content", prompt}},
                 {{"role", "assistant"}, {"content", "Answer: "}},
             });
@@ -5720,7 +5720,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 // sleep(2);
 
                 messages = json::array({
-                    {{"role", "assistant"}, {"content", system_prompt}},
+                    {{"role", "system`"}, {"content", system_prompt}},
                     {{"role", "user"}, {"content", last_question}},
                     {{"role", "assistant"}, {"content", last_answer}},
                     {{"role", "user"}, {"content", userReply}},
