@@ -5452,6 +5452,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
     std::map<std::string, std::string> options;
     json tools_static = json::array();
+    std::string system_prompt = "You are a helpful assistant.";
 
     if (psize>2) {
         options = m8p::parseOptions(3, params);
@@ -5478,6 +5479,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         }
 
         // std::max
+
+        if (options.count("sysprompt")>0) {
+            system_prompt = options["sysprompt"];
+        }
 
         if (options.count("turns")>0) {
             int32_t t_number=0;
@@ -5693,7 +5698,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             }
 
             m8p::__trim(userReply);
-            std::string system_prompt = "You are a helpful assistant.";
 
             json messages = {
                 {{"role", "system"}, {"content", system_prompt}},
@@ -5706,6 +5710,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     {{"role", "user"},   {"content", "UserReply: "+userReply+"; Your Reply: "}}
                 };
             }
+
+            std::cout << "messages: "
+                << messages.dump() 
+                << "\n" 
+                << std::endl;
 
             json body = {
                 {"messages", messages},
