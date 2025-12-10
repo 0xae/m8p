@@ -4911,7 +4911,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         );
 
     } else {
-        replaceAll2(prompt, "<<<NL>>>", "\n");
+        // replaceAll2(prompt, "<<<NL>>>", "\n");
 
         // ::ALLOC::
         json data = {
@@ -4926,6 +4926,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
             {"repeat_penalty", 1},
             {"top_k", 40},
             {"top_p", 0.95},
+
             // {"stream", (stream=="true")},
             // { "system_prompt", ctx_server->system_prompt.c_str() },
             // { "total_slots", ctx_server->params.n_parallel },
@@ -5261,14 +5262,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {"stream", (stream=="true")},
             {"tool_choice", "auto"},
             {"tools", tools_static},
-            {"presence_penalty", 0},
-            {"reasoning_format", "auto"},
-            {"repeat_last_n 64", 64},
-            {"timings_per_token", false},
-            {"frequency_penalty", 0},
-            {"repeat_penalty", 1},
-            {"top_k", 40},
-            {"top_p", 0.95},
+            // {"presence_penalty", 0},
+            // {"reasoning_format", "auto"},
+            // {"repeat_last_n 64", 64},
+            // {"timings_per_token", false},
+            // {"frequency_penalty", 0},
+            // {"repeat_penalty", 1},
+            // {"top_k", 40},
+            // {"top_p", 0.95},
             // { "system_prompt", ctx_server->system_prompt.c_str() },
             // { "total_slots", ctx_server->params.n_parallel },
             // { "default_generation_settings",  ctx_server->default_generation_settings_for_props },
