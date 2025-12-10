@@ -5884,7 +5884,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 LLMDB[ins_name].Status = 0; // an error ocurred
                 LLMDB[ins_name].arr = error_data;
                 has_session_been_cancelled = true;;
-                std::cout << "Exceptiona [1c]=" << r << std::endl;
+                std::cout << "Exceptiona [1c]=" << std::endl;
             }, is_connection_closed);
 
             ctx_server->queue_results.remove_waiting_task_ids(task_ids);
