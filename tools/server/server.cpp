@@ -5876,6 +5876,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 return false;
 
             }, [&LLMDB, &has_session_been_cancelled, &ins_name](json error_data) {
+                std::cout << "AN ERROR OCURRED: " << error_data.dump() << "\n" << stf::endl;
                 LLMDB[ins_name].Status = 0; // an error ocurred
                 LLMDB[ins_name].arr = error_data;
                 has_session_been_cancelled = true;;
