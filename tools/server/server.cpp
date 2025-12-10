@@ -5237,7 +5237,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         );
 
     } else {
-        replaceAll2(prompt, "<<<NL>>>", "\n");
+        // replaceAll2(prompt, "<<<NL>>>", "\n");
 
         json messages = {
             {{"role", "system"}, {"content", "You are a helpful assistant."}},
@@ -5678,7 +5678,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             m8p::__trim(userReply);
 
             json messages = json::array({
-                {{"role", "system"}, {"content", system_prompt}},
+                {{"role", "system"}, {"content", "You are a helpful assistant."}},
                 {{"role", "user"},   {"content", prompt}},
             });
 
@@ -5719,10 +5719,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 // sleep(2);
 
                 messages = json::array({
-                    {{"role", "system"}, {"content", system_prompt}},
-                    {{"role", "user"}, {"content", last_question}},
-                    {{"role", "assistant"}, {"content", "This was the assistant on a work"}},
-                    {{"role", "user"}, {"content", userReply}},
+                    {{"role", "system"}, {"content", "You are a helpful assistant."}},
+                    {{"role", "user"}, {"content", prompt+"\n Question:"+userReply}},
+                    // {{"role", "system"}, {"content", system_prompt}},
+                    // {{"role", "user"}, {"content", last_question}},
+                    // {{"role", "assistant"}, {"content", "This was the assistant on a work"}},
+                    // {{"role", "user"}, {"content", userReply}},
                 });
             }
 
@@ -5736,10 +5738,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 {"temperature", temp},
                 {"max_tokens", n_predict},
                 {"model", "default"},
-                {"presence_penalty", 0},
-                {"reasoning_format", "auto"},
-                {"repeat_last_n 64", 64},
-                {"timings_per_token", false},
+                // {"presence_penalty", 0},
+                // {"reasoning_format", "auto"},
+                // {"repeat_last_n 64", 64},
+                // {"timings_per_token", false},
             };
 
             // auto body = json::parse(req.body);
@@ -5844,7 +5846,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                 auto content = delta_x["content"];
                                 auto token_r = content.dump();
                                 memory.at(current_turn) << token_r;
-                                std::cout << " "<< current_turn << token_r;
                             }
                         }
                     }
