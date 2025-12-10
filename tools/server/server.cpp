@@ -5599,6 +5599,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         memory.resize(M_TURN);
         qab.resize(M_TURN);
 
+        qab[0] << prompt;
+
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
             if (has_session_been_cancelled || !is_connection_active()) {
                 std::cout << "Multiturn " << ins_name << " CANCELLED "
@@ -5666,6 +5668,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
                                             userReply = RXO->Value;
                                             hasSession = true;
+                                            qab[current_turn] << userReply;
                                             REG_X[varname_x] = M8_S->nilValue; // reset to avoid infinit stuff
                                         }
                                     }
@@ -5712,12 +5715,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             if (userReply!="" && current_turn>0) {
                 std::cout << "============================="
                     << "\nLast Turn = " << (current_turn-1)
-                    << "  => Q: " << "\n"
-                    << "  => A: " << memory.at(current_turn-1).str()
+                    << "\n  => Q: " << qab.at(current_turn-1).str() 
+                    << "\n  => A: " << memory.at(current_turn-1).str()
                     << "\nThis Turn = " << (current_turn)
-                    << "Q: " << userReply
-                    << "A: "
-                    << "\n"
+                    << "\nQ: " << userReply
+                    << "\nA: "
                     << std::endl;
 
                 // sleep(2);
