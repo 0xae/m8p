@@ -5590,8 +5590,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             return false;
         };
 
-        auto is_connection_closed = [&has_session_been_cancelled]() -> bool {
-            return has_session_been_cancelled || !is_connection_active(); // fool it thinking this is a connection
+        auto is_connection_closed = [&has_session_been_cancelled, is_connection_active]() -> bool {
+            return has_session_been_cancelled || !is_connection_active();
         };
 
         std::vector<std::stringstream> memory;
@@ -5622,39 +5622,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 {
                     const std::lock_guard<std::mutex> lock(*g_session);
                     if (!is_connection_active()) {
-                        std::cout << "Multiturn " << w2_session << " INTERRUPT . "
-                                  << "| CurrentTurn = " 
-                                  <<  current_turn
-                                  << "\n" 
-                                  << std::endl;
-
                         break;
                     }
 
-                    if (GlobalSession.count(w2_session)==0) {
-                        std::cout << "Multiturn " << w2_session << " SESSION NOT AVAILABLE, will sleep. "
-                                  << "| CurrentTurn = " 
-                                  <<  current_turn
-                                  << "\n" 
-                                  << std::endl;
-                    } else {
-
+                    if (GlobalSession.count(w2_session)>0) {
                         try {
-                            // std::cout << "Multiturn " << w2_session << " SESSION WAS FOUND "
-                            //           << "| CurrentTurn = " 
-                            //           <<  current_turn
-                            //           << "\n" 
-                            //           << std::endl;
-
                             m8p::M8System *M8_S = GlobalSession[w2_session].m8;
                             if (M8_S) {
                                 std::map<std::string, m8p::M8_Obj*> &REG_X = M8_S->Registers;
-                                // std::cout << "LOOKINK UP ON " 
-                                //     << w2_session 
-                                //     << " FOR REGISTER ["
-                                //     << varname_x
-                                //     << "]\n";
-
                                 {
                                     m8p::M8_Obj *RXO = REG_X[varname_x];
                                     if (RXO!=nullptr) {
