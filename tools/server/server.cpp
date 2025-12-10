@@ -5677,11 +5677,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
             m8p::__trim(userReply);
 
-            json messages = {
+            json messages = json::array({
                 {{"role", "assistant"}, {"content", system_prompt}},
                 {{"role", "user"},   {"content", prompt}}
                 {{"role", "assistant"}, {"content", "Answer: "}},
-            };
+            });
 
             if (userReply!="" && current_turn>0) {
                 std::string last_answer = "";
