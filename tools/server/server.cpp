@@ -5641,10 +5641,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                         }
                                     }
                                 }
-
-                                if (!hasSession) {
-                                    std::cout << " NOT FOUND "  << " FOR REGISTER [" << varname_x << "]\n";
-                                }
                             }
 
                         } catch (const std::exception &e) {
