@@ -5835,19 +5835,19 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 //     << res_json.dump()
                 //     << "\n" << std::endl;
 
-                if (res_json.size()>0) {
-                    if (res_json.is_array() && res_json.at(0).count("choices")>0) {
-                        // current_turn
-                        auto choices=res_json.at(0)["choices"];
-                        if (choices.size()>0 && choices.at(0).count("delta")>0) {
-                            auto delta_x = choices.at(0)["delta"];
-                            if (delta_x.count("content")>0) {
-                                auto content = delta_x["content"];
-                                auto token_r = content.dump();
-                            }
-                        }
-                    }
-                }
+                // if (res_json.size()>0) {
+                //     if (res_json.is_array() && res_json.at(0).count("choices")>0) {
+                //         // current_turn
+                //         auto choices=res_json.at(0)["choices"];
+                //         if (choices.size()>0 && choices.at(0).count("delta")>0) {
+                //             auto delta_x = choices.at(0)["delta"];
+                //             if (delta_x.count("content")>0) {
+                //                 auto content = delta_x["content"];
+                //                 auto token_r = content.dump();
+                //             }
+                //         }
+                //     }
+                // }
 
                 if (GlobalSession.count(M8->Name)) {
                     auto session = &GlobalSession[M8->Name];
