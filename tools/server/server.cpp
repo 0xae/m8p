@@ -5481,7 +5481,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         // std::max
 
         if (options.count("sysprompt")>0) {
-            system_prompt = options["sysprompt"];
+            std::string r_prt = options["sysprompt"];
+            m8p::__trim(r_prt);
+            m8p::M8_Obj *RXO = REG[r_prt];
+            if (RXO!=nullptr && !m8p::is_nil(M8, RXO) && RXO->Type==m8p::MP8_STRING) {
+                system_prompt = RXO->Value;
+            } else {
+                system_prompt = r_prt;
+            }
         }
 
         if (options.count("turns")>0) {
@@ -5601,7 +5608,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
         qab[0] << prompt;
 
-        for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
+        for (int32_t current_turn=0; current_turn<M_TURN; current_turn++) {
             if (has_session_been_cancelled || !is_connection_active()) {
                 // std::cout << "Multiturn " << ins_name << " CANCELLED "
                 //          << "[w2s=" << w2_session 
