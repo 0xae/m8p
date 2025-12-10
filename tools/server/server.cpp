@@ -5832,7 +5832,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             }  
 
             // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
-            ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, current_turn, &has_session_been_cancelled, M8, &ins_name](server_task_result_ptr & result) -> bool {
+            ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, &memory, current_turn, &has_session_been_cancelled, M8, &ins_name](server_task_result_ptr & result) -> bool {
                 json res_json = result->to_json();
                 // json arr = json::array();
 
