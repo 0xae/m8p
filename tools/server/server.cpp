@@ -5597,9 +5597,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             return false;
         };
 
-        auto is_connection_closed = [&has_session_been_cancelled]() -> bool {
+        auto is_connection_closed = []() -> bool {
             // return has_session_been_cancelled || !is_connection_active();
-            return has_session_been_cancelled;
+            return false;
         };
 
         // std::vector<std::stringstream> memory;
