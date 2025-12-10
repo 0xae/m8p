@@ -5595,7 +5595,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         };
 
         std::vector<std::stringstream> memory;
+        std::vector<std::stringstream> qab;
         memory.resize(M_TURN);
+        qab.resize(M_TURN);
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
             if (has_session_been_cancelled || !is_connection_active()) {
@@ -5713,6 +5715,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     << "  => Q: " << "\n"
                     << "  => A: " << memory.at(current_turn-1).str()
                     << "\nThis Turn = " << (current_turn)
+                    << "Q: " << userReply
+                    << "A: "
                     << "\n"
                     << std::endl;
 
