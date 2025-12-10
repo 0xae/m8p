@@ -5822,6 +5822,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 std::string err = e.what();
                 has_session_been_cancelled = true;
                 std::cout << "Exceptiona [2] \n" << std::endl;
+
                 return std::make_pair(
                     m8p::errorf("An error ocurred during execution Details: " + err),
                     M8->nilValue
@@ -5868,7 +5869,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                 return true;
                             } else {
                                 auto r=server_sent_event(*sink, res_json);
-                                has_session_been_cancelled = r;
+                                has_session_been_cancelled = !r;
                                 std::cout << "Exceptiona [1b]=" << r << std::endl;
                                 return r;
                             }
