@@ -5258,10 +5258,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {"messages", messages},
             {"temperature", temp},
             {"max_tokens", n_predict},
-            {"model", "default"},
-            {"stream", (stream=="true")},
-            {"tool_choice", "auto"},
-            {"tools", tools_static},
+            // {"model", "default"},
+            // {"stream", (stream=="true")},
+            // {"tool_choice", "auto"},
+            // {"tools", tools_static},
             // {"presence_penalty", 0},
             // {"reasoning_format", "auto"},
             // {"repeat_last_n 64", 64},
@@ -5279,9 +5279,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
         // auto body = json::parse(req.body);
         std::vector<raw_buffer> files;
+        // json data = oaicompat_chat_params_parse(
+        //     body,
+        //     ctx_server->oai_parser_opt,
+        //     files
+        // );
         json data = oaicompat_chat_params_parse(
             body,
-            ctx_server->oai_parser_opt,
+            ctx_server.oai_parser_opt,
             files
         );
 
