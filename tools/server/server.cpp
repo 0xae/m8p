@@ -5717,7 +5717,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     << std::endl;
 
                 // sleep(2);
-                last_prompt = prompt+"\n Question:"+userReply;
+                last_prompt = prompt + "\n Question:"+userReply;
                 messages = json::array({
                     {{"role", "system"}, {"content", "You are a helpful assistant."}},
                     {{"role", "user"}, {"content", last_prompt}},
