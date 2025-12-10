@@ -5091,12 +5091,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
     m8p::__trim(ins_name);
 
     int32_t n_predict = 20;
-    size_t MAX_PROMPT_SIZE = 10200;
+    const size_t MAX_PROMPT_SIZE = 10200;
     float temp=0;
     std::string stream="false";
     std::string force="false";
     std::string prompt = "what is your name";
     std::string tools = "no";
+    std::string system_prompt = "You are a helpful assistant.";
 
     m8p::M8_Obj *R = REG[rsource];
     if (R==nullptr){
@@ -5247,8 +5248,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
     } else {
         // replaceAll2(prompt, "<<<NL>>>", "\n");
+        std::vector<raw_buffer> files;
         json messages = {
-            {{"role", "system"}, {"content", "You are a helpful assistant."}},
+            {{"role", "system"}, {"content", system_prompt}},
             {{"role", "user"},   {"content", prompt}}
         };
 
@@ -5277,7 +5279,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         };
 
         // auto body = json::parse(req.body);
-        std::vector<raw_buffer> files;
         // json data = oaicompat_chat_params_parse(
         //     body,
         //     ctx_server->oai_parser_opt,
@@ -5288,6 +5289,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             ctx_server->oai_parser_opt,
             files
         );
+
+        std::cout << "=======> llm_openai: "
+            << body.dump() 
+            << "\n" << std::endl; 
 
         // // ::ALLOC::
         // LLMDB[ins_name].tasks = task_ids;
