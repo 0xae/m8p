@@ -5881,7 +5881,19 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                     << res_json.dump()
                                     << "\n" << std::endl;
 
-                                memory.at(current_turn) << res_json.dump();
+                                if (res_json.count("choices")) {
+                                    auto &choices = res_json["choices"];
+                                    if (choices.size()>0 && choices.at(0).count("message")>0) {
+                                        auto delta_x = choices.at(0)["message"];
+                                        if (delta_x.count("content")>0) {
+                                            auto content = delta_x["content"];
+                                            auto token_r = content.dump();
+                                            // memory[current_turn] << token_r;
+                                            memory.at(current_turn) << token_r;
+                                        }
+                                    }
+                                }
+
                                 auto r=server_sent_event(*sink, res_json);
                                 has_session_been_cancelled = !r;
                                 return r;
