@@ -5227,7 +5227,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         std::stringstream ss_prompt;
 
         ss_prompt 
-            << "<start_of_turn>system\n"
+            << "<start_of_turn>user\n"
             << system_prompt 
             << "<end_of_turn>\n"
             << "<start_of_turn>user\n"
@@ -7733,7 +7733,7 @@ std::string M8_BANNER =
             << data.dump()
             << "\n" << std::endl;
 
-        return;
+        // return;
 
         handle_completions_impl(
             SERVER_TASK_TYPE_COMPLETION,
