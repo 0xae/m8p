@@ -5720,7 +5720,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
                 messages = json::array({
                     {{"role", "system"}, {"content", system_prompt}},
-                    {{"role", "user"}, {"content", userReply}},
+                    {{"role", "user"}, {"content", last_question}},
                     {{"role", "assistant"}, {"content", "This was the assistant on a work"}},
                     {{"role", "user"}, {"content", userReply}},
                 });
