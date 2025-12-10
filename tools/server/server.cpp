@@ -5680,7 +5680,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             json messages = json::array({
                 {{"role", "system"}, {"content", system_prompt}},
                 {{"role", "user"},   {"content", prompt}},
-                {{"role", "assistant"}, {"content", "Answer: "}},
             });
 
             if (userReply!="" && current_turn>0) {
