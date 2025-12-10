@@ -5599,7 +5599,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         memory.resize(M_TURN);
         qab.resize(M_TURN);
 
-        qab[0] << prompt;
+        qab[0] << "[NONE]";
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
             if (has_session_been_cancelled || !is_connection_active()) {
