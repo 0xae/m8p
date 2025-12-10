@@ -5594,6 +5594,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             return false;
         };
 
+        std::vector<std::stringstream> memory;
+        memory.resize(M_TURN);
+
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
             if (has_session_been_cancelled || !is_connection_active()) {
                 std::cout << "Multiturn " << ins_name << " CANCELLED "
@@ -5808,7 +5811,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             }  
 
             // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
-            ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, current_turn, &has_session_been_cancelled, M8, &ins_name](server_task_result_ptr & result) -> bool {
+            ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, &memory, current_turn, &has_session_been_cancelled, M8, &ins_name](server_task_result_ptr & result) -> bool {
                 json res_json = result->to_json();
                 // json arr = json::array();
 
@@ -5825,7 +5828,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                             if (delta_x.count("content")>0) {
                                 auto content = delta_x["content"];
                                 auto token_r = content.dump();
-                                std::cout << "T="<< current_turn << token_r;
+                                memory.at(current_turn) << token_r;
+                                std::cout << " "<< current_turn << token_r;
                             }
                         }
                     }
