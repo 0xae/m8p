@@ -5684,10 +5684,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             };
 
             if (userReply!="" && current_turn>0) {
+                std::string last_answer = memory.at(current_turn-1).str();
+                std::string last_question = qab.at(current_turn-1).str();
                 std::cout << "============================="
                     << "\nLast Turn = " << (current_turn-1)
-                    << "\n  => Q: " << qab.at(current_turn-1).str() 
-                    << "\n  => A: " << memory.at(current_turn-1).str()
+                    << "\n  => Q: " << last_question
+                    << "\n  => A: " << last_answer
                     << "\nThis Turn = " << (current_turn)
                     << "\nQ: " << userReply
                     << "\nA: "
@@ -5696,8 +5698,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 // sleep(2);
 
                 messages = {
-                    {{"role", "system"}, {"content", prompt}},
-                    {{"role", "user"},   {"content", "UserReply: "+userReply+"; Your Reply: "}}
+                    {{"role", "system"}, {"content", system_prompt}},
+                    {{"role", "user"}, {"content", last_question}},
+                    {{"role", "assistant"}, {"content", last_answer}},
+                    {{"role", "user"},   {"content", userReply}}
                 };
             }
 
