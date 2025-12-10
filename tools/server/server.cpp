@@ -5613,6 +5613,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             if (has_session_been_cancelled) {
                 std::cout << "Multiturn " << ins_name << " CANCELLED "
                          << "[w2s=" << w2_session 
+                         << ", current_turn=" << current_turn 
+                         << ", prompt=" << prompt 
                          << ", turn_sleep=" << turn_sleep 
                          << "]: " 
                          << current_turn << "\n" << std::endl;
