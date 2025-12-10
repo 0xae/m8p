@@ -5602,11 +5602,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             return has_session_been_cancelled;
         };
 
-        std::vector<std::stringstream> memory;
-        std::vector<std::stringstream> qab;
-        memory.resize(M_TURN);
-        qab.resize(M_TURN);
-        qab[0] << prompt;
+        // std::vector<std::stringstream> memory;
+        // std::vector<std::stringstream> qab;
+        // memory.resize(M_TURN);
+        // qab.resize(M_TURN);
+        // qab[0] << prompt;
 
         for (int32_t current_turn=0; current_turn<M_TURN; current_turn++) {
             if (has_session_been_cancelled || !is_connection_active()) {
@@ -5643,7 +5643,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                         if (!m8p::is_nil(M8_S, RXO) && RXO->Type==m8p::MP8_STRING) {
                                             userReply = RXO->Value;
                                             hasSession = true;
-                                            qab[current_turn] << userReply;
                                             REG_X[varname_x] = M8_S->nilValue; // reset to avoid infinit stuff
                                         }
                                     }
@@ -5687,29 +5686,26 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             });
 
             if (userReply!="" && current_turn>0) {
-                std::string last_answer = "";
-                std::string last_question = "";
-
-                for (auto it=memory.rbegin(); it!=memory.rend(); ++it) {
-                    if (it->tellp()!=0) {
-                        last_answer = it->str();
-                        break; // Stop at the first one you find
-                    }
-                }
-                for (auto it=qab.rbegin(); it!=qab.rend(); ++it) {
-                    if (it->tellp()!=0) {
-                        last_question = it->str();
-                        break; // Stop at the first one you find
-                    }
-                }
-
-                if (last_question=="") {
-                    last_question = prompt;
-                }
-                if (last_answer==""){
-                    last_answer = "No answer.";
-                }
-
+                // std::string last_answer = "";
+                // std::string last_question = "";
+                // for (auto it=memory.rbegin(); it!=memory.rend(); ++it) {
+                //     if (it->tellp()!=0) {
+                //         last_answer = it->str();
+                //         break; // Stop at the first one you find
+                //     }
+                // }
+                // for (auto it=qab.rbegin(); it!=qab.rend(); ++it) {
+                //     if (it->tellp()!=0) {
+                //         last_question = it->str();
+                //         break; // Stop at the first one you find
+                //     }
+                // }
+                // if (last_question=="") {
+                //     last_question = prompt;
+                // }
+                // if (last_answer==""){
+                //     last_answer = "No answer.";
+                // }
                 // std::cout << "==========  DIAGNOSTICS ==================="
                 //     << "\nsystem_prompt = " << system_prompt
                 //     << "\nLast Turn = " << (current_turn-1)
@@ -5720,7 +5716,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 //     << "\nA: "
                 //     << std::endl;
                 // sleep(2);
-
                 last_prompt = prompt + "\n Question:"+userReply;
                 messages = json::array({
                     {{"role", "system"}, {"content", "You are a helpful assistant."}},
@@ -5832,7 +5827,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             }  
 
             // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
-            ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, &memory, current_turn, &has_session_been_cancelled, M8, &ins_name](server_task_result_ptr & result) -> bool {
+            ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, current_turn, &has_session_been_cancelled, M8, &ins_name](server_task_result_ptr & result) -> bool {
                 json res_json = result->to_json();
                 // json arr = json::array();
 
@@ -5849,7 +5844,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                             if (delta_x.count("content")>0) {
                                 auto content = delta_x["content"];
                                 auto token_r = content.dump();
-                                memory.at(current_turn) << token_r;
                             }
                         }
                     }
@@ -5862,7 +5856,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         if (sink->is_writable()) {
                             if (res_json.is_array()) {
                                 for (const auto & res : res_json) {
-                                    memory.at(current_turn) << res.dump();
+                                    // memory.at(current_turn) << res.dump();
                                     if (!server_sent_event(*sink, res)) {
                                         has_session_been_cancelled = true;
                                         return false;
@@ -5871,7 +5865,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                 return true;
                             } else {
                                 auto r=server_sent_event(*sink, res_json);
-                                memory.at(current_turn) << res_json.dump();
                                 has_session_been_cancelled = r;
                                 return r;
                             }
