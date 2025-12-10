@@ -5233,7 +5233,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             << "<start_of_turn>user\n"
             << prompt
             << "<end_of_turn>\n"
-            << "<start_of_turn>model\n";
+            << "<start_of_turn>assistant\n";
 
         // ::ALLOC::
         json body = {
