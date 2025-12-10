@@ -5605,7 +5605,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         std::vector<std::stringstream> qab;
         memory.resize(M_TURN);
         qab.resize(M_TURN);
-
         qab[0] << prompt;
 
         for (int32_t current_turn=0; current_turn<M_TURN; current_turn++) {
@@ -5684,8 +5683,29 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             };
 
             if (userReply!="" && current_turn>0) {
-                std::string last_answer = memory.at(current_turn-1).str();
-                std::string last_question = qab.at(current_turn-1).str();
+                std::string last_answer = "";
+                std::string last_question = "";
+
+                for (auto it=memory.rbegin(); it!=memory.rend(); ++it) {
+                    if (!it->empty()) {
+                        last_answer = *it;
+                        break; // Stop at the first one you find
+                    }
+                }
+                for (auto it=qab.rbegin(); it!=qab.rend(); ++it) {
+                    if (!it->empty()) {
+                        last_question = *it;
+                        break; // Stop at the first one you find
+                    }
+                }
+
+                if (last_question=="") {
+                    last_question = prompt;
+                }
+                if (last_answer==""){
+                    last_answer = "No answer.";
+                }
+
                 std::cout << "==========  DIAGNOSTICS ==================="
                     << "\nsystem_prompt = " << system_prompt
                     << "\nLast Turn = " << (current_turn-1)
@@ -5698,13 +5718,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
                 // sleep(2);
 
-                messages = {
+                messages = json::array({
                     {{"role", "system"}, {"content", system_prompt}},
                     {{"role", "user"}, {"content", last_question}},
                     {{"role", "assistant"}, {"content", last_answer}},
                     {{"role", "user"}, {"content", userReply}},
-                    {{"role", "assistant"},  {"content", "Answer:"}}
-                };
+                    // {{"role", "assistant"},  {"content", "Answer:"}}
+                });
             }
 
             std::cout << "messages: "
@@ -5835,6 +5855,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         if (sink->is_writable()) {
                             if (res_json.is_array()) {
                                 for (const auto & res : res_json) {
+                                    memory.at(current_turn) << res.dump();
                                     if (!server_sent_event(*sink, res)) {
                                         has_session_been_cancelled = true;
                                         return false;
@@ -5843,6 +5864,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                 return true;
                             } else {
                                 auto r=server_sent_event(*sink, res_json);
+                                memory.at(current_turn) << res_json.dump();
                                 has_session_been_cancelled = r;
                                 return r;
                             }
