@@ -5707,7 +5707,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 {{"role", "user"},   {"content", prompt}}
             };
 
-            if (userReply!="") {
+            if (userReply!="" && current_turn>0) {
                 std::cout << "============================="
                     << "\nLast Turn = " << (current_turn-1)
                     << "  => Q: " << "\n"
