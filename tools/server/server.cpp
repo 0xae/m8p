@@ -5597,8 +5597,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             return false;
         };
 
-        auto is_connection_closed = [&has_session_been_cancelled, is_connection_active]() -> bool {
-            return has_session_been_cancelled || !is_connection_active();
+        auto is_connection_closed = [&has_session_been_cancelled]() -> bool {
+            // return has_session_been_cancelled || !is_connection_active();
+            return has_session_been_cancelled;
         };
 
         std::vector<std::stringstream> memory;
@@ -5609,11 +5610,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
         for (int32_t current_turn=0; current_turn<M_TURN; current_turn++) {
             if (has_session_been_cancelled || !is_connection_active()) {
-                // std::cout << "Multiturn " << ins_name << " CANCELLED "
-                //          << "[w2s=" << w2_session 
-                //          << ", turn_sleep=" << turn_sleep 
-                //          << "]: " 
-                //          << current_turn << "\n" << std::endl;
+                std::cout << "Multiturn " << ins_name << " CANCELLED "
+                         << "[w2s=" << w2_session 
+                         << ", turn_sleep=" << turn_sleep 
+                         << "]: " 
+                         << current_turn << "\n" << std::endl;
                 break;
             }
 
@@ -5657,6 +5658,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                 M8->nilValue
                             );
                         }
+
+                    } else {
+                        continue;
                     }
                 }
             }
@@ -5706,17 +5710,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     last_answer = "No answer.";
                 }
 
-                std::cout << "==========  DIAGNOSTICS ==================="
-                    << "\nsystem_prompt = " << system_prompt
-                    << "\nLast Turn = " << (current_turn-1)
-                    << "\n  => Q: " << last_question
-                    // << "\n  => A: " << last_answer
-                    << "\nThis Turn = " << (current_turn)
-                    << "\nQ: " << userReply
-                    << "\nA: "
-                    << std::endl;
-
+                // std::cout << "==========  DIAGNOSTICS ==================="
+                //     << "\nsystem_prompt = " << system_prompt
+                //     << "\nLast Turn = " << (current_turn-1)
+                //     << "\n  => Q: " << last_question
+                //     // << "\n  => A: " << last_answer
+                //     << "\nThis Turn = " << (current_turn)
+                //     << "\nQ: " << userReply
+                //     << "\nA: "
+                //     << std::endl;
                 // sleep(2);
+
                 last_prompt = prompt + "\n Question:"+userReply;
                 messages = json::array({
                     {{"role", "system"}, {"content", "You are a helpful assistant."}},
