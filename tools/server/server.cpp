@@ -5710,7 +5710,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                     << "\nsystem_prompt = " << system_prompt
                     << "\nLast Turn = " << (current_turn-1)
                     << "\n  => Q: " << last_question
-                    << "\n  => A: " << last_answer
+                    // << "\n  => A: " << last_answer
                     << "\nThis Turn = " << (current_turn)
                     << "\nQ: " << userReply
                     << "\nA: "
@@ -5721,8 +5721,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 messages = json::array({
                     {{"role", "system`"}, {"content", system_prompt}},
                     {{"role", "user"}, {"content", userReply}},
-                    // {{"role", "assistant"}, {"content", last_answer}},
-                    // {{"role", "user"}, {"content", userReply}},
+                    {{"role", "assistant"}, {"content", "This was the assistant on a work"}},
+                    {{"role", "user"}, {"content", userReply}},
                 });
             }
 
@@ -5736,7 +5736,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 {"temperature", temp},
                 {"max_tokens", n_predict},
                 {"model", "default"},
-                {"stream", true},
+                {"presence_penalty", 0},
+                {"reasoning_format", "auto"},
+                {"repeat_last_n 64", 64},
+                {"timings_per_token", false},
             };
 
             // auto body = json::parse(req.body);
