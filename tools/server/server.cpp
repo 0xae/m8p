@@ -5823,7 +5823,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         if (choices.size()>0 && choices.at(0).count("delta")>0) {
                             auto delta_x = choices.at(0)["delta"];
                             if (delta_x.count("content")>0) {
-                                auto content = delta_x.at["content"];
+                                auto content = delta_x["content"];
                                 auto token_r = content.dump();
                                 std::cout << "T="<< current_turn << token_r;
                             }
