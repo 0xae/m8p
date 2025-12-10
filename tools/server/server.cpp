@@ -5608,7 +5608,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
         // qab.resize(M_TURN);
         // qab[0] << prompt;
 
-        for (int32_t current_turn=0; current_turn<M_TURN; current_turn++) {
+        for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
             // if (has_session_been_cancelled || !is_connection_active()) {
             if (has_session_been_cancelled) {
                 std::cout << "Multiturn " << ins_name << " CANCELLED "
@@ -5658,9 +5658,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                 M8->nilValue
                             );
                         }
-
-                    } else {
-                        continue;
                     }
                 }
             }
@@ -5785,6 +5782,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         json error_data = format_error_response("the request exceeds the available context size, try increasing it", ERROR_TYPE_EXCEED_CONTEXT_SIZE);
                         LLMDB[ins_name].Status = 0;
                         LLMDB[ins_name].arr = error_data;
+                        std::cout << "Exceptiona [1] \n" << std::endl;
                         has_session_been_cancelled = true; 
                         return std::make_pair(
                             m8p::errorf("the request exceeds the available context size, try increasing it"),
@@ -5821,6 +5819,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 LLMDB[ins_name].Status = 0; // an error ocurred
                 std::string err = e.what();
                 has_session_been_cancelled = true;
+                std::cout << "Exceptiona [2] \n" << std::endl;
                 return std::make_pair(
                     m8p::errorf("An error ocurred during execution Details: " + err),
                     M8->nilValue
@@ -5860,6 +5859,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                     // memory.at(current_turn) << res.dump();
                                     if (!server_sent_event(*sink, res)) {
                                         has_session_been_cancelled = true;
+                                        std::cout << "Exceptiona [1a] \n" << std::endl;
                                         return false;
                                     }
                                 }
@@ -5867,6 +5867,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                             } else {
                                 auto r=server_sent_event(*sink, res_json);
                                 has_session_been_cancelled = r;
+                                std::cout << "Exceptiona [1b]=" << r << std::endl;
                                 return r;
                             }
                         }
@@ -5881,6 +5882,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 LLMDB[ins_name].Status = 0; // an error ocurred
                 LLMDB[ins_name].arr = error_data;
                 has_session_been_cancelled = true;;
+                std::cout << "Exceptiona [1c]=" << r << std::endl;
             }, is_connection_closed);
 
             ctx_server->queue_results.remove_waiting_task_ids(task_ids);
