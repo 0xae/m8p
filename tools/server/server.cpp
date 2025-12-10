@@ -5602,11 +5602,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             return false;
         };
 
-        // std::vector<std::stringstream> memory;
-        // std::vector<std::stringstream> qab;
-        // memory.resize(M_TURN);
-        // qab.resize(M_TURN);
-        // qab[0] << prompt;
+        std::vector<std::stringstream> memory;
+        std::vector<std::stringstream> qab;
+        memory.resize(M_TURN);
+        qab.resize(M_TURN);
+        qab[0] << prompt;
 
         for (int32_t current_turn=0; current_turn<M_TURN; ++current_turn) {
             // if (has_session_been_cancelled || !is_connection_active()) {
@@ -5645,6 +5645,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                                     if (RXO!=nullptr) {
                                         if (!m8p::is_nil(M8_S, RXO) && RXO->Type==m8p::MP8_STRING) {
                                             userReply = RXO->Value;
+                                            qab[current_turn] << userReply;
                                             hasSession = true;
                                             REG_X[varname_x] = M8_S->nilValue; // reset to avoid infinit stuff
                                         }
@@ -5686,35 +5687,36 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             });
 
             if (userReply!="" && current_turn>0) {
-                // std::string last_answer = "";
-                // std::string last_question = "";
-                // for (auto it=memory.rbegin(); it!=memory.rend(); ++it) {
-                //     if (it->tellp()!=0) {
-                //         last_answer = it->str();
-                //         break; // Stop at the first one you find
-                //     }
-                // }
-                // for (auto it=qab.rbegin(); it!=qab.rend(); ++it) {
-                //     if (it->tellp()!=0) {
-                //         last_question = it->str();
-                //         break; // Stop at the first one you find
-                //     }
-                // }
-                // if (last_question=="") {
-                //     last_question = prompt;
-                // }
-                // if (last_answer==""){
-                //     last_answer = "No answer.";
-                // }
-                // std::cout << "==========  DIAGNOSTICS ==================="
-                //     << "\nsystem_prompt = " << system_prompt
-                //     << "\nLast Turn = " << (current_turn-1)
-                //     << "\n  => Q: " << last_question
-                //     // << "\n  => A: " << last_answer
-                //     << "\nThis Turn = " << (current_turn)
-                //     << "\nQ: " << userReply
-                //     << "\nA: "
-                //     << std::endl;
+                std::string last_answer = "";
+                std::string last_question = "";
+                for (auto it=memory.rbegin(); it!=memory.rend(); ++it) {
+                    if (it->tellp()!=0) {
+                        last_answer = it->str();
+                        break; // Stop at the first one you find
+                    }
+                }
+                for (auto it=qab.rbegin(); it!=qab.rend(); ++it) {
+                    if (it->tellp()!=0) {
+                        last_question = it->str();
+                        break; // Stop at the first one you find
+                    }
+                }
+                if (last_question=="") {
+                    last_question = prompt;
+                }
+                if (last_answer==""){
+                    last_answer = "No answer.";
+                }
+                std::cout << "==========  DIAGNOSTICS ==================="
+                    << "\nsystem_prompt = " << system_prompt
+                    << "\nLast Turn = " << (current_turn-1)
+                    << "\n  => Q: " << last_question
+                    << "\n  => A: " << last_answer
+                    << "\nThis Turn = " << (current_turn)
+                    << "\nQ: " << userReply
+                    << "\nA: "
+                    << std::endl;
+
                 // sleep(2);
                 last_prompt = prompt + "\n Question:"+userReply;
                 messages = json::array({
@@ -5838,19 +5840,20 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                 //     << res_json.dump()
                 //     << "\n" << std::endl;
 
-                // if (res_json.size()>0) {
-                //     if (res_json.is_array() && res_json.at(0).count("choices")>0) {
-                //         // current_turn
-                //         auto choices=res_json.at(0)["choices"];
-                //         if (choices.size()>0 && choices.at(0).count("delta")>0) {
-                //             auto delta_x = choices.at(0)["delta"];
-                //             if (delta_x.count("content")>0) {
-                //                 auto content = delta_x["content"];
-                //                 auto token_r = content.dump();
-                //             }
-                //         }
-                //     }
-                // }
+                if (res_json.size()>0) {
+                    if (res_json.is_array() && res_json.at(0).count("choices")>0) {
+                        // current_turn
+                        auto choices=res_json.at(0)["choices"];
+                        if (choices.size()>0 && choices.at(0).count("delta")>0) {
+                            auto delta_x = choices.at(0)["delta"];
+                            if (delta_x.count("content")>0) {
+                                auto content = delta_x["content"];
+                                auto token_r = content.dump();
+                                memory[current_turn] << token_r;
+                            }
+                        }
+                    }
+                }
 
                 if (GlobalSession.count(M8->Name)) {
                     auto session = &GlobalSession[M8->Name];
@@ -5858,19 +5861,29 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         auto sink = GlobalSession[M8->Name].sink;
                         if (sink->is_writable()) {
                             if (res_json.is_array()) {
+                                std::cout << "DEBUG[ARRAY]: res_json: "
+                                    << res_json.dump()
+                                    << "\n" << std::endl;
+
                                 for (const auto & res : res_json) {
-                                    // memory.at(current_turn) << res.dump();
+                                    memory.at(current_turn) << res.dump();
                                     if (!server_sent_event(*sink, res)) {
                                         has_session_been_cancelled = true;
                                         std::cout << "Exceptiona [1a] \n" << std::endl;
                                         return false;
                                     }
                                 }
+
                                 return true;
+
                             } else {
+                                std::cout << "DEBUG[SINGLE]: res_json: "
+                                    << res_json.dump()
+                                    << "\n" << std::endl;
+
+                                memory.at(current_turn) << res_json.dump();
                                 auto r=server_sent_event(*sink, res_json);
                                 has_session_been_cancelled = !r;
-                                std::cout << "Exceptiona [1b]=" << r << std::endl;
                                 return r;
                             }
                         }
