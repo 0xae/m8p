@@ -270,12 +270,11 @@
             vm.currentView = 'demo'; 
             vm.setView = (v) => { vm.currentView = v; $timeout(()=>lucide.createIcons()); };
             $timeout(() => {
-                lucide.createIcons();
-                setTimeout(function () {
-                    window.RenderM8Menu('menu-system-area');
+                window.RenderM8Menu('menu-system-area');
+                $timeout(function () {
+                    lucide.createIcons();
                 }, 120);
             });
-
         }]);
 
         // --- ENGINE DEMO CONTROLLER ---

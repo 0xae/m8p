@@ -186,10 +186,12 @@
             const vm = this;
             vm.currentView = 'dashboard'; 
             vm.setView = (v) => { vm.currentView = v; $timeout(()=>lucide.createIcons()); };
-            $timeout(() => lucide.createIcons());
-            setTimeout(function () {
+            $timeout(() => {
                 window.RenderM8Menu('menu-system-area');
-            }, 120);
+                $timeout(function () {
+                    lucide.createIcons();
+                }, 120);
+            });
         }]);
 
         // --- DASHBOARD CONTROLLER (M8 STREAMING) ---
