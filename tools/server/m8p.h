@@ -1684,13 +1684,36 @@ namespace m8p {
             auto& vA = A->AR_F32;
             auto& vB = B->AR_F32;
 
-            if (vA.size()%AVX_V_SIZE!=0) {
-                int diff = __abs(AVX_V_SIZE - vA.size());
-                vA.resize(diff);
+            // if (vA.size()%AVX_V_SIZE!=0) {
+            //     int diff = __abs(AVX_V_SIZE - vA.size());
+            //     vA.resize(diff);
+            // }
+            // if (vB.size()%AVX_V_SIZE!=0) {
+            //     int diff = __abs(AVX_V_SIZE - vB.size());
+            //     vB.resize(diff);
+            // }
+
+            size_t remA = vA.size() % AVX_V_SIZE;
+            size_t remB = vB.size() % AVX_V_SIZE;
+
+            // 2. If remainder exists, calculate padding needed and resize
+            if (remA != 0) {
+                size_t padding = AVX_V_SIZE - remA;
+                // Resize to (Current Size + Padding), fill new slots with 0.0
+                vA.resize(vA.size() + padding, 0.0f); 
             }
-            if (vB.size()%AVX_V_SIZE!=0) {
-                int diff = __abs(AVX_V_SIZE - vB.size());
-                vB.resize(diff);
+
+            if (remB != 0) {
+                size_t padding = AVX_V_SIZE - remB;
+                vB.resize(vB.size() + padding, 0.0f);
+            }
+
+            // 3. (Optional) If you need both matrices to be the EXACT same size
+            // (e.g. for element-wise addition), you might need to sync them:
+            if (vA.size() < vB.size()) {
+                vA.resize(vB.size(), 0.0f);
+            } else if (vB.size() < vA.size()) {
+                vB.resize(vA.size(), 0.0f);
             }
 
             size_t N = std::min(vA.size(), vB.size());
