@@ -1685,12 +1685,12 @@ namespace m8p {
             auto& vB = B->AR_F32;
 
             if (vA.size()%AVX_V_SIZE!=0) {
-                int diff = __abs(AVX_V_SIZE - vA.size())
-                vA->AR_F32.reserve(diff);
+                int diff = __abs(AVX_V_SIZE - vA.size());
+                vA->AR_F32.resize(diff);
             }
             if (vB.size()%AVX_V_SIZE!=0) {
-                int diff = __abs(AVX_V_SIZE - vB.size())
-                vB->AR_F32.reserve(diff);
+                int diff = __abs(AVX_V_SIZE - vB.size());
+                vB->AR_F32.resize(diff);
             }
 
             size_t N = std::min(vA.size(), vB.size());
