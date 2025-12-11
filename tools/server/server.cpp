@@ -8346,7 +8346,7 @@ std::string M8_BANNER =
         try {
             m8p::M8System *m8 = m8Session.m8;
             if (m8==nullptr) {
-                res_error(res, format_error_response("Invalid session state. m8==nullptr", ERROR_TYPE_INVALID_REQUEST));
+                res_error(res, format_error_response("Invalid session state", ERROR_TYPE_INVALID_REQUEST));
                 return;
             }
 

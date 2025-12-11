@@ -1684,10 +1684,19 @@ namespace m8p {
             auto& vA = A->AR_F32;
             auto& vB = B->AR_F32;
 
-            // if (vA.size()%AVX_V_SIZE!=0) {
-            //     int diff = __abs(AVX_V_SIZE - vA.size());
-            //     vA.resize(diff);
-            // }
+            if (vA.size() > AVX_V_SIZE) {
+                return std::make_pair(
+                    errorf("mat "+rA+" => size exceeds max-vector-size " + std::to_string(AVX_V_SIZE)),
+                    M8->nilValue
+                );
+            }
+            if (vB.size() > AVX_V_SIZE) {
+                return std::make_pair(
+                    errorf("mat "+rB+" => size exceeds max-vector-size " + std::to_string(AVX_V_SIZE)),
+                    M8->nilValue
+                );
+            }
+
             // if (vB.size()%AVX_V_SIZE!=0) {
             //     int diff = __abs(AVX_V_SIZE - vB.size());
             //     vB.resize(diff);
