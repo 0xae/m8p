@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8 Cortex Console</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- External Libs -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="menu.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#f9fafb',      
+                        background: '#ffffff',   
+                        surface: '#f3f4f6',      
+                        border: '#e5e7eb',       
+                        primary: '#d946ef', // Fuchsia for Arbitrage
+                        primaryHover: '#c026d3',
+                        textMain: '#111827',     
+                        textMuted: '#6b7280',
+                        consoleBg: '#1e1e1e'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    },
+                    fontSize: {
+                        xxs: '0.65rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+    </style>
+</head>
+
+<body ng-app="recsys-app" ng-controller="AppController as app" class="bg-background text-textMain h-screen flex overflow-hidden text-xs antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-56 bg-sidebar border-r border-border flex flex-col flex-none">
+        <div class="h-14 flex items-center px-4 border-b border-border">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-primary flex items-center justify-center">
+                    <i data-lucide="brain-circuit" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="font-semibold tracking-tight text-textMain text-sm">Cortex</span>
+            </div>
+        </div>
+
+        <div id="menu-system-area"></div>
+        
+        <div class="p-4 border-t border-border">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">BM</div>
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-medium text-textMain">BrainMaster</span>
+                    <span class="text-[9px] text-textMuted">Admin Access</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 bg-background relative">
+        
+        <!-- VIEW: ARBITRAGE ENGINE -->
+        <div ng-if="app.currentView === 'arbitrage'" ng-controller="ArbitrageController as arb" class="flex flex-col h-full bg-surface">
+            <!-- Header -->
+            <header class="h-14 border-b border-border bg-background flex items-center justify-between px-6 flex-none">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-fuchsia-50 border border-fuchsia-100 flex items-center justify-center">
+                        <i data-lucide="zap" class="w-4 h-4 text-primary"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-semibold text-textMain">Arbitrage & Dislocation Engine</h1>
+                        <p class="text-[10px] text-textMuted">Session: <span class="font-mono text-fuchsia-600">{{arb.sessionId}}</span></p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Left: Simulator / Scenarios -->
+                    <div class="lg:col-span-1 space-y-4">
+                        <div class="bg-white border border-border rounded-lg shadow-sm p-4">
+                            <h3 class="text-xs font-bold text-textMain uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <i data-lucide="sliders" class="w-3 h-3 text-fuchsia-600"></i> Market Simulator
+                            </h3>
+                            
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-[9px] font-bold text-textMuted uppercase mb-1.5 block">Preset Scenarios</label>
+                                    <div class="space-y-1">
+                                        <button ng-repeat="scen in arb.scenarios" ng-click="arb.setScenario(scen)" 
+                                                class="w-full text-left px-3 py-2 rounded border text-xs transition-colors flex items-center justify-between group"
+                                                ng-class="{'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-900': arb.currentScenario === scen, 'bg-white border-gray-100 hover:bg-gray-50 text-textMain': arb.currentScenario !== scen}">
+                                            <span>{{scen.name}}</span>
+                                            <i data-lucide="play-circle" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" ng-class="{'text-fuchsia-500': arb.currentScenario === scen}"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-border pt-3">
+                                    <label class="text-[9px] font-bold text-textMuted uppercase mb-1.5 block">Custom State Search</label>
+                                    <textarea ng-model="arb.customState" 
+                                              class="w-full p-2 text-xs border border-border rounded focus:outline-none focus:border-fuchsia-500 mb-2 resize-none h-20 bg-gray-50" 
+                                              placeholder="Describe market conditions (e.g., 'Bonds rallying while stocks crash with high volatility')..."></textarea>
+                                    <button ng-click="arb.runAnalysis()" ng-disabled="!arb.customState || arb.loading || !arb.isInitialized" 
+                                            class="w-full py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white rounded text-[10px] font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                                        <i data-lucide="search" class="w-3 h-3"></i>
+                                        Analyze State
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Current Context Card -->
+                        <div class="bg-fuchsia-900 rounded-lg p-4 shadow-sm text-white" ng-if="arb.data">
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="radio" class="w-4 h-4 text-fuchsia-300 mt-0.5"></i>
+                                <div>
+                                    <h3 class="text-[10px] font-bold text-fuchsia-200 uppercase mb-1">Active Context</h3>
+                                    <p class="text-xs leading-snug opacity-90 italic">"{{arb.activeContext}}"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Dashboard -->
+                    <div class="lg:col-span-2 space-y-6">
+                        
+                        <!-- Initial State -->
+                        <div ng-if="!arb.isInitialized" class="h-full flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg">
+                            <div class="w-16 h-16 rounded-full bg-fuchsia-50 flex items-center justify-center mb-4">
+                                <i data-lucide="cpu" class="w-8 h-8 text-fuchsia-300"></i>
+                            </div>
+                            <h3 class="text-sm font-medium text-textMain">Engine Offline</h3>
+                            <p class="text-xs text-textMuted mt-1">Initialize to load arbitrage vectors.</p>
+
+                            <div class="items-center  mt-4">
+                                <button ng-click="arb.initEngine()" class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded text-[10px] font-medium transition-colors shadow-sm" ng-disabled="arb.loading">
+                                    <i data-lucide="database" class="w-3 h-3" ng-class="{'animate-spin': arb.loading}"></i>
+                                    {{arb.loading ? 'Loading Vectors...' : 'Initialize Engine'}}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Loading -->
+                        <div ng-if="arb.loading" class="h-full flex flex-col items-center justify-center">
+                            <div class="w-12 h-12 border-4 border-fuchsia-200 border-t-fuchsia-600 rounded-full animate-spin mb-4"></div>
+                            <p class="text-xs text-textMuted font-mono animate-pulse">Matching Patterns & Calculating Correlations...</p>
+                        </div>
+
+                        <!-- Dashboard Data -->
+                        <div ng-if="arb.isInitialized && arb.data && !arb.loading" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-5">
+                            
+                            <!-- Alert Banner (Dislocations) -->
+                            <div class="bg-background border border-border rounded-lg p-4 shadow-sm flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="relative w-12 h-12 flex items-center justify-center">
+                                        <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                                            <path class="text-gray-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                                            <path class="text-fuchsia-500 transition-all duration-1000" stroke-dasharray="{{arb.data.risk_metrics.Dislocation * 100}}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                                        </svg>
+                                        <span class="absolute text-[10px] font-bold text-fuchsia-600">{{(arb.data.risk_metrics.Dislocation * 100) | number:0}}%</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xs font-bold text-textMain uppercase">Market Dislocation Score</h3>
+                                        <p class="text-[10px] text-textMuted">Severity of correlation breaks</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[9px] text-textMuted uppercase mb-1">Dominant Pattern</div>
+                                    <div class="text-sm font-bold text-textMain bg-fuchsia-50 px-2 py-1 rounded border border-fuchsia-100">{{arb.data.arbitrage.Pattern}}</div>
+                                </div>
+                            </div>
+
+                            <!-- Correlation Matrix & Regimes -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="md:col-span-2 bg-background border border-border rounded-lg p-4 shadow-sm">
+                                    <h3 class="text-xs font-semibold text-textMuted uppercase tracking-wider mb-4">Cross-Asset Correlations</h3>
+                                    <div class="grid grid-cols-4 gap-2">
+                                        <div ng-repeat="(key, val) in arb.data.correlations" class="p-2 rounded border"
+                                             ng-class="{'bg-red-50 border-red-100': val > 0.5, 'bg-green-50 border-green-100': val < -0.5, 'bg-gray-50 border-gray-100': val >= -0.5 && val <= 0.5}">
+                                            <div class="text-[8px] text-textMuted uppercase mb-1">{{key}}</div>
+                                            <div class="text-sm font-mono font-bold" 
+                                                 ng-class="{'text-red-600': val > 0.5, 'text-green-600': val < -0.5, 'text-textMain': val >= -0.5 && val <= 0.5}">
+                                                {{val}}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-background border border-border rounded-lg p-4 shadow-sm flex flex-col">
+                                    <h3 class="text-xs font-semibold text-textMuted uppercase tracking-wider mb-3">Active Regime</h3>
+                                    <div class="flex-1 flex flex-col justify-center text-center space-y-4">
+                                        <div>
+                                            <div class="text-[9px] text-textMuted uppercase mb-1">Type</div>
+                                            <div class="text-lg font-bold text-textMain">{{arb.data.regime.Type}}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-[9px] text-textMuted uppercase mb-1">Coherence</div>
+                                            <div class="text-lg font-bold text-primary">{{arb.data.regime.Coherence}}</div>
+                                        </div>
+                                        <div class="bg-gray-50 p-2 rounded text-[10px] text-textMuted border border-gray-100">
+                                            <span class="font-bold">Historical:</span> {{arb.data.regime.Historical}}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Opportunities -->
+                            <div class="bg-background border border-border rounded-lg p-4 shadow-sm">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <i data-lucide="target" class="w-4 h-4 text-green-500"></i>
+                                    <h3 class="text-xs font-semibold text-textMuted uppercase">Arbitrage Opportunities</h3>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="flex justify-between items-center p-2 bg-green-50/50 border border-green-100 rounded">
+                                        <div>
+                                            <div class="text-[9px] text-green-800 uppercase">Convergence</div>
+                                            <div class="text-lg font-bold text-green-700">{{arb.data.convergence.Potential}}</div>
+                                        </div>
+                                        <div class="text-right text-[8px] text-green-600">Spread: {{arb.data.convergence.Spread_width}}</div>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2 bg-purple-50/50 border border-purple-100 rounded">
+                                        <div>
+                                            <div class="text-[9px] text-purple-800 uppercase">Vol Premium</div>
+                                            <div class="text-lg font-bold text-purple-700">{{arb.data.risk_metrics.Vol_premium}}</div>
+                                        </div>
+                                        <div class="text-right text-[8px] text-purple-600">Rich/Cheap</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Raw Output Toggle -->
+                            <div class="text-right">
+                                <button ng-click="arb.showRaw = !arb.showRaw" class="text-[10px] text-textMuted underline hover:text-textMain flex items-center gap-1 ml-auto">
+                                    <i data-lucide="code" class="w-3 h-3"></i> {{arb.showRaw ? 'Hide' : 'Show'}} Raw M8 Output
+                                </button>
+                                <pre ng-if="arb.showRaw" class="mt-2 p-3 bg-[#1e1e1e] text-gray-400 text-[10px] font-mono rounded overflow-x-auto whitespace-pre-wrap text-left">{{arb.rawOutput}}</pre>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <!-- LOGIC -->
+    <script type="text/javascript">
+        const app = angular.module('recsys-app', []);
+        const DIM=285;
+        // const M8_HOST = "https://lua-dev.nosi.cv";
+        const M8_HOST = "";
+        window.G_DISTANCE = '0.425';
+        window.DIM = DIM;
+
+        app.controller('AppController', ['$scope', '$timeout', function($scope, $timeout) {
+            const vm = this;
+            vm.currentView = 'arbitrage';
+            vm.setView = function(view) { vm.currentView = view; $timeout(() => lucide.createIcons()); };
+            $timeout(() => {
+                window.RenderM8Menu('menu-system-area');
+                $timeout(function () {
+                    lucide.createIcons();
+                }, 120);
+            });
+        }]);
+
+        // --- Arbitrage Controller ---
+        app.controller('ArbitrageController', ['$scope', '$http', '$timeout', function($scope, $http, $timeout) {
+            const vm = this;
+            vm.loading = false;
+            vm.isInitialized = false;
+            vm.data = null;
+            vm.showRaw = false;
+            vm.sessionId = 'arb_' + Math.random().toString(36).substring(2, 8);
+            vm.activeContext = "";
+            // const DIM=156;
+            
+            vm.scenarios = [
+                {name: "Default: Credit Widening", text: "Credit spreads widening modestly while VIX remains below 15 equity complacency persists"},
+                {name: "Scenario: Liquidity Crisis", text: "Sudden liquidity freeze in repo markets causing short term rate spike and correlation breakdown"},
+                {name: "Scenario: Stagflation", text: "Inflation rising while growth slows, stocks and bonds falling together in positive correlation"},
+                {name: "Scenario: Volmageddon", text: "VIX spikes rapidly as short vol strategies unwind, liquidity evaporates across equity markets"},
+                {name: "Scenario: Goldilocks", text: "Inflation cooling, growth steady, tech leading broad advance with low volatility"}
+            ];
+            
+            vm.customState = vm.scenarios[0].text;
+            vm.currentScenario = vm.scenarios[0];
+
+            vm.setScenario = function(scen) {
+                vm.currentScenario = scen;
+                vm.customState = scen.text;
+                if(vm.isInitialized) vm.runAnalysis();
+            };
+
+            const INIT_SCRIPT = `## Cross-Market Arbitrage Init
+vdb_instance ARBITRAGE_PATTERNS dim=${DIM} max_elements=500 M=56 ef_construction=300
+vdb_instance CORRELATION_REGIMES dim=${DIM} max_elements=400 M=56 ef_construction=250
+vdb_instance DISLOCATION_EVENTS dim=${DIM} max_elements=400 M=56 ef_construction=250
+vdb_instance CONVERGENCE_TRADES dim=${DIM} max_elements=300 M=56 ef_construction=200
+store <arb1> Credit spreads widening while equity volatility remains subdued disconnect risk mispriced
+llm_embed <arb1> <a1> dim=${DIM}
+align <a1> ${DIM}
+vdb_add ARBITRAGE_PATTERNS <a1> Credit equity divergence vol cheap protection expensive
+store <arb2> Treasury yields rising but gold falling typical safe haven correlation broken
+llm_embed <arb2> <a2> dim=${DIM}
+align <a2> ${DIM}
+vdb_add ARBITRAGE_PATTERNS <a2> Bonds gold divergence safe haven breakdown
+store <arb7> Implied volatility expensive relative to realized vol premium unsustainable mean reversion
+llm_embed <arb7> <a7> dim=${DIM}
+align <a7> ${DIM}
+vdb_add ARBITRAGE_PATTERNS <a7> IV RV spread expensive volatility premium mean revert
+store <corr1> Risk on environment stocks bonds commodities all rising liquidity driven
+llm_embed <corr1> <c1> dim=${DIM}
+align <c1> ${DIM}
+vdb_add CORRELATION_REGIMES <c1> Risk on positive correlation liquidity everything rally
+store <dis1> October 2008 credit freeze all correlations approach one liquidity vanishes
+llm_embed <dis1> <d1> dim=${DIM}
+align <d1> ${DIM}
+vdb_add DISLOCATION_EVENTS <d1> 2008 crisis correlation one liquidity freeze
+ret "Initialized"`;
+
+            vm.initEngine = function() {
+                vm.loading = true;
+                fetch(`${M8_HOST}/api/v1/m8/session-check/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: "mstall 1" })
+                }).then(() => {
+                    return fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: INIT_SCRIPT })
+                    });
+                }).then(() => {
+                    $scope.$apply(() => {
+                        vm.isInitialized = true;
+                        vm.loading = false;
+                        vm.runAnalysis(); 
+                    });
+                }).catch(() => {
+                    $scope.$apply(() => { vm.loading = false; alert("Init Failed"); });
+                });
+            };
+
+            vm.runAnalysis = function() {
+                if(!vm.customState) return;
+                vm.loading = true;
+                vm.activeContext = vm.customState;
+
+                // Clean state text for M8
+                const safeState = vm.customState.replace(/[^a-zA-Z0-9 ]/g, "");
+                const distance = '0.342'
+
+                const ANALYSIS_SCRIPT = `
+store <current_state> ${safeState}
+llm_embed <current_state> <cs> dim=${DIM}
+vdb_search ARBITRAGE_PATTERNS <cs> <arb_match> distance=${distance}
+llm_detokenize <arb_match> <arb_interpretation>
+vdb_search CORRELATION_REGIMES <cs> <regime_match> distance=${distance}
+llm_detokenize <regime_match> <regime_interpretation>
+vdb_search DISLOCATION_EVENTS <cs> <historical_match> distance=${distance}
+llm_detokenize <historical_match> <historical_analog>
+mat8 <equity_returns> 0.02 0.05 -0.03 0.04 -0.01 0.03 -0.02 0.06
+align <equity_returns> 8
+mat8 <bond_returns> -0.01 -0.02 0.03 -0.01 0.02 -0.02 0.03 -0.04
+align <bond_returns> 8
+mat8 <credit_spreads> 0.08 0.12 -0.05 0.15 0.10 0.18 -0.03 0.20
+align <credit_spreads> 8
+mat8 <vix_levels> 0.12 0.14 0.18 0.13 0.15 0.11 0.10 0.09
+align <vix_levels> 8
+mat8 <gold_returns> 0.01 0.02 0.04 0.01 0.03 0.00 0.02 0.01
+align <gold_returns> 8
+mat8 <dollar_returns> 0.03 0.02 -0.01 0.04 0.02 0.05 0.01 0.03
+align <dollar_returns> 8
+mat8 <commodity_returns> 0.05 0.08 -0.02 0.10 0.06 0.12 0.03 0.09
+align <commodity_returns> 8
+mat8 <hy_spreads> 0.15 0.20 -0.08 0.25 0.18 0.30 -0.05 0.28
+align <hy_spreads> 8
+matcosim <equity_returns> <bond_returns> <equity_bond_corr>
+matcosim <equity_returns> <vix_levels> <equity_vix_corr>
+matcosim <credit_spreads> <vix_levels> <credit_vix_corr>
+matcosim <bond_returns> <gold_returns> <bond_gold_corr>
+matcosim <dollar_returns> <commodity_returns> <dollar_commodity_corr>
+matcosim <equity_returns> <gold_returns> <equity_gold_corr>
+matcosim <credit_spreads> <hy_spreads> <ig_hy_corr>
+matcosim <vix_levels> <hy_spreads> <vix_hy_corr>
+f32set <expected_equity_vix> -0.80
+f32set <actual_equity_vix> <equity_vix_corr>
+f32set <equity_vix_divergence> <expected_equity_vix>
+f32sub <equity_vix_divergence> <actual_equity_vix>
+f32set <expected_credit_vix> 0.75
+f32set <actual_credit_vix> <credit_vix_corr>
+f32set <credit_vix_divergence> <expected_credit_vix>
+f32sub <credit_vix_divergence> <actual_credit_vix>
+mat8 <historical_credit_spreads> 0.10 0.12 0.11 0.13 0.09 0.14 0.10 0.12
+align <historical_credit_spreads> 8
+mat8 <current_credit_level> 0.18 0.18 0.18 0.18 0.18 0.18 0.18 0.18
+align <current_credit_level> 8
+matsub <current_credit_level> <historical_credit_spreads> <credit_deviation>
+matdot <credit_deviation> <credit_deviation> <credit_zscore_proxy>
+mat8 <implied_vol> 0.18 0.20 0.19 0.22 0.17 0.21 0.19 0.20
+align <implied_vol> 8
+mat8 <realized_vol> 0.12 0.14 0.13 0.15 0.11 0.14 0.13 0.14
+align <realized_vol> 8
+matsub <implied_vol> <realized_vol> <vol_premium>
+matdot <vol_premium> <vol_premium> <vol_premium_magnitude>
+mat8 <default_risk_component> 0.05 0.06 0.05 0.07 0.04 0.08 0.05 0.07
+align <default_risk_component> 8
+mat8 <liquidity_component> 0.03 0.06 -0.10 0.08 0.06 0.10 -0.08 0.13
+align <liquidity_component> 8
+matadd <default_risk_component> <liquidity_component> <total_spread_explained>
+matsub <credit_spreads> <total_spread_explained> <unexplained_spread>
+matdot <unexplained_spread> <unexplained_spread> <mispricing_magnitude>
+mat8 <treasury_flows> 0.02 0.04 0.08 0.03 0.05 0.01 0.06 0.02
+align <treasury_flows> 8
+mat8 <gold_flows> 0.01 0.02 0.04 0.01 0.03 0.00 0.02 0.01
+align <gold_flows> 8
+matcosim <treasury_flows> <gold_flows> <safe_haven_consistency>
+mat8 <risk_weights> 0.25 0.25 0.25 0.25 0 0 0 0
+align <risk_weights> 8
+mat8 <asset_volatilities> 0.15 0.08 0.20 0.35 0 0 0 0
+align <asset_volatilities> 8
+matmul <risk_weights> <asset_volatilities> <portfolio_vol_contribution>
+matdot <portfolio_vol_contribution> <portfolio_vol_contribution> <portfolio_risk>
+mat8 <arbitrage_signals> 0.65 0.40 0.80 0.30 0.55 0.70 0.45 0.60
+align <arbitrage_signals> 8
+mat8 <signal_confidence> 0.75 0.60 0.85 0.50 0.70 0.80 0.55 0.65
+align <signal_confidence> 8
+matmul <arbitrage_signals> <signal_confidence> <weighted_arb_scores>
+matdot <weighted_arb_scores> <weighted_arb_scores> <total_arb_opportunity>
+matadd <equity_returns> <bond_returns> <temp_regime1>
+matadd <temp_regime1> <commodity_returns> <risk_on_proxy>
+mat8 <risk_off_assets> 0.02 0.04 0.08 0.03 0.05 0.01 0.06 0.02
+align <risk_off_assets> 8
+matcosim <risk_on_proxy> <risk_off_assets> <regime_coherence>
+mat8 <correlation_breaks> 0.45 0.60 0.80 0.35 0.55 0.70 0.40 0.65
+align <correlation_breaks> 8
+mat8 <break_severity_weights> 0.30 0.25 0.20 0.12 0.08 0.03 0.01 0.01
+align <break_severity_weights> 8
+matdot <correlation_breaks> <break_severity_weights> <dislocation_score>
+f32set <spread_current> 0.18
+f32set <spread_mean> 0.12
+f32set <spread_width> <spread_current>
+f32sub <spread_width> <spread_mean>
+f32set <convergence_potential> <spread_width>
+f32mul <convergence_potential> 0.5
+store <cross_market_report> ARBITRAGE: Pattern=<arb_interpretation> Opportunity=<total_arb_opportunity> Mispricing=<mispricing_magnitude> | CORRELATIONS: Equity_Bond=<equity_bond_corr> Equity_VIX=<equity_vix_corr> Credit_VIX=<credit_vix_corr> Bond_Gold=<bond_gold_corr> Dollar_Cmdty=<dollar_commodity_corr> IG_HY=<ig_hy_corr> Equity_Gold=<equity_gold_corr> VIX_HY=<vix_hy_corr> | DIVERGENCES: Equity_VIX_break=<equity_vix_divergence> Credit_VIX_break=<credit_vix_divergence> Safe_haven_consistency=<safe_haven_consistency> | REGIME: Type=<regime_interpretation> Coherence=<regime_coherence> Historical=<historical_analog> | RISK_METRICS: Vol_premium=<vol_premium_magnitude> Credit_zscore=<credit_zscore_proxy> Portfolio_risk=<portfolio_risk> Dislocation=<dislocation_score> | CONVERGENCE: Potential=<convergence_potential> Spread_width=<spread_width>
+ret <cross_market_report>`;
+
+                fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: ANALYSIS_SCRIPT })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    $scope.$apply(() => {
+                        let resultString = data.R || "";
+                        if (resultString.startsWith('"')) resultString = resultString.slice(1, -1);
+                        vm.rawOutput = resultString;
+                        vm.data = parseArbResult(resultString);
+                        vm.loading = false;
+                    });
+                })
+                .catch(err => { $scope.$apply(() => vm.loading = false); });
+            };
+
+            function parseArbResult(str) {
+                const parsed = { arbitrage: {}, correlations: {}, divergences: {}, regime: {}, risk_metrics: {}, convergence: {} };
+                const sections = str.split(' | ');
+                sections.forEach(sec => {
+                    const [sectionName, content] = sec.split(': ');
+                    if (!content) return;
+                    const pairs = content.split(' ');
+                    const targetKey = sectionName.toLowerCase().replace(' ', '_');
+                    pairs.forEach(p => {
+                        const [k, v] = p.split('=');
+                        if(k && v && parsed[targetKey]) {
+                            const num = parseFloat(v);
+                            parsed[targetKey][k] = !isNaN(num) && v.includes('.') ? num.toFixed(3) : v;
+                        }
+                    });
+                });
+                return parsed;
+            }
+        }]);
+    </script>
+</body>
+</html>
