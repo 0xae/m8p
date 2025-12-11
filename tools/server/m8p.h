@@ -1648,7 +1648,7 @@ namespace m8p {
 
             float d[AVX_V_SIZE];
             SIMD_STORE_PS(d, c);
-            out.clear();
+            // out.clear();
             // TODO
             for (int i=0; i<AVX_V_SIZE; i++) {
                 out.push_back(d[i]);
@@ -2976,14 +2976,14 @@ namespace m8p {
                         } else if (opCode=="matmul") {
                             lastRet = MatFlex_OP("mul", M8, instr_tokens);
 
-                        // } else if (opCode=="matadd") {
-                        //     lastRet = Mat8_OP("add", M8, instr_tokens);
+                        } else if (opCode=="xmatadd") {
+                            lastRet = Mat8_OP("add", M8, instr_tokens);
 
-                        // } else if (opCode=="matsub") {
-                        //     lastRet = Mat8_OP("sub", M8, instr_tokens);
+                        } else if (opCode=="xmatsub") {
+                            lastRet = Mat8_OP("sub", M8, instr_tokens);
 
-                        // } else if (opCode=="matmul") {
-                        //     lastRet = Mat8_OP("mul", M8, instr_tokens);
+                        } else if (opCode=="xmatmul") {
+                            lastRet = Mat8_OP("mul", M8, instr_tokens);
 
                         } else if (opCode=="matdot") {
                             lastRet = MatDotProd_OP2(M8, instr_tokens);
