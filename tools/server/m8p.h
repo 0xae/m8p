@@ -1682,7 +1682,7 @@ namespace m8p {
             }
 
             auto& vA = A->AR_F32;
-
+            auto& vB = B->AR_F32;
 
             if (vA.size()%AVX_V_SIZE!=0) {
                 int diff = __abs(AVX_V_SIZE - vA.size())
@@ -1692,9 +1692,8 @@ namespace m8p {
                 int diff = __abs(AVX_V_SIZE - vB.size())
                 vB->AR_F32.reserve(diff);
             }
-            auto& vB = B->AR_F32;
-            size_t N = std::min(vA.size(), vB.size());
 
+            size_t N = std::min(vA.size(), vB.size());
             std::vector<float> result(N, 0.0f);
 
             const size_t CHUNK = AVX_V_SIZE;
