@@ -396,9 +396,9 @@ vdb_add ADM <baset> 1`;
             vm.deleteSession = function(id) { SessionService.deleteSession(id); };
 
             $timeout(() => {
-                lucide.createIcons();
-                setTimeout(function () {
-                    window.RenderM8Menu('menu-system-area');
+                window.RenderM8Menu('menu-system-area');
+                $timeout(function () {
+                    lucide.createIcons();
                 }, 120);
             });
         }]);
