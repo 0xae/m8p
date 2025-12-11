@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8 Cortex Console</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- External Libs -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="menu.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#f9fafb',      
+                        background: '#ffffff',   
+                        surface: '#f3f4f6',      
+                        border: '#e5e7eb',       
+                        primary: '#8b5cf6', 
+                        primaryHover: '#7c3aed',
+                        textMain: '#111827',     
+                        textMuted: '#6b7280'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    },
+                    fontSize: {
+                        xxs: '0.65rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            cursor: pointer;
+            margin-top: -4px; 
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e5e7eb;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body ng-app="recsys-app" ng-controller="AppController as app" class="bg-background text-textMain h-screen flex overflow-hidden text-xs antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-56 bg-sidebar border-r border-border flex flex-col flex-none">
+        <div class="h-14 flex items-center px-4 border-b border-border">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-primary flex items-center justify-center">
+                    <i data-lucide="brain-circuit" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="font-semibold tracking-tight text-textMain text-sm">Cortex</span>
+            </div>
+        </div>
+
+        <div id="menu-system-area"></div>
+
+        <div class="p-4 border-t border-border">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">BM</div>
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-medium text-textMain">BrainMaster</span>
+                    <span class="text-[9px] text-textMuted">Admin Access</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 bg-background relative">
+        
+        <!-- VIEW: MEMORY ENGINE (NEW) -->
+        <div ng-controller="MemoryController as mem" class="flex flex-col h-full bg-surface">
+            
+            <!-- Header -->
+            <header class="h-14 border-b border-border bg-background flex items-center justify-between px-6 flex-none">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center">
+                        <i data-lucide="history" class="w-4 h-4 text-cyan-600"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-semibold text-textMain">Conversational Memory</h1>
+                        <p class="text-[10px] text-textMuted">Session: <span class="font-mono text-cyan-600">{{mem.sessionId}}</span></p>
+                    </div>
+                </div>
+
+            </header>
+
+            <!-- Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Left: Memory Bank -->
+                    <div class="lg:col-span-1 space-y-6">
+                        
+                        <!-- Input Query (Only visible if Initialized) -->
+                        <div ng-if="mem.isInitialized" class="bg-background border border-border rounded-lg p-4 shadow-sm">
+                            <h3 class="text-xs font-semibold text-textMuted uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <i data-lucide="search" class="w-3 h-3"></i> Recall Memory
+                            </h3>
+                            <div class="flex gap-2">
+                                <input type="text" ng-model="mem.queryInput" placeholder="Ask memory (e.g. Where do I work?)" 
+                                       class="flex-1 bg-surface border border-border rounded text-xs px-2 py-1.5 focus:outline-none focus:border-cyan-500" 
+                                       ng-keypress="$event.keyCode === 13 && mem.queryMemory()">
+                                <button ng-click="mem.queryMemory()" ng-disabled="!mem.queryInput || mem.loading" 
+                                        class="px-3 py-1.5 bg-cyan-100 hover:bg-cyan-200 text-cyan-700 rounded text-[10px] font-bold transition-colors">
+                                    Ask 
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Input Fact (Only visible if Initialized) -->
+                        <div ng-if="mem.isInitialized" class="bg-background border border-border rounded-lg p-4 shadow-sm">
+                            <h3 class="text-xs font-semibold text-textMuted uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <i data-lucide="plus-circle" class="w-3 h-3"></i> Add New Fact
+                            </h3>
+                            <div class="flex gap-2">
+                                <input type="text" ng-model="mem.memoryInput" placeholder="e.g. I just learned to play piano" 
+                                       class="flex-1 bg-surface border border-border rounded text-xs px-2 py-1.5 focus:outline-none focus:border-cyan-500" 
+                                       ng-keypress="$event.keyCode === 13 && mem.addMemory()">
+                                <button ng-click="mem.addMemory()" ng-disabled="!mem.memoryInput || mem.loading" 
+                                        class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-[10px] font-bold transition-colors">
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Facts List -->
+                        <div class="bg-background border border-border rounded-lg overflow-hidden shadow-sm">
+                            <div class="px-4 py-3 border-b border-border bg-gray-50 flex justify-between items-center">
+                                <h3 class="text-xs font-semibold text-textMain uppercase tracking-wider flex items-center gap-2">
+                                    <i data-lucide="hard-drive" class="w-3 h-3 text-cyan-500"></i> Long Term Memory
+                                </h3>
+                                <span class="text-[9px] text-textMuted font-mono">{{mem.TotalFacts}} Facts</span>
+                            </div>
+                            <div class="divide-y divide-border max-h-[400px] overflow-y-auto">
+                                <div ng-if="mem.facts.length === 0" class="p-4 text-center text-[10px] text-textMuted italic">
+                                    Memory bank is empty. Initialize to load default facts.
+                                </div>
+                                <div style="max-height: 400px;overflow: hidden;overflow-y: scroll;">
+                                    <div ng-repeat="fact in mem.facts" 
+                                        class="p-3 hover:bg-gray-50 transition-colors group animate-in slide-in-from-left-2 duration-300">
+                                        <div class="flex items-start gap-2">
+                                            <i ng-class="{'text-cyan-500': fact.isNew, 'text-textMuted': !fact.isNew}" data-lucide="{{fact.icon || 'file-text'}}" class="w-3 h-3 mt-0.5"></i>
+                                            <div class="text-xs text-textMain leading-snug">"{{fact.text}}"</div>
+                                        </div>
+                                    </div>                                    
+                                </div>
+                            </div>
+                        </div>
+
+                        <button ng-click="mem.addBulk()" 
+                                ng-show="mem.isInitialized"
+                                ng-disabled="mem.loading" 
+                                class="px-3 py-1.5 bg-cyan-100 hover:bg-cyan-200 text-cyan-700 rounded text-[10px] font-bold transition-colors"
+                                style="width:100%!important;">
+                            <span ng-show="mem.loading">LOADING...</span>
+                            <span ng-show="!mem.loading">ADD MORE {{mem.BFLEN}} BULK ITEMS </span>
+                        </button>
+
+                         <button ng-if="mem.isInitialized" ng-click="mem.runSimulation()" 
+                            style="width:100%;" 
+                            class="items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded text-[10px] font-medium transition-colors shadow-sm" ng-disabled="mem.loading">
+                                <!-- <i data-lucide="play" class="w-3 h-3" ng-class="{'animate-spin': mem.loading}"></i> -->
+                                {{mem.loading ? 'Recalling...' : 'Run Simulation'}}
+                        </button>
+                    </div>
+
+                    <!-- Right: Inference & Retrieval -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Empty State -->
+
+                        <div ng-if="mem.loading" class="pt-5">
+                            <!-- <i data-lucide="database" class="w-3 h-3 animate-spin"></i> -->
+                            <div class="h-full flex flex-col items-center justify-center">
+                                <div class="w-12 h-12 border-4 bg-white border-cyan-700 border-t-cyan-600 rounded-full animate-spin mb-4"></div>
+                                <p class="text-xs text-textMuted font-mono animate-pulse">Hold on</p>
+                            </div>
+
+                        </div>
+
+                        <div ng-if="!mem.data && !mem.loading && mem.manualQueries.length === 0" class="flex flex-col items-center justify-center py-20 border border-dashed border-border rounded-lg">
+
+                            <div class="w-12 h-12 bg-cyan-50 rounded-full flex items-center justify-center mb-3">
+                                <i data-lucide="activity" class="w-6 h-6 text-cyan-300"></i>
+                            </div>
+
+                            <p class="text-xs text-textMuted">Run simulation or query memory to see vector retrieval</p>
+
+                            <div class="flex items-center gap-2 mt-4">
+                                <button ng-if="!mem.isInitialized" ng-click="mem.initMemory()" class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded text-[10px] font-medium transition-colors shadow-sm" ng-disabled="mem.loading">
+                                    <i data-lucide="database" class="w-3 h-3" ng-class="{'animate-spin': mem.loading}"></i>
+                                    {{mem.loading ? 'Initializing...' : 'Initialize Memory'}}
+                                </button>
+                                <button ng-if="mem.isInitialized" ng-click="mem.runSimulation()" class="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded text-[10px] font-medium transition-colors shadow-sm" ng-disabled="mem.loading">
+                                    <i data-lucide="play" class="w-3 h-3" ng-class="{'animate-spin': mem.loading}"></i>
+                                    {{mem.loading ? 'Recalling...' : 'Run Simulation'}}
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- Retrieval Stream -->
+                        <div ng-if="mem.data || mem.manualQueries.length > 0" class="space-y-4">
+                            <h3 class="text-xs font-semibold text-textMuted uppercase tracking-wider mb-2">Memory Retrieval Stream</h3>                            
+                            <span style="font-size:x-small;text-decoration:underline" ng-if="mem.simLatency">Simulation ran in {{mem.simLatency}}</span>
+                            <span style="color: green;font-size:x-small;text-decoration:underline" ng-if="mem.bulk_latency">| Bulk Index ran in {{mem.bulk_latency}}</span>
+
+                            <!-- Manual Queries -->
+                            <div ng-repeat="mq in mem.manualQueries " class="bg-white border border-border rounded-lg p-4 shadow-sm relative animate-in slide-in-from-right-4 duration-300">
+                                <div class="absolute -left-2 top-4 w-4 h-4 bg-green-100 border border-green-300 rounded-full flex items-center justify-center">
+                                    <div class="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                                </div>
+                                <div class="text-[10px] font-bold text-textMuted mb-1">LIVE QUERY VECTOR</div>
+                                <p class="text-sm font-medium text-textMain mb-3">"{{mq.query}}"</p>
+                                <div class="bg-green-50/50 p-3 rounded border border-green-100 flex items-start gap-2">
+                                    <i data-lucide="corner-down-right" class="w-4 h-4 text-green-500 mt-0.5"></i>
+                                    <div>
+                                        <span class="text-[10px] font-bold text-green-700 block mb-0.5">RECALLED:</span>
+                                        <p class="text-xs text-textMain">{{mq.result}}</p>
+                                    </div>
+                                    <span class="text-xss text-textMain"
+                                        style="color: green;font-size:x-small;text-decoration:underline">{{mq.latency}}</span>
+                                </div>
+                            </div>
+
+                            <!-- Sim Q1 -->
+                            <div ng-if="mem.data" class="bg-white border border-border rounded-lg p-4 shadow-sm relative">
+                                <div class="absolute -left-2 top-4 w-4 h-4 bg-cyan-100 border border-cyan-300 rounded-full flex items-center justify-center">
+                                    <div class="w-1.5 h-1.5 bg-cyan-600 rounded-full"></div>
+                                </div>
+                                <div class="text-[10px] font-bold text-textMuted mb-1">QUERY VECTOR &lt;qe1&gt;</div>
+                                <p class="text-sm font-medium text-textMain mb-3">"What do I do for work and where?"</p>
+                                <div class="bg-cyan-50/50 p-3 rounded border border-cyan-100 flex items-start gap-2">
+                                    <i data-lucide="corner-down-right" class="w-4 h-4 text-cyan-500 mt-0.5"></i>
+                                    <div>
+                                        <span class="text-[10px] font-bold text-cyan-700 block mb-0.5">RECALLED:</span>
+                                        <p class="text-xs text-textMain">{{mem.data.mem1}}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sim Q2 -->
+                            <div ng-if="mem.data" class="bg-white border border-border rounded-lg p-4 shadow-sm relative">
+                                <div class="absolute -left-2 top-4 w-4 h-4 bg-purple-100 border border-purple-300 rounded-full flex items-center justify-center">
+                                    <div class="w-1.5 h-1.5 bg-purple-600 rounded-full"></div>
+                                </div>
+                                <div class="text-[10px] font-bold text-textMuted mb-1">QUERY VECTOR &lt;qe2&gt;</div>
+                                <p class="text-sm font-medium text-textMain mb-3">"Tell me about my pets"</p>
+                                <div class="bg-purple-50/50 p-3 rounded border border-purple-100 flex items-start gap-2">
+                                    <i data-lucide="corner-down-right" class="w-4 h-4 text-purple-500 mt-0.5"></i>
+                                    <div>
+                                        <span class="text-[10px] font-bold text-purple-700 block mb-0.5">RECALLED:</span>
+                                        <p class="text-xs text-textMain">{{mem.data.mem2}}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LLM Synthesis -->
+                        <div ng-if="mem.data" class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg p-5 text-white shadow-md">
+                            <div class="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
+                                <i data-lucide="bot" class="w-5 h-5 text-cyan-400"></i>
+                                <h3 class="text-sm font-semibold">LLM Synthesis (BioWriter)</h3>
+                            </div>
+                            <div class="bg-black/30 p-4 rounded-md border border-white/5 font-serif leading-relaxed text-sm text-gray-200">
+                                "{{mem.data.bio}}"
+                            </div>
+                            
+                            <!-- Metrics -->
+                            <div class="mt-4 grid grid-cols-3 gap-4 pt-3 border-t border-white/10">
+                                <div>
+                                    <div class="text-[9px] text-gray-400 uppercase tracking-wider mb-1">Coherence Score</div>
+                                    <div class="text-lg font-mono font-bold text-green-400">{{mem.data.coherence}}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[9px] text-gray-400 uppercase tracking-wider mb-1">Latent Insight</div>
+                                    <div class="text-xs font-medium text-cyan-200">{{mem.data.color}}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[9px] text-gray-400 uppercase tracking-wider mb-1">Inferred Hobby</div>
+                                    <div class="text-xs font-medium text-purple-200">{{mem.data.hobbies}}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Raw Toggle -->
+                        <div ng-if="mem.data" class="text-right">
+                            <button ng-click="mem.showRaw = !mem.showRaw" class="text-[10px] text-textMuted underline hover:text-textMain inline-flex items-center gap-1">
+                                <i data-lucide="code" class="w-3 h-3"></i> {{mem.showRaw ? 'Hide' : 'Show'}} Raw M8
+                            </button>
+                            <pre ng-if="mem.showRaw" class="mt-2 p-3 bg-[#1e1e1e] text-gray-400 text-[10px] font-mono rounded overflow-x-auto whitespace-pre-wrap text-left">{{mem.rawOutput}}</pre>
+                        </div>
+
+                    </div>
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <!-- LOGIC -->
+    <script type="text/javascript">
+        const app = angular.module('recsys-app', []);
+        const DIM=185;
+        const M8_HOST = "";
+        window.G_DISTANCE = '0.425';
+        window.DIM = DIM;
+
+        app.controller('AppController', ['$scope', '$timeout', function($scope, $timeout) {
+            const vm = this;
+            vm.currentView = 'memory'; // Default View
+            
+            vm.setView = function(view) {
+                vm.currentView = view;
+                $timeout(() => lucide.createIcons());
+            };
+            
+
+            $timeout(() => {
+                window.RenderM8Menu('menu-system-area');
+                $timeout(function () {
+                    lucide.createIcons();
+                }, 120);
+            });
+        }]);
+
+        // --- Memory Controller ---
+        app.controller('MemoryController', ['$scope', '$http', '$timeout', function($scope, $http, $timeout) {
+            const vm = this;
+            vm.loading = false;
+            vm.isInitialized = false;
+            vm.data = null;
+            vm.showRaw = false;
+            vm.sessionId = 'mem_' + Math.random().toString(36).substring(2, 8);
+            vm.memoryInput = "";
+            vm.queryInput = "";
+            vm.facts = [];
+            vm.manualQueries = [];
+            vm.is_bulk_add=false;
+            var total = 0;
+            vm.TotalFacts = 0;
+
+            // 1. Initialization Script (Run Once)
+            const INIT_SCRIPT = `
+            #store <init> You are a helpful assistant that remembers personal information
+            vdb_instance MEMORY dim=${DIM} max_elements=6000 M=149 ef_construction=300
+            #llm_instance <init> chatbot n_predict=50 temperature=0.7
+            store <fact1> My favorite color is blue and I love ocean sunsets
+            llm_embed <fact1> <e1> dim=${DIM}
+            vdb_add MEMORY <e1> User likes blue color and ocean sunsets
+            store <fact2> I work as a software engineer at a startup in San Francisco
+            llm_embed <fact2> <e2> dim=${DIM}
+            vdb_add MEMORY <e2> User is software engineer at SF startup
+            store <fact3> My hobbies include rock climbing and playing guitar
+            llm_embed <fact3> <e3> dim=${DIM}
+            vdb_add MEMORY <e3> User enjoys rock climbing and guitar
+            store <fact4> I have a golden retriever named Max who is 3 years old
+            llm_embed <fact4> <e4> dim=${DIM}
+            vdb_add MEMORY <e4> User has 3 year old golden retriever named Max
+            store <fact5> I studied computer science at Stanford from 2015 to 2019
+            llm_embed <fact5> <e5> dim=${DIM}
+            vdb_add MEMORY <e5> User studied CS at Stanford 2015-2019
+            ret "Initialized"`;
+
+            // 2. Simulation / Query Script
+            const SIM_SCRIPT = `store <q1> What do I do for work and where
+            llm_embed <q1> <qe1> dim=${DIM}
+            vdb_search MEMORY <qe1> <m1> distance=0.6
+            llm_detokenize <m1> <answer1>
+            store <q2> Tell me about my pets
+            llm_embed <q2> <qe2> dim=${DIM}
+            vdb_search MEMORY <qe2> <m2> distance=0.6
+            llm_detokenize <m2> <answer2>
+            store <aspect1> professional career and education
+            store <aspect2> personal hobbies and interests
+            llm_embed <aspect1> <ea1> dim=${DIM}
+            llm_embed <aspect2> <ea2> dim=${DIM}
+            matcosim <ea1> <ea2> <life_similarity>
+            store <prompt> Based on this info: <answer1> and <answer2>, write a short bio
+            llm_instance <prompt> biowriter n_predict=80 temperature=0.6
+            llm_instancestatus biowriter <generated_bio>
+            mat8 <importance_weights> 0.3 0.25 0.2 0.15 0.05 0.03 0.01 0.01
+            align <importance_weights> ${DIM}
+            store <career_q> What is my professional background
+            llm_embed <career_q> <cqe> dim=${DIM}
+            vdb_search MEMORY <cqe> <career_match> distance=0.5
+            llm_detokenize <career_match> <career_info>
+            store <hobby_q> What do I like to do for fun
+            llm_embed <hobby_q> <hqe> dim=${DIM}
+            vdb_search MEMORY <hqe> <hobby_match> distance=0.5
+            llm_detokenize <hobby_match> <hobby_info>
+            store <color_q> What colors might I like based on my interests
+            llm_embed <color_q> <colqe> dim=${DIM}
+            vdb_search MEMORY <colqe> <color_match> distance=0.7
+            llm_detokenize <color_match> <color_inference>
+            llm_embed <answer1> <ans1_emb> dim=${DIM}
+            llm_embed <answer2> <ans2_emb> dim=${DIM}
+            matcosim <ans1_emb> <ans2_emb> <coherence>
+            store <final> Memory 1: <answer1> | Memory 2: <answer2> | Coherence: <coherence> | Bio: <generated_bio> | Career: <career_info> | Hobbies: <hobby_info> | Color insight: <color_inference>
+            ret <final>`;
+
+            vm.initMemory = function() {
+                vm.loading = true;
+                // Session Check
+                fetch(`${M8_HOST}/api/v1/m8/session-check/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: "stall 1" })
+                }).then(() => {
+                    // Run Init Script
+                    return fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: INIT_SCRIPT })
+                    });
+                }).then(() => {
+                    $scope.$apply(() => {
+                        vm.isInitialized = true;
+                        vm.loading = false;
+                        // Populate default facts for UI
+                        vm.facts = [
+                            {text: "My favorite color is blue and I love ocean sunsets", icon: 'user'},
+                            {text: "Software engineer at a startup in SF", icon: 'briefcase'},
+                            {text: "Hobbies: Rock climbing, playing guitar", icon: 'gamepad-2'},
+                            {text: "Golden retriever named Max (3 yrs old)", icon: 'dog'},
+                            {text: "Studied CS at Stanford 2015-2019", icon: 'graduation-cap'}
+                        ];
+                        vm.TotalFacts = vm.facts.length;
+                        $timeout(() => lucide.createIcons());
+                    });
+                }).catch(() => {
+                    $scope.$apply(() => { vm.loading = false; alert("Init Failed"); });
+                });
+            };
+
+            var BF=[
+              "I prefer Notion over Jira for personal task management",
+              "I listen to the 'Lex Fridman Podcast' while commuting",
+              "My favorite board game is Catan",
+              "I have a standing desk setup at home",
+              "I use a Chemex to brew coffee on weekends",
+              "I'm allergic to cats but love them from afar",
+              "I binge-watched 'Silicon Valley' twice",
+              "I invested in Ethereum back in 2017",
+              "I hate it when people don't comment their code",
+              "I drive up to Napa Valley for wine tasting occasionally",
+              "I have a noise-canceling Bose headset for flights",
+              "I use Signal for encrypted messaging",
+              "My favorite ice cream flavor is Salted Caramel",
+              "I played soccer in high school",
+              "I'm learning how to surf at Pacifica State Beach",
+              "I have a collection of vinyl records",
+              "I prefer dark mode on all my apps",
+              "I use VS Code with the Dracula theme",
+              "I volunteer to mentor coding boot camp students",
+              "I have a slight obsession with mechanical keyboards",
+              "I own a North Face puffer jacket",
+              "I check Hacker News every morning",
+              "I prefer hiking in the Marin Headlands",
+              "I'm trying to cut down on caffeine",
+              "I love the smell of rain (petrichor)",
+              "I use 1Password for all my credentials",
+              "I have a shared Netflix account with my siblings",
+              "I prefer IPAs when drinking beer",
+              "I recently bought a cast iron skillet",
+              "I listen to synthwave when coding late at night",
+              "I have a minor fear of heights but still climb",
+              "I want to visit Tokyo for the technology and food",
+              "I use a Herman Miller Aeron chair at work",
+              "I prefer functional programming paradigms",
+              "I have a membership at the SF MOMA",
+              "I donate to the Electronic Frontier Foundation",
+              "I prefer Google Maps over Apple Maps",
+              "I have a backlog of Steam games I haven't played",
+              "I use a heavy weighted blanket for sleeping",
+              "I love making homemade guacamole",
+              "I attended Coachella once but prefer smaller concerts",
+              "I use Strava to track my runs and rides",
+              "I prefer Slack over Microsoft Teams",
+              "I have a subscription to The Atlantic",
+              "I try to buy organic produce at the farmers market",
+              "I'm learning to cook Indian food",
+              "I prefer tabs over spaces (controversial, I know)",
+              "I have a raspberry pi running a home server",
+              "I track my sleep with an Oura ring",
+              "I want to hike the Pacific Crest Trail one day",
+              "I prefer Notion over Jira for personal task management",
+              "I listen to the 'Lex Fridman Podcast' while commuting",
+              "My favorite board game is Catan",
+              "I have a standing desk setup at home",
+              "I use a Chemex to brew coffee on weekends",
+              "I'm allergic to cats but love them from afar",
+              "I binge-watched 'Silicon Valley' twice",
+              "I invested in Ethereum back in 2017",
+              "I hate it when people don't comment their code",
+              "I drive up to Napa Valley for wine tasting occasionally",
+              "I have a noise-canceling Bose headset for flights",
+              "I use Signal for encrypted messaging",
+              "My favorite ice cream flavor is Salted Caramel",
+              "I played soccer in high school",
+              "I'm learning how to surf at Pacifica State Beach",
+              "I have a collection of vinyl records",
+              "I prefer dark mode on all my apps",
+              "I use VS Code with the Dracula theme",
+              "I volunteer to mentor coding boot camp students",
+              "I have a slight obsession with mechanical keyboards",
+              "I own a North Face puffer jacket",
+              "I check Hacker News every morning",
+              "I prefer hiking in the Marin Headlands",
+              "I'm trying to cut down on caffeine",
+              "I love the smell of rain (petrichor)",
+              "I use 1Password for all my credentials",
+              "I have a shared Netflix account with my siblings",
+              "I prefer IPAs when drinking beer",
+              "I recently bought a cast iron skillet",
+              "I listen to synthwave when coding late at night",
+              "I have a minor fear of heights but still climb",
+              "I want to visit Tokyo for the technology and food",
+              "I use a Herman Miller Aeron chair at work",
+              "I prefer functional programming paradigms",
+              "I have a membership at the SF MOMA",
+              "I donate to the Electronic Frontier Foundation",
+              "I prefer Google Maps over Apple Maps",
+              "I have a backlog of Steam games I haven't played",
+              "I use a heavy weighted blanket for sleeping",
+              "I love making homemade guacamole",
+              "I attended Coachella once but prefer smaller concerts",
+              "I use Strava to track my runs and rides",
+              "I prefer Slack over Microsoft Teams",
+              "I have a subscription to The Atlantic",
+              "I try to buy organic produce at the farmers market",
+              "I'm learning to cook Indian food",
+              "I prefer tabs over spaces (controversial, I know)",
+              "I have a raspberry pi running a home server",
+              "I track my sleep with an Oura ring",
+              "I want to hike the Pacific Crest Trail one day",
+              "I wear a Patagonia vest to work ironically",
+              "I spend sunny weekends lounging at Dolores Park",
+              "I use Obsidian to manage my 'second brain'",
+              "I strictly drink pour-over coffee when I'm at home",
+              "I have strong opinions on bagel quality (NY > SF)",
+              "I use Kubernetes at work and have a love-hate relationship with it",
+              "I track my macros using MyFitnessPal",
+              "I own a DJI drone but rarely find time to fly it",
+              "I treat myself to sushi omakase for special occasions",
+              "I use Docker containers for all my side projects",
+              "I prefer matcha lattes over chai tea",
+              "I spend way too much money on DoorDash",
+              "I have a habit of buying technical books I never read",
+              "I use a standing desk converter at the office",
+              "I'm learning React Native just for fun",
+              "I have a subscription to MasterClass for cooking lessons",
+              "I prefer rainy days for long coding marathons",
+              "I own a pair of Allbirds wool runners in grey",
+              "I listen to white noise while sleeping",
+              "I use Trello for planning my vacation itineraries",
+              "I'm a casual fan of the Golden State Warriors",
+              "I have a collection of fun, patterned socks",
+              "I always pick the aisle seat on airplanes",
+              "I carry a Hydro Flask water bottle everywhere I go",
+              "I'm trying to get into street photography with a Sony Alpha",
+              "I love trying out new food trucks in the city",
+              "I prefer tech podcasts over audiobooks",
+              "I have a minimalist Ridge wallet",
+              "I use a VPN for privacy on public Wi-Fi",
+              "I'm interested in collecting vintage watches",
+              "I prefer sturdy hiking boots over trail runners",
+              "I have a bad habit of buying domain names for ideas I never build",
+              "I use a daily mood tracker app",
+              "I drink cold brew coffee year-round, even in winter",
+              "I have a desk plant named 'Succy' that I try to keep alive",
+              "I use a vertical mouse to prevent RSI",
+              "I prefer brainstorming with a physical whiteboard",
+              "I have a deep fascination with SpaceX and rocketry",
+              "I listen to classical music when I'm really stressed",
+              "I prefer stainless steel appliances in my kitchen",
+              "I have a slight fear of public speaking",
+              "I use a foam roller religiously after climbing sessions",
+              "I prefer 85% dark chocolate over milk chocolate",
+              "I have a secret family recipe for vegetarian chili",
+              "I'm most productive between 10 PM and 2 AM",
+              "I keep a stash of protein bars in my desk drawer",
+              "I prefer nature documentaries over reality TV",
+              "I have a life goal to visit every US National Park",
+              "I use a dual 27-inch monitor setup for work",
+              "I prefer savory breakfasts like avocado toast over sweet ones",
+              "I prefer Notion over Jira for personal task management",
+              "I listen to the 'Lex Fridman Podcast' while commuting",
+              "My favorite board game is Catan",
+              "I have a standing desk setup at home",
+              "I use a Chemex to brew coffee on weekends",
+              "I'm allergic to cats but love them from afar",
+              "I binge-watched 'Silicon Valley' twice",
+              "I invested in Ethereum back in 2017",
+              "I hate it when people don't comment their code",
+              "I drive up to Napa Valley for wine tasting occasionally",
+              "I have a noise-canceling Bose headset for flights",
+              "I use Signal for encrypted messaging",
+              "My favorite ice cream flavor is Salted Caramel",
+              "I played soccer in high school",
+              "I'm learning how to surf at Pacifica State Beach",
+              "I have a collection of vinyl records",
+              "I prefer dark mode on all my apps",
+              "I use VS Code with the Dracula theme",
+              "I volunteer to mentor coding boot camp students",
+              "I have a slight obsession with mechanical keyboards",
+              "I own a North Face puffer jacket",
+              "I check Hacker News every morning",
+              "I prefer hiking in the Marin Headlands",
+              "I'm trying to cut down on caffeine",
+              "I love the smell of rain (petrichor)",
+              "I use 1Password for all my credentials",
+              "I have a shared Netflix account with my siblings",
+              "I prefer IPAs when drinking beer",
+              "I recently bought a cast iron skillet",
+              "I listen to synthwave when coding late at night",
+              "I have a minor fear of heights but still climb",
+              "I want to visit Tokyo for the technology and food",
+              "I use a Herman Miller Aeron chair at work",
+              "I prefer functional programming paradigms",
+              "I have a membership at the SF MOMA",
+              "I donate to the Electronic Frontier Foundation",
+              "I prefer Google Maps over Apple Maps",
+              "I have a backlog of Steam games I haven't played",
+              "I use a heavy weighted blanket for sleeping",
+              "I love making homemade guacamole",
+              "I attended Coachella once but prefer smaller concerts",
+              "I use Strava to track my runs and rides",
+              "I prefer Slack over Microsoft Teams",
+              "I have a subscription to The Atlantic",
+              "I try to buy organic produce at the farmers market",
+              "I'm learning to cook Indian food",
+              "I prefer tabs over spaces (controversial, I know)",
+              "I have a raspberry pi running a home server",
+              "I track my sleep with an Oura ring",
+              "I want to hike the Pacific Crest Trail one day",
+              "I wear a Patagonia vest to work ironically",
+              "I spend sunny weekends lounging at Dolores Park",
+              "I use Obsidian to manage my 'second brain'",
+              "I strictly drink pour-over coffee when I'm at home",
+              "I have strong opinions on bagel quality (NY > SF)",
+              "I use Kubernetes at work and have a love-hate relationship with it",
+              "I track my macros using MyFitnessPal",
+              "I own a DJI drone but rarely find time to fly it",
+              "I treat myself to sushi omakase for special occasions",
+              "I use Docker containers for all my side projects",
+              "I prefer matcha lattes over chai tea",
+              "I spend way too much money on DoorDash",
+              "I have a habit of buying technical books I never read",
+              "I use a standing desk converter at the office",
+              "I'm learning React Native just for fun",
+              "I have a subscription to MasterClass for cooking lessons",
+              "I prefer rainy days for long coding marathons",
+              "I own a pair of Allbirds wool runners in grey",
+              "I listen to white noise while sleeping",
+              "I use Trello for planning my vacation itineraries",
+              "I'm a casual fan of the Golden State Warriors",
+              "I have a collection of fun, patterned socks",
+              "I always pick the aisle seat on airplanes",
+              "I carry a Hydro Flask water bottle everywhere I go",
+              "I'm trying to get into street photography with a Sony Alpha",
+              "I love trying out new food trucks in the city",
+              "I prefer tech podcasts over audiobooks",
+              "I have a minimalist Ridge wallet",
+              "I use a VPN for privacy on public Wi-Fi",
+              "I'm interested in collecting vintage watches",
+              "I prefer sturdy hiking boots over trail runners",
+              "I have a bad habit of buying domain names for ideas I never build",
+              "I use a daily mood tracker app",
+              "I drink cold brew coffee year-round, even in winter",
+              "I have a desk plant named 'Succy' that I try to keep alive",
+              "I use a vertical mouse to prevent RSI",
+              "I prefer brainstorming with a physical whiteboard",
+              "I have a deep fascination with SpaceX and rocketry",
+              "I listen to classical music when I'm really stressed",
+              "I prefer stainless steel appliances in my kitchen",
+              "I have a slight fear of public speaking",
+              "I use a foam roller religiously after climbing sessions",
+              "I prefer 85% dark chocolate over milk chocolate",
+              "I have a secret family recipe for vegetarian chili",
+              "I'm most productive between 10 PM and 2 AM",
+              "I keep a stash of protein bars in my desk drawer",
+              "I prefer nature documentaries over reality TV",
+              "I have a life goal to visit every US National Park",
+              "I use a dual 27-inch monitor setup for work",
+              "I prefer savory breakfasts like avocado toast over sweet ones",
+              "I exclusively use the terminal for Git commands",
+              "I have a subscription to the Calm app for meditation",
+              "I'm currently experimenting with 3D printing",
+              "I prefer biking to work when the weather is nice",
+              "I love visiting the California Academy of Sciences",
+              "I have a collection of field notes notebooks",
+              "I prefer PostgreSQL over MySQL for databases",
+              "I listen to 'Darknet Diaries' on road trips",
+              "I have a habit of checking my email first thing in the morning",
+              "I prefer a matte screen protector on my phone",
+              "I use a YubiKey for two-factor authentication",
+              "I love the architecture of the Golden Gate Bridge",
+              "I prefer buying clothes from sustainable brands",
+              "I have a weakness for artisanal donuts",
+              "I use a pomodoro timer to stay focused",
+              "I prefer wireless charging over cables",
+              "I have a small emergency kit in my car",
+              "I love watching TED talks on various topics",
+              "I prefer a hard mattress for sleeping",
+              "I have a collection of concert posters",
+              "I use a credit card with travel rewards",
+              "I love the smell of old books",
+              "I prefer a minimalist desktop wallpaper",
+              "I have a habit of organizing my apps by color",
+              "I use a blue light filter on my screens at night",
+              "I love going to comedy clubs on weekends",
+              "I prefer a quiet evening in over a loud party",
+              "I have a collection of unique coffee mugs",
+              "I use a password manager for everything",
+              "I love the feeling of finishing a good book",
+              "I prefer a backpack over a messenger bag",
+              "I have a habit of saving boxes 'just in case'",
+              "I use a smart thermostat to save energy",
+              "I love the sound of waves crashing on the shore",
+              "I prefer a window seat on trains",
+              "I have a collection of magnets from places I've visited",
+              "I use a habit tracker to build new routines",
+              "I love the taste of fresh sourdough bread",
+              "I prefer a fountain pen for writing",
+              "I have a habit of taking photos of my food",
+              "I use a smart speaker for weather updates",
+              "I love the view from Twin Peaks at night",
+              "I prefer a manual transmission car (if I could find one)",
+              "I have a collection of tech stickers on my laptop case",
+              "I use a robotic vacuum to keep my floors clean",
+              "I love the atmosphere of a busy coffee shop",
+              "I prefer a mechanical watch over a smartwatch sometimes",
+              "I have a habit of reading reviews before buying anything",
+              "I use a cloud storage service for my photos",
+              "I love the excitement of a rocket launch",
+              "I prefer a clean desk policy",
+              "I have a collection of board games",
+              "I use a fitness tracker to monitor my steps",
+              "I love the challenge of a difficult coding problem",
+              "I prefer a dark roast coffee",
+              "I have a habit of making lists for everything",
+              "I use a noise machine to help me sleep",
+              "I love the smell of pine trees",
+              "I prefer a structured day over a spontaneous one",
+              "I have a collection of travel guides",
+              "I use a budgeting app to track my spending",
+              "I love the feeling of a fresh haircut",
+              "I prefer a cold room for sleeping",
+              "I have a habit of double-checking my locks",
+              "I use a VPN when traveling abroad",
+              "I love the taste of authentic ramen",
+              "I prefer a collaborative work environment",
+              "I have a collection of sci-fi novels",
+              "I use a standing mat for comfort",
+              "I love the sound of rain on the roof",
+              "I prefer a direct flight over a layover",
+              "I have a habit of cleaning my glasses often",
+              "I use a wireless mouse for convenience",
+              "I love the look of a well-designed website",
+              "I prefer a home-cooked meal over takeout sometimes",
+              "I have a collection of postcards",
+              "I use a digital calendar for all my appointments",
+              "I love the feeling of solving a puzzle",
+              "I prefer a quiet library for studying",
+              "I have a habit of drinking water throughout the day",
+              "I use a screen cleaner to keep my devices smudge-free",
+              "I love the smell of fresh laundry",
+              "I prefer a structured workout routine",
+              "I have a collection of graphic novels",
+              "I use a sleep mask for better rest",
+              "I love the taste of a good burger",
+              "I prefer a fast internet connection above all else",
+              "I have a habit of backing up my data regularly",
+              "I use a surge protector for my electronics",
+              "I love the feeling of accomplishment after a project",
+              "I prefer a tidy workspace",
+              "I have a collection of movie tickets",
+              "I use a document scanner to go paperless",
+              "I love the sound of a crackling fire",
+              "I prefer a comfortable chair for long gaming sessions",
+              "I have a habit of checking the weather forecast",
+              "I use a label maker for organization",
+              "I love the taste of fresh berries",
+              "I prefer a reliable car over a flashy one",
+              "I have a collection of ticket stubs",
+              "I use a fast charger for my phone",
+              "I love the feeling of a warm shower",
+              "I prefer a good pair of jeans",
+              "I have a habit of recycling",
+              "I use a smart plug for my lamps",
+              "I love the sound of birds chirping in the morning",
+              "I prefer a good book over a movie sometimes",
+              "I have a collection of keychains",
+              "I use a diff tool for code reviews",
+              "I love the taste of fresh orange juice",
+              "I prefer a sturdy umbrella",
+              "I have a habit of keeping my inbox at zero",
+              "I use a password generator for security",
+              "I love the feeling of clean sheets",
+              "I prefer a reliable internet provider",
+              "I have a collection of bookmarks",
+              "I use a backup drive for important files",
+              "I love the sound of live music",
+              "I prefer a comfortable pair of shoes",
+              "I have a habit of saying thank you",
+              "I use a task manager to stay organized",
+              "I love the taste of spicy food",
+              "I prefer a good conversation over small talk",
+              "I have a collection of mugs",
+              "I use a wrist rest for typing",
+              "I love the feeling of a cool breeze",
+              "I prefer a good night's sleep",
+              "I have a habit of stretching in the morning",
+              "I use a blue light filter on my glasses"
+            ];
+            vm.BFLEN = BF.length;
+
+            vm.addBulk = function () {
+                if (vm.loading) {
+                    return;
+                }
+
+                if (!confirm("ATTENTION THIS WILL ADD +"+vm.BFLEN+" BULK ITEMS. CONTINUE?")) {
+                    return;
+                }
+
+                var bulk_script = '';                
+                BF.forEach(X => {
+                    var safeFact = X.replace(/"/g, '\\"');
+                    var addScript = `store <new_f> ${safeFact}
+                    llm_embed <new_f> <new_emb> dim=${DIM}
+                    vdb_add MEMORY <new_emb> ${safeFact}
+                    `;                    
+                    bulk_script += "\n" + addScript
+                })
+
+                vm.loading = true;
+                vm.bulk_latency = null;
+
+                fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: bulk_script })
+                }).then(res => res.json()).then(data => {
+                    $scope.$apply(() => {
+                        vm.is_bulk_add = true;
+                        vm.loading = false;
+                        total += BF.length;
+                        vm.bulk_latency = data.Tms;
+                        vm.TotalFacts += BF.length;
+                        vm.facts.push({
+                            text: "Added more "+BF.length+" facts. Total="+total+" facts", 
+                            icon: 'plus-circle', 
+                            isNew: true
+                        });
+                        vm.bulk_latency = data.Tms;
+                        // vm.facts = vm.facts.concat(BF.map(X => {
+                        //     return {                            
+                        //         text: X, 
+                        //         icon: 'plus-circle', 
+                        //         isNew: true
+                        //     }
+                        // }))
+                        vm.memoryInput = "";
+                        $timeout(() => lucide.createIcons());
+                    });
+
+                }).catch(() => {
+                    $scope.$apply(() => vm.loading = false);
+                });
+            }
+
+            vm.addMemory = function() {
+                if(!vm.memoryInput) return;
+                const newFact = vm.memoryInput;
+                vm.loading = true;
+
+                // M8 Code to add fact
+                const safeFact = newFact.replace(/"/g, '\\"');
+                const addScript = `store <new_f> ${safeFact}
+                llm_embed <new_f> <new_emb> dim=${DIM}
+                vdb_add MEMORY <new_emb> ${safeFact}
+                ret "Added"`;
+
+                fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: addScript })
+                }).then(() => {
+                    $scope.$apply(() => {
+                        vm.facts.unshift({text: newFact, icon: 'plus-circle', isNew: true});
+                        vm.memoryInput = "";
+                        vm.TotalFacts += 1;
+                        vm.loading = false;
+                        $timeout(() => lucide.createIcons());
+                    });
+                }).catch(() => {
+                    $scope.$apply(() => vm.loading = false);
+                });
+            };
+
+
+
+            vm.queryMemory = function() {
+                if(!vm.queryInput) return;
+                const query = vm.queryInput;
+                const g_distance = window.G_DISTANCE;
+                vm.loading = true;
+                var dim = window.DIM;
+
+                // vm.manualQueries = null;
+
+                const safeQuery = query.replace(/"/g, '\\"');
+                const queryScript = `store <q_text> ${safeQuery}
+                llm_embed <q_text> <q_vec> dim=${DIM}
+                vdb_search MEMORY <q_vec> <match_vec> distance=${g_distance}
+                llm_detokenize <match_vec> <match_text>
+                ret <match_text>`;
+
+                fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: queryScript })
+                }).then(res => res.json()).then(data => {
+                    $scope.$apply(() => {
+                        let resultString = data.R || "";
+                        if (resultString.startsWith('"') && resultString.endsWith('"')) resultString = resultString.slice(1, -1);
+                        var manualQueries = [{
+                            query: query,
+                            result: resultString,
+                            latency: data.Tms,
+                            timestamp: moment().format("YYYY MM DD, HH:mm"),
+                        }].concat(vm.manualQueries||[]);
+
+                        vm.manualQueries = manualQueries;
+
+                        vm.queryInput = "";
+                        vm.loading = false;
+                        $timeout(() => lucide.createIcons());
+                    });
+                }).catch(() => {
+                    $scope.$apply(() => vm.loading = false);
+                });
+            };
+
+            vm.runSimulation = function() {
+                vm.data = null; 
+                vm.loading = true;
+                vm.simLatency = null;
+                
+                fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: SIM_SCRIPT })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    $timeout(() => {
+                        let resultString = data.R || "";
+                        if (resultString.startsWith('"') && resultString.endsWith('"')) resultString = resultString.slice(1, -1);
+                        vm.rawOutput = resultString;
+                        vm.simLatency = data.Tms;
+                        vm.data = parseMemoryResult(resultString);
+                        vm.loading = false;
+                        $timeout(() => lucide.createIcons());
+                    }, 300);
+                })
+                .catch(err => {
+                    $scope.$apply(() => { vm.loading = false; });
+                });
+            };
+
+            function parseMemoryResult(str) {
+                const parsed = {};
+                const sections = str.split(' | ');
+                sections.forEach(sec => {
+                    const [key, val] = sec.split(': ');
+                    if(key && val) {
+                        if (key.trim() === 'Memory 1') parsed.mem1 = val.trim();
+                        if (key.trim() === 'Memory 2') parsed.mem2 = val.trim();
+                        if (key.trim() === 'Coherence') parsed.coherence = parseFloat(val).toFixed(4);
+                        if (key.trim() === 'Bio') parsed.bio = val.trim();
+                        if (key.trim() === 'Career') parsed.career = val.trim();
+                        if (key.trim() === 'Hobbies') parsed.hobbies = val.trim();
+                        if (key.trim() === 'Color insight') parsed.color = val.trim();
+                    }
+                });
+                return parsed;
+            }
+        }]);
+
+        // --- RecSys Controller (Preserved) ---
+        app.controller('RecController', ['$scope', '$http', '$timeout', function($scope, $http, $timeout) {
+        }]);
+    </script>
+</body>
+</html>
