@@ -46,6 +46,10 @@
             <span>Market Overview</span>
         </a>
 
+        <a href="futures-market.html" ng-click="app.setView('futures')" class="flex items-center gap-2 px-3 py-2 rounded-md text-textMuted hover:bg-surface hover:text-textMain transition-colors">
+            <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+            <span>Futures Analysis</span>
+        </a>
 
     </nav>
 
