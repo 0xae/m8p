@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8 Cortex Console</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- External Libs -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="menu.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#f9fafb',      
+                        background: '#ffffff',   
+                        surface: '#f3f4f6',      
+                        border: '#e5e7eb',       
+                        primary: '#0ea5e9', // Sky blue for Futures
+                        primaryHover: '#0284c7',
+                        textMain: '#111827',     
+                        textMuted: '#6b7280'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    },
+                    fontSize: {
+                        xxs: '0.65rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        
+        /* Tooltip logic */
+        .tooltip { position: relative; display: inline-block; }
+        .tooltip .tooltiptext {
+            visibility: hidden; width: 160px; background-color: #333; color: #fff; text-align: center;
+            border-radius: 4px; padding: 5px; position: absolute; z-index: 1; bottom: 125%; left: 50%;
+            margin-left: -80px; opacity: 0; transition: opacity 0.3s; font-size: 10px; font-weight: normal; pointer-events: none;
+        }
+        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+    </style>
+</head>
+
+<body ng-app="recsys-app" ng-controller="AppController as app" class="bg-background text-textMain h-screen flex overflow-hidden text-xs antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-56 bg-sidebar border-r border-border flex flex-col flex-none">
+        <div class="h-14 flex items-center px-4 border-b border-border">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-primary flex items-center justify-center">
+                    <i data-lucide="brain-circuit" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="font-semibold tracking-tight text-textMain text-sm">Cortex</span>
+            </div>
+        </div>
+
+        <div id="menu-system-area"></div>
+
+        <div class="p-4 border-t border-border">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">BM</div>
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-medium text-textMain">BrainMaster</span>
+                    <span class="text-[9px] text-textMuted">Admin Access</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 bg-background relative">
+        
+        <!-- VIEW: FUTURES ANALYSIS -->
+        <div ng-if="app.currentView === 'futures'" ng-controller="FuturesController as fut" class="flex flex-col h-full bg-surface">
+            <!-- Header -->
+            <header class="h-14 border-b border-border bg-background flex items-center justify-between px-6 flex-none">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center">
+                        <i data-lucide="activity" class="w-4 h-4 text-primary"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-semibold text-textMain">Futures Market Engine</h1>
+                        <p class="text-[10px] text-textMuted">Term Structure • Roll Yields • Cross-Asset Flows</p>
+                    </div>
+                </div>
+                <button ng-click="fut.runAnalysis()" class="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primaryHover text-white rounded text-[10px] font-medium transition-colors shadow-sm" ng-disabled="fut.loading">
+                    <i data-lucide="refresh-cw" class="w-3 h-3" ng-class="{'animate-spin': fut.loading}"></i>
+                    {{fut.loading ? 'Analyzing Market...' : 'Run Analysis'}}
+                </button>
+            </header>
+
+            <!-- Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <div class="max-w-7xl mx-auto space-y-6">
+
+                    <!-- Welcome / Loading -->
+                    <div ng-if="!fut.data && !fut.loading" class="flex flex-col items-center justify-center py-20 bg-background rounded-lg border border-border border-dashed">
+                        <div class="w-12 h-12 rounded-full bg-sky-50 flex items-center justify-center mb-3">
+                            <i data-lucide="bar-chart-2" class="w-6 h-6 text-sky-300"></i>
+                        </div>
+                        <h3 class="text-sm font-medium text-textMain">Futures System Ready</h3>
+                        <p class="text-xs text-textMuted mt-1 max-w-md text-center">
+                            Tracks Contango/Backwardation, Spreads, and Institutional Flows across Energy, Metals, and Livestock.
+                        </p>
+                    </div>
+                    
+                    <div ng-if="fut.loading" class="flex flex-col items-center justify-center py-20">
+                        <div class="w-10 h-10 border-4 border-sky-200 border-t-primary rounded-full animate-spin mb-4"></div>
+                        <p class="text-xs text-textMuted font-mono animate-pulse">Calculating Curve Metrics...</p>
+                    </div>
+
+                    <!-- Dashboard -->
+                    <div ng-if="fut.data" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+                        
+                        <!-- Macro Banner -->
+                        <div class="bg-sky-900 rounded-lg p-3 shadow-sm text-white flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="p-1.5 bg-white/10 rounded-md"><i data-lucide="globe" class="w-4 h-4 text-sky-200"></i></div>
+                                <div>
+                                    <h3 class="text-xs font-bold text-sky-50">Macro Environment Score</h3>
+                                    <p class="text-[9px] text-sky-300 opacity-80">M8 Factor Model v1</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-8 text-right">
+                                <div>
+                                    <div class="text-[9px] text-sky-300 uppercase">Risk Appetite</div>
+                                    <div class="text-sm font-mono font-bold">{{fut.data.macro.Risk_appetite}}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[9px] text-sky-300 uppercase">Regime Score</div>
+                                    <div class="text-2xl font-bold leading-none">{{fut.data.macro.Environment_score}}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deep Dive: Energy & Livestock -->
+                        <h3 class="text-xs font-bold text-textMain uppercase tracking-wider mt-6 mb-2 flex items-center gap-2">
+                            <i data-lucide="zap" class="w-3 h-3 text-yellow-500"></i> Deep Dive: Energy, Metals & Livestock
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                            <!-- CRUDE OIL CARD -->
+                            <div class="bg-background border border-border rounded-lg p-4 shadow-sm flex flex-col">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-gray-900 rounded flex items-center justify-center text-white font-bold text-xs">CL</div>
+                                        <div>
+                                            <h3 class="text-xs font-bold text-textMain">Crude Oil (WTI)</h3>
+                                            <div class="flex items-center gap-1">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-red-500" ng-if="fut.data.crude.Slope > 0"></span>
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-500" ng-if="fut.data.crude.Slope <= 0"></span>
+                                                <p class="text-[9px] text-textMuted font-mono">{{fut.data.crude.Pattern}}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-bold text-textMain">{{fut.data.crude.Prediction}}</div>
+                                        <div class="text-[9px] font-bold uppercase tracking-wide" 
+                                             ng-class="{'text-green-600': fut.data.crude.Prediction > 75, 'text-red-600': fut.data.crude.Prediction <= 75}">
+                                            Forecast ({{fut.forecastDate}})
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Futures Curve Visualization -->
+                                <div class="h-24 w-full bg-gray-50 rounded border border-gray-100 relative mb-3 overflow-hidden">
+                                    <svg class="absolute inset-0 w-full h-full p-2" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                        <line x1="0" y1="10" x2="100" y2="10" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <line x1="0" y1="25" x2="100" y2="25" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <line x1="0" y1="40" x2="100" y2="40" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <!-- Trend Line (Contango Shape) -->
+                                        <path d="M0,15 Q50,25 100,35" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+                                        <circle cx="100" cy="35" r="2" fill="#ef4444" />
+                                    </svg>
+                                    <div class="absolute bottom-1 right-2 text-[8px] text-textMuted">Forward Curve (8 Months)</div>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-2 mb-2">
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Roll Yield</div>
+                                        <div class="text-xs font-mono font-bold text-red-500">{{fut.data.crude.Roll_yield}}</div>
+                                        <span class="tooltiptext">Profit/loss from rolling a short-term contract into a longer-term one. Negative = Cost.</span>
+                                    </div>
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Basis</div>
+                                        <div class="text-xs font-mono font-bold">{{fut.data.crude.Basis}}</div>
+                                        <span class="tooltiptext">Difference between the spot price and the futures price.</span>
+                                    </div>
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Conv. Yield</div>
+                                        <div class="text-xs font-mono font-bold">{{fut.data.crude.Convenience}}</div>
+                                        <span class="tooltiptext">Benefit of holding the physical asset rather than the future. High = Shortage.</span>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] text-textMuted leading-snug bg-blue-50/50 p-2 rounded border border-blue-50">
+                                    <span class="font-bold text-blue-700">Analysis:</span> Steep contango structure suggests abundant physical supply and storage costs are driving front-month discounts.
+                                </div>
+                            </div>
+
+                            <!-- GOLD CARD -->
+                            <div class="bg-background border border-border rounded-lg p-4 shadow-sm flex flex-col">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-yellow-500 rounded flex items-center justify-center text-white font-bold text-xs">GC</div>
+                                        <div>
+                                            <h3 class="text-xs font-bold text-textMain">Gold (Comex)</h3>
+                                            <div class="flex items-center gap-1">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                <p class="text-[9px] text-textMuted font-mono">{{fut.data.gold.Pattern}}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-bold text-textMain">{{fut.data.gold.Prediction}}</div>
+                                        <div class="text-[9px] font-bold uppercase tracking-wide" 
+                                             ng-class="{'text-green-600': fut.data.gold.Prediction > 2050, 'text-red-600': fut.data.gold.Prediction <= 2050}">
+                                            Forecast ({{fut.forecastDate}})
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Futures Curve Visualization -->
+                                <div class="h-24 w-full bg-gray-50 rounded border border-gray-100 relative mb-3 overflow-hidden">
+                                    <svg class="absolute inset-0 w-full h-full p-2" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                        <line x1="0" y1="10" x2="100" y2="10" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <line x1="0" y1="25" x2="100" y2="25" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <line x1="0" y1="40" x2="100" y2="40" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <!-- Trend Line (Backwardation Shape) -->
+                                        <path d="M0,15 Q50,20 100,25" fill="none" stroke="#eab308" stroke-width="1.5" stroke-linecap="round" />
+                                        <circle cx="0" cy="15" r="2" fill="#eab308" />
+                                    </svg>
+                                    <div class="absolute bottom-1 right-2 text-[8px] text-textMuted">Forward Curve (Backwardation)</div>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-2 mb-2">
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Roll Yield</div>
+                                        <div class="text-xs font-mono font-bold text-green-500">+{{fut.data.gold.Roll_yield}}</div>
+                                        <span class="tooltiptext">Positive roll yield indicates backwardation (futures cheaper than spot).</span>
+                                    </div>
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Curve Slope</div>
+                                        <div class="text-xs font-mono font-bold text-textMain">{{fut.data.gold.Slope}}</div>
+                                        <span class="tooltiptext">Price difference between near and far contracts.</span>
+                                    </div>
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Safety Demand</div>
+                                        <div class="text-xs font-mono font-bold text-primary">{{fut.data.gold.Safety_demand}}</div>
+                                        <span class="tooltiptext">M8 calculated score for safe-haven inflows.</span>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] text-textMuted leading-snug bg-yellow-50/50 p-2 rounded border border-yellow-50">
+                                    <span class="font-bold text-yellow-800">Analysis:</span> Tight physical supply creating immediate delivery premiums. Strong backwardation signals bullish stress.
+                                </div>
+                            </div>
+
+                            <!-- SILVER CARD -->
+                            <div class="bg-background border border-border rounded-lg p-4 shadow-sm flex flex-col">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-gray-400 rounded flex items-center justify-center text-white font-bold text-xs">SI</div>
+                                        <div>
+                                            <h3 class="text-xs font-bold text-textMain">Silver</h3>
+                                            <p class="text-[9px] text-textMuted font-mono">{{fut.data.silver.Pattern}}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-bold text-textMain">{{fut.data.silver.Prediction}}</div>
+                                        <div class="text-[9px] font-bold uppercase tracking-wide" 
+                                             ng-class="{'text-green-600': fut.data.silver.Prediction > 23.5, 'text-red-600': fut.data.silver.Prediction <= 23.5}">
+                                            Forecast ({{fut.forecastDate}})
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Futures Curve Visualization -->
+                                <div class="h-24 w-full bg-gray-50 rounded border border-gray-100 relative mb-3 overflow-hidden">
+                                    <svg class="absolute inset-0 w-full h-full p-2" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                        <line x1="0" y1="10" x2="100" y2="10" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <line x1="0" y1="25" x2="100" y2="25" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <line x1="0" y1="40" x2="100" y2="40" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <!-- Trend Line (Contango) -->
+                                        <path d="M0,30 Q50,20 100,10" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" />
+                                        <circle cx="100" cy="10" r="2" fill="#9ca3af" />
+                                    </svg>
+                                    <div class="absolute bottom-1 right-2 text-[8px] text-textMuted">Forward Curve (Contango)</div>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-2 mb-2">
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Roll Yield</div>
+                                        <div class="text-xs font-mono font-bold text-red-500">{{fut.data.silver.Roll_yield}}</div>
+                                        <span class="tooltiptext">Cost to roll futures. Negative implies contango.</span>
+                                    </div>
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Slope</div>
+                                        <div class="text-xs font-mono font-bold">{{fut.data.silver.Slope}}</div>
+                                        <span class="tooltiptext">Steepness of the futures curve.</span>
+                                    </div>
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Industrial</div>
+                                        <div class="text-xs font-mono font-bold text-textMain">Steady</div>
+                                        <span class="tooltiptext">Demand component from industrial manufacturing.</span>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] text-textMuted leading-snug bg-gray-50/50 p-2 rounded border border-gray-100">
+                                    <span class="font-bold text-gray-600">Analysis:</span> Industrial demand providing base support, but contango structure limits long-term holding without yield harvesting.
+                                </div>
+                            </div>
+
+                            <!-- CATTLE CARD -->
+                            <div class="bg-background border border-border rounded-lg p-4 shadow-sm flex flex-col">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-orange-600 rounded flex items-center justify-center text-white font-bold text-xs">LE</div>
+                                        <div>
+                                            <h3 class="text-xs font-bold text-textMain">Live Cattle</h3>
+                                            <p class="text-[9px] text-textMuted font-mono">{{fut.data.cattle.Pattern}}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-bold text-textMain">{{fut.data.cattle.Prediction}}</div>
+                                        <div class="text-[9px] font-bold uppercase tracking-wide" 
+                                             ng-class="{'text-green-600': fut.data.cattle.Prediction > 180, 'text-red-600': fut.data.cattle.Prediction <= 180}">
+                                            Forecast ({{fut.forecastDate}})
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Futures Curve Visualization -->
+                                <div class="h-24 w-full bg-gray-50 rounded border border-gray-100 relative mb-3 overflow-hidden">
+                                    <svg class="absolute inset-0 w-full h-full p-2" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                        <line x1="0" y1="10" x2="100" y2="10" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <line x1="0" y1="25" x2="100" y2="25" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <line x1="0" y1="40" x2="100" y2="40" stroke="#e5e7eb" stroke-width="0.5" />
+                                        <!-- Trend Line (Backwardation/Seasonal) -->
+                                        <path d="M0,40 Q30,10 100,20" fill="none" stroke="#ea580c" stroke-width="1.5" stroke-linecap="round" />
+                                        <circle cx="100" cy="20" r="2" fill="#ea580c" />
+                                    </svg>
+                                    <div class="absolute bottom-1 right-2 text-[8px] text-textMuted">Forward Curve (Seasonal)</div>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-2 mb-2">
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Seasonality</div>
+                                        <div class="text-xs font-mono font-bold text-orange-600">{{fut.data.cattle.Seasonality}}</div>
+                                        <span class="tooltiptext">Historical strength for this time of year relative to 5yr average.</span>
+                                    </div>
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Herd Size</div>
+                                        <div class="text-xs font-mono font-bold text-red-500">Tight</div>
+                                        <span class="tooltiptext">Physical inventory levels. Low/Tight = Bullish.</span>
+                                    </div>
+                                    <div class="p-1.5 bg-gray-50 rounded text-center tooltip">
+                                        <div class="text-[8px] text-textMuted uppercase">Input Cost</div>
+                                        <div class="text-xs font-mono font-bold text-textMain">High</div>
+                                        <span class="tooltiptext">Cost of feed (Corn/Soy). High costs often lead to liquidation then shortages.</span>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] text-textMuted leading-snug bg-orange-50/50 p-2 rounded border border-orange-50">
+                                    <span class="font-bold text-orange-800">Analysis:</span> Seasonal demand spike coinciding with cyclical herd contraction creates potential for backwardation squeeze.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Middle Row: Spreads & Positioning -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Spreads -->
+                            <div class="bg-background border border-border rounded-lg p-4 shadow-sm">
+                                <h3 class="text-xs font-semibold text-textMuted uppercase tracking-wider mb-3">Spread Monitor</h3>
+                                <div class="space-y-2 text-[10px]">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-textMain">Butterfly (1-2-3)</span>
+                                        <span class="font-mono text-sky-600">{{fut.data.spreads.Butterfly}}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-textMain">Arbitrage Gap</span>
+                                        <span class="font-mono font-bold text-green-600">{{fut.data.spreads.Arbitrage_gap}}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-textMain">Energy Ratio</span>
+                                        <span class="font-mono">{{fut.data.spreads.Energy_ratio}}</span>
+                                    </div>
+                                    <div class="mt-2 p-2 bg-sky-50 text-sky-800 rounded text-[9px] leading-snug border border-sky-100">
+                                        <span class="font-bold">Signal:</span> {{fut.data.spreads.Signal}}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Positioning -->
+                            <div class="bg-background border border-border rounded-lg p-4 shadow-sm">
+                                <h3 class="text-xs font-semibold text-textMuted uppercase tracking-wider mb-3">Market Positioning</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between text-[9px] mb-1">
+                                            <span>Speculator Strength</span>
+                                            <span class="font-bold">{{fut.data.positioning.Spec_strength}}</span>
+                                        </div>
+                                        <div class="w-full bg-gray-100 rounded-full h-1.5">
+                                            <div class="bg-green-500 h-1.5 rounded-full" style="width: 75%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-[9px] mb-1">
+                                            <span>Hedge Ratio</span>
+                                            <span class="font-bold">{{fut.data.positioning.Hedge_ratio}}</span>
+                                        </div>
+                                        <div class="w-full bg-gray-100 rounded-full h-1.5">
+                                            <div class="bg-orange-400 h-1.5 rounded-full" style="width: 40%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between items-center text-[9px] pt-2 border-t border-gray-50">
+                                        <span class="text-textMuted">Price-Pos Corr.</span>
+                                        <span class="font-mono font-bold text-blue-600">{{fut.data.positioning.Spec_price_corr}}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Liquidity -->
+                            <div class="bg-background border border-border rounded-lg p-4 shadow-sm">
+                                <h3 class="text-xs font-semibold text-textMuted uppercase tracking-wider mb-3">Liquidity Profile</h3>
+                                <div class="grid grid-cols-2 gap-4 text-center">
+                                    <div class="p-2 bg-gray-50 rounded">
+                                        <div class="text-[8px] text-textMuted uppercase">Market Bal</div>
+                                        <div class="text-xs font-bold text-textMain">{{fut.data.liquidity.Market_balance}}</div>
+                                    </div>
+                                    <div class="p-2 bg-gray-50 rounded">
+                                        <div class="text-[8px] text-textMuted uppercase">Phys Demand</div>
+                                        <div class="text-xs font-bold text-textMain">{{fut.data.liquidity.Physical_demand}}</div>
+                                    </div>
+                                    <div class="p-2 bg-gray-50 rounded">
+                                        <div class="text-[8px] text-textMuted uppercase">Roll Press.</div>
+                                        <div class="text-xs font-bold text-red-500">{{fut.data.liquidity.Roll_pressure}}</div>
+                                    </div>
+                                    <div class="p-2 bg-gray-50 rounded">
+                                        <div class="text-[8px] text-textMuted uppercase">Depth</div>
+                                        <div class="text-xs font-bold text-blue-600">{{fut.data.liquidity.Crude_depth}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Raw Output Toggle -->
+                        <div class="text-right">
+                            <button ng-click="fut.showRaw = !fut.showRaw" class="text-[10px] text-textMuted underline hover:text-textMain flex items-center gap-1 ml-auto">
+                                <i data-lucide="code" class="w-3 h-3"></i> {{fut.showRaw ? 'Hide' : 'Show'}} Raw M8 Output
+                            </button>
+                            <pre ng-if="fut.showRaw" class="mt-2 p-3 bg-[#1e1e1e] text-gray-400 text-[10px] font-mono rounded overflow-x-auto whitespace-pre-wrap text-left">{{fut.rawOutput}}</pre>
+                        </div>
+
+                    </div>
+
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <!-- LOGIC -->
+    <script type="text/javascript">
+        const app = angular.module('recsys-app', []);
+        const M8_HOST="https://m8p.desktop.farm";
+
+        app.controller('AppController', ['$scope', '$timeout', function($scope, $timeout) {
+            const vm = this;
+            vm.currentView = 'futures'; 
+            
+            vm.setView = function(view) {
+                vm.currentView = view;
+                $timeout(() => lucide.createIcons());
+            };
+
+            $timeout(() => {
+                window.RenderM8Menu('menu-system-area');
+                $timeout(function () {
+                    lucide.createIcons();
+                }, 120);
+            });
+        }]);
+
+        // --- Futures Controller ---
+        app.controller('FuturesController', ['$scope', '$http', '$timeout', function($scope, $http, $timeout) {
+            const vm = this;
+            vm.loading = false;
+            vm.data = null;
+            vm.showRaw = false;
+            vm.forecastDate = moment().add(1, 'month').format('MMM YYYY'); // Default forecast date
+
+            const M8_SCRIPT = `## Advanced Futures Market Analysis System
+vdb_instance CURVE_PATTERNS dim=8 max_elements=500 M=24 ef_construction=300
+vdb_instance SPREAD_SIGNALS dim=8 max_elements=400 M=20 ef_construction=250
+vdb_instance COMMODITY_FLOWS dim=8 max_elements=400 M=20 ef_construction=250
+vdb_instance MACRO_REGIMES dim=8 max_elements=300 M=16 ef_construction=200
+store <ts1> Crude oil steep contango front month discount storage abundant oversupply
+llm_embed <ts1> <t1> dim=8
+align <t1> 8
+vdb_add CURVE_PATTERNS <t1> Contango steep oversupply storage
+store <ts2> Gold backwardation immediate demand shortage tight physical supply
+llm_embed <ts2> <t2> dim=8
+align <t2> 8
+vdb_add CURVE_PATTERNS <t2> Backwardation shortage physical tight
+store <cat1> Cattle herd size shrinking due to drought input costs high
+llm_embed <cat1> <ct1> dim=8
+align <ct1> 8
+vdb_add CURVE_PATTERNS <ct1> Cattle shrinking herd drought
+store <sil1> Silver industrial demand rising weak dollar support
+llm_embed <sil1> <si1> dim=8
+align <si1> 8
+vdb_add CURVE_PATTERNS <si1> Silver industrial demand
+store <current_crude> Crude oil front month 78 second 76 third 75 fourth 74 contango moderate
+llm_embed <current_crude> <cc> dim=8
+align <cc> 8
+store <current_gold> Gold front month 2050 second 2048 third 2047 slight backwardation tight
+llm_embed <current_gold> <cg> dim=8
+align <cg> 8
+store <current_silver> Silver prices consolidating industrial demand steady
+llm_embed <current_silver> <csi> dim=8
+align <csi> 8
+vdb_search CURVE_PATTERNS <cc> <crude_pattern> distance=0.55
+llm_detokenize <crude_pattern> <crude_interpretation>
+vdb_search CURVE_PATTERNS <cg> <gold_pattern> distance=0.55
+llm_detokenize <gold_pattern> <gold_interpretation>
+vdb_search CURVE_PATTERNS <csi> <silver_pattern> distance=0.55
+llm_detokenize <silver_pattern> <silver_interpretation>
+mat8 <crude_curve> 78.50 76.20 75.10 74.30 73.80 73.50 73.30 73.20
+align <crude_curve> 8
+mat8 <pred_weights_crude> 0.3 0.25 0.2 0.15 0.05 0.03 0.02 0.0
+align <pred_weights_crude> 8
+matdot <crude_curve> <pred_weights_crude> <crude_pred>
+mat8 <cattle_curve> 182.50 184.20 185.00 186.50 185.50 184.00 182.00 180.00
+align <cattle_curve> 8
+mat8 <pred_weights_cattle> 0.1 0.1 0.2 0.3 0.2 0.1 0 0
+align <pred_weights_cattle> 8
+matdot <cattle_curve> <pred_weights_cattle> <cattle_pred>
+mat8 <cattle_seasonal> 1.02 1.05 1.08 1.10 1.05 1.02 0.98 0.95
+align <cattle_seasonal> 8
+matdot <cattle_curve> <cattle_seasonal> <cattle_seasonal_strength>
+mat8 <gold_curve> 2050 2048 2047 2046 2045 2044 2043 2042
+align <gold_curve> 8
+mat8 <gold_pred_weights> 0.4 0.3 0.2 0.1 0 0 0 0
+align <gold_pred_weights> 8
+matdot <gold_curve> <gold_pred_weights> <gold_pred>
+mat8 <silver_curve> 23.50 23.65 23.80 24.00 24.15 24.25 24.35 24.40
+align <silver_curve> 8
+mat8 <pred_weights_silver> 0.3 0.2 0.15 0.15 0.1 0.05 0.05 0.0
+align <pred_weights_silver> 8
+matdot <silver_curve> <pred_weights_silver> <silver_pred>
+f32set <silver_roll> 23.50
+f32sub <silver_roll> 23.65
+f32set <silver_slope> 23.50
+f32sub <silver_slope> 24.40
+f32set <crude_roll> 78.50
+f32sub <crude_roll> 76.20
+f32set <gold_roll> 2050
+f32sub <gold_roll> 2048
+f32set <crude_slope> 78.50
+f32sub <crude_slope> 73.20
+f32set <gold_slope> 2050
+f32sub <gold_slope> 2042
+f32set <crude_spot> 79.20
+f32set <crude_front> 78.50
+f32set <crude_basis> <crude_spot>
+f32sub <crude_basis> <crude_front>
+f32set <storage_carry> 0.50
+f32set <financing_cost> 0.30
+f32set <convenience_yield> <crude_basis>
+f32add <convenience_yield> <storage_carry>
+f32sub <convenience_yield> <financing_cost>
+mat8 <crude_oi> 450000 380000 320000 280000 240000 210000 180000 160000
+align <crude_oi> 8
+mat8 <gold_oi> 520000 480000 440000 410000 380000 350000 320000 290000
+align <gold_oi> 8
+matdot <crude_oi> <crude_oi> <crude_liquidity>
+matdot <gold_oi> <gold_oi> <gold_liquidity>
+mat8 <roll_dates_volume> 12000 45000 125000 180000 95000 35000 18000 8000
+align <roll_dates_volume> 8
+matdot <roll_dates_volume> <roll_dates_volume> <roll_pressure_intensity>
+mat8 <managed_money_net> 85000 92000 88000 95000 102000 98000 105000 110000
+align <managed_money_net> 8
+mat8 <commercial_net> -120000 -125000 -118000 -130000 -135000 -128000 -140000 -145000
+align <commercial_net> 8
+matdot <managed_money_net> <managed_money_net> <spec_positioning_strength>
+matcosim <managed_money_net> <crude_curve> <spec_price_correlation>
+store <corr1> Crude oil correlates with equity markets risk on environment
+llm_embed <corr1> <corr1_emb> dim=8
+store <corr2> Gold inversely correlates with dollar and real yields
+llm_embed <corr2> <corr2_emb> dim=8
+matcosim <corr1_emb> <cc> <crude_risk_appetite>
+matcosim <corr2_emb> <cg> <gold_safety_demand>
+mat8 <curve_changes> 2.5 1.8 1.2 0.8 0.5 0.3 0.2 0.1
+align <curve_changes> 8
+matdot <curve_changes> <curve_changes> <curve_momentum>
+f32set <crude_cal_1_2> 78.50
+f32sub <crude_cal_1_2> 76.20
+f32set <crude_cal_2_3> 76.20
+f32sub <crude_cal_2_3> 75.10
+f32set <crude_cal_3_4> 75.10
+f32sub <crude_cal_3_4> 74.30
+f32set <butterfly> <crude_cal_1_2>
+f32set <temp_calc> <crude_cal_2_3>
+f32mul <temp_calc> 2.0
+f32sub <butterfly> <temp_calc>
+f32add <butterfly> <crude_cal_3_4>
+f32set <theoretical_spread> 2.30
+f32set <actual_spread> <crude_cal_1_2>
+f32set <arbitrage_gap> <actual_spread>
+f32sub <arbitrage_gap> <theoretical_spread>
+f32set <energy_ratio> 24.53
+mat8 <delivery_notices> 120 95 340 280 180 420 220 150
+align <delivery_notices> 8
+matdot <delivery_notices> <delivery_notices> <physical_demand_intensity>
+f32set <hedge_ratio> -0.297
+f32set <carry_trade_pnl> 1.50
+mat8 <bid_depth> 850 720 680 620 590 540 500 460
+align <bid_depth> 8
+mat8 <ask_depth> 880 750 700 640 610 560 520 480
+align <ask_depth> 8
+matcosim <bid_depth> <ask_depth> <market_balance>
+mat8 <macro_factors> 0.65 -0.30 0.45 0.80 -0.20 0.55 0.40 0.35
+align <macro_factors> 8
+mat8 <factor_weights> 0.25 0.20 0.18 0.15 0.10 0.06 0.04 0.02
+align <factor_weights> 8
+matdot <macro_factors> <factor_weights> <macro_environment_score>
+store <futures_report> CRUDE: Pattern=<crude_interpretation> Roll_yield=<crude_roll> Slope=<crude_slope> Basis=<crude_basis> Convenience=<convenience_yield> Carry_PnL=<carry_trade_pnl> Prediction=<crude_pred> | GOLD: Pattern=<gold_interpretation> Roll_yield=<gold_roll> Slope=<gold_slope> Safety_demand=<gold_safety_demand> Prediction=<gold_pred> | SILVER: Pattern=<silver_interpretation> Roll_yield=<silver_roll> Slope=<silver_slope> Prediction=<silver_pred> | CATTLE: Pattern=Tight_herd_cycle Seasonality=<cattle_seasonal_strength> Prediction=<cattle_pred> | SPREADS: Signal=Bearish_flattening Butterfly=<butterfly> Arbitrage_gap=<arbitrage_gap> Energy_ratio=<energy_ratio> | POSITIONING: Flow=Long_liquidation Spec_strength=<spec_positioning_strength> Spec_price_corr=<spec_price_correlation> Hedge_ratio=<hedge_ratio> | LIQUIDITY: Crude_depth=<crude_liquidity> Roll_pressure=<roll_pressure_intensity> Market_balance=<market_balance> Physical_demand=<physical_demand_intensity> | MACRO: Environment_score=<macro_environment_score> Risk_appetite=<crude_risk_appetite> Curve_momentum=<curve_momentum>
+ret <futures_report>`;
+
+            vm.runAnalysis = function() {
+                vm.loading = true;
+                
+                fetch(M8_HOST + '/api/v1/m8/dry-run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: M8_SCRIPT })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    $scope.$apply(() => {
+                        let resultString = data.R || "";
+                        if (resultString.startsWith('"') && resultString.endsWith('"')) {
+                            resultString = resultString.slice(1, -1);
+                        }
+                        vm.rawOutput = resultString;
+                        vm.data = parseFuturesResult(resultString);
+                        vm.loading = false;
+                    });
+                })
+                .catch(err => {
+                    console.error(err);
+                    $scope.$apply(() => { vm.loading = false; alert("Failed to run analysis"); });
+                });
+            };
+
+            function parseFuturesResult(str) {
+                const parsed = {
+                    crude: {},
+                    gold: {},
+                    silver: {},
+                    cattle: {},
+                    spreads: {},
+                    positioning: {},
+                    liquidity: {},
+                    macro: {},
+                    seasonal: {}
+                };
+
+                const sections = str.split(' | ');
+                sections.forEach(sec => {
+                    const [sectionName, content] = sec.split(': ');
+                    if (!content) return;
+                    
+                    const pairs = content.split(' ');
+                    const targetKey = sectionName.toLowerCase().replace(' ', '_');
+                    
+                    pairs.forEach(p => {
+                        const [k, v] = p.split('=');
+                        if(k && v && parsed[targetKey]) {
+                            const num = parseFloat(v);
+                            parsed[targetKey][k] = !isNaN(num) && v.includes('.') ? num.toFixed(2) : v;
+                        }
+                    });
+                });
+                return parsed;
+            }
+        }]);
+
+    </script>
+</body>
+</html>
