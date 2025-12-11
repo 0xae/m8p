@@ -1682,6 +1682,16 @@ namespace m8p {
             }
 
             auto& vA = A->AR_F32;
+
+
+            if (vA.size()%AVX_V_SIZE!=0) {
+                int diff = __abs(AVX_V_SIZE - vA.size())
+                vA->AR_F32.reserve(diff);
+            }
+            if (vB.size()%AVX_V_SIZE!=0) {
+                int diff = __abs(AVX_V_SIZE - vB.size())
+                vB->AR_F32.reserve(diff);
+            }
             auto& vB = B->AR_F32;
             size_t N = std::min(vA.size(), vB.size());
 
@@ -1738,13 +1748,18 @@ namespace m8p {
 
             if (!IsValid_DF32_Dim(M8, MR1, AVX_V_SIZE)) {
                 return std::make_pair(
-                    errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m1+", AVX_V_SIZE="+ std::to_string(AVX_V_SIZE) + ", size=" + std::to_string(MR1->AR_F32.size()) + "]"),
+                    errorf(
+                        "EXPECTING_DIM_FLOAT32_REGISTER["+m1+
+                        ", AVX_V_SIZE="+ std::to_string(AVX_V_SIZE) + 
+                        ", size=" + std::to_string(MR1->AR_F32.size()) 
+                    + "]"),
                     M8->nilValue
                 );
             }
             if (!IsValid_DF32_Dim(M8, MR2, AVX_V_SIZE)) {
                 return std::make_pair(
-                        errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+", AVX_V_SIZE="+ std::to_string(AVX_V_SIZE) + ", size=" + std::to_string(MR1->AR_F32.size()) + "]"),
+                        errorf("EXPECTING_DIM_FLOAT32_REGISTER["+m2+", AVX_V_SIZE="+ std::to_string(AVX_V_SIZE) + 
+                            ", size=" + std::to_string(MR1->AR_F32.size()) + "]"),
                         M8->nilValue
                 );
             }
