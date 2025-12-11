@@ -1686,7 +1686,7 @@ namespace m8p {
 
             if (vA.size() > AVX_V_SIZE) {
                 return std::make_pair(
-                    errorf("mat "+rA+" => size("+std::to_string(vB.size())+") exceeds max-vector-size " + std::to_string(AVX_V_SIZE)),
+                    errorf("mat "+rA+" => size("+std::to_string(vA.size())+") exceeds max-vector-size " + std::to_string(AVX_V_SIZE)),
                     M8->nilValue
                 );
             }
