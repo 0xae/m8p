@@ -13,14 +13,30 @@
             <span>Memory Engine</span>
         </a>
 
-        <a href="visualizer.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-textMuted hover:bg-surface hover:text-textMain transition-colors">
-            <i data-lucide="zap" class="w-4 h-4"></i><span>
-            VM Visualization</span>
+        <a href="recomendation-engine.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-textMuted hover:bg-surface hover:text-textMain transition-colors">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Recomendation Engine</span>
         </a>
 
         <a href="stream-engine.html" class="flex items-center gap-2 px-3 py-2 rounded-md transition-colors group" 
             ng-class="'bg-purple-50 border border-purple-100 text-purple-600 font-medium' : 'text-textMuted hover:bg-surface'">
             <i data-lucide="activity" class="w-4 h-4"></i><span>Stream Engine</span>
+        </a>
+
+        <a href="visualizer.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-textMuted hover:bg-surface hover:text-textMain transition-colors">
+            <i data-lucide="zap" class="w-4 h-4"></i><span>
+            VM Visualization</span>
+        </a>
+
+        <a href="Semantics-Physics-Engine.html"  
+           class="flex items-center gap-2 px-3 py-2 rounded-md text-textMuted hover:bg-surface hover:text-textMain transition-colors">
+            <i data-lucide="box" class="w-4 h-4"></i>
+            <span>Holographic Sim</span>
+        </a>
+        <a href="Procedural-Geometry-Engine.html" 
+           class="flex items-center gap-2 px-3 py-2 rounded-md text-textMuted hover:bg-surface hover:text-textMain transition-colors">
+            <i data-lucide="hexagon" class="w-4 h-4"></i>
+            <span>Procedural Geo</span>
         </a>
 
     </nav>
