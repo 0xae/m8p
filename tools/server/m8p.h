@@ -1676,7 +1676,7 @@ namespace m8p {
 
             if (!IsValid_DF32(M8, A) || !IsValid_DF32(M8, B)) {
                 return std::make_pair(
-                    errorf("mat"+op" => operands must be matrices"),
+                    errorf("mat"+op+" => operands must be matrices"),
                     M8->nilValue
                 );
             }
