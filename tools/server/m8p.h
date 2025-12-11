@@ -1686,11 +1686,11 @@ namespace m8p {
 
             if (vA.size()%AVX_V_SIZE!=0) {
                 int diff = __abs(AVX_V_SIZE - vA.size());
-                vA->AR_F32.resize(diff);
+                vA.resize(diff);
             }
             if (vB.size()%AVX_V_SIZE!=0) {
                 int diff = __abs(AVX_V_SIZE - vB.size());
-                vB->AR_F32.resize(diff);
+                vB.resize(diff);
             }
 
             size_t N = std::min(vA.size(), vB.size());
