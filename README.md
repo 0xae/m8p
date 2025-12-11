@@ -34,10 +34,8 @@ According to your settings set the CXX_FLAGS according to your processor support
 Then lets set support for avx:
 ```bash
 cat > flags.make
-# compile CXX with /usr/bin/c++
 CXX_DEFINES = -DGGML_BACKEND_SHARED -DGGML_SHARED -DGGML_USE_CPU -DLLAMA_SHARED
-CXX_INCLUDES = -I/workspace/m8p/tools/server -I/workspace/m8p/build/tools/server -I/workspace/m8p/tools/server/../mtmd -I/workspace/m8p -I/workspace/m8p/common/. -I/workspace/m8p/common/../vendor -I/workspace/m8p/src/../include -I/workspace/m8p/ggml/src/../include -I/workspace/m8p/tools/mtmd/.
-## CHOOSE either -mavx2 or -mavx512f according to you lscpu
+CXX_INCLUDES = -I/opt/m8p/tools/server -I/opt/m8p/build/tools/server -I/opt/m8p/tools/server/../mtmd -I/workspace/m8p -I/opt/m8p/common/. -I/opt/m8p/common/../vendor -I/opt/m8p/src/../include -I/opt/m8p/ggml/src/../include -I/opt/m8p/tools/mtmd/.
 CXX_FLAGS = -O3 -DNDEBUG -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -mavx2
 #CXX_FLAGS = -O3 -DNDEBUG -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -mavx512f
 ```

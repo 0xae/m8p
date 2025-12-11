@@ -1522,7 +1522,14 @@ namespace m8p {
         __trim(sizeVal);
         int32_t number=0;
         if (sizeVal=="AVX_V_SIZE") {
+#ifdef AVX_V_SIZE
             number = AVX_V_SIZE;
+#else
+            return std::make_pair(
+                errorf("AVX_V_SIZE NOT DEFINED IN THIS BUILD"),
+                M8->nilValue
+            );
+#endif
         } else {        
             try {
                 number=std::stof(sizeVal);
