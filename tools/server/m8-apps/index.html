@@ -17,6 +17,7 @@
     <!-- External Libs -->
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="menu.js"></script>
 
     <script>
         tailwind.config = {
@@ -77,7 +78,7 @@
             </div>
         </div>
 
-        <?php require "menu.php"; ?>
+        <div id="menu-system-area"></div>
 
         <div class="p-2 border-t border-border">
             <div class="flex items-center gap-2 px-2 py-1">
@@ -137,7 +138,7 @@
 
 
         <!-- VIEW 3: CONSOLE (Developer IDE) -->
-        <div ng-if="app.currentView === 'console'" ng-controller="ConsoleController as con" class="flex flex-col h-full bg-[#1e1e1e] text-gray-300 console-scroll relative">
+        <div ng-controller="ConsoleController as con" class="flex flex-col h-full bg-[#1e1e1e] text-gray-300 console-scroll relative">
             
             <!-- Library Modal -->
             <div ng-if="con.showLibrary" class="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" ng-click="con.toggleLibrary()">
@@ -379,6 +380,7 @@ vdb_add ADM <baset> 1`;
             vm.activeSession = null;
             vm.isCreating = false;
 
+
             vm.setView = function(view) {
                 if (view === 'console' && !vm.activeSession) { vm.currentView = 'sessions'; } else { vm.currentView = view; }
                 $timeout(() => lucide.createIcons());
@@ -390,7 +392,13 @@ vdb_add ADM <baset> 1`;
             vm.openSession = function(session) { SessionService.setActiveSession(session); vm.activeSession = session; vm.currentView = 'console'; $timeout(() => lucide.createIcons()); };
             vm.exitSession = function() { vm.activeSession = null; SessionService.setActiveSession(null); vm.currentView = 'sessions'; $timeout(() => lucide.createIcons()); };
             vm.deleteSession = function(id) { SessionService.deleteSession(id); };
-            $timeout(() => lucide.createIcons());
+
+            $timeout(() => {
+                lucide.createIcons();
+                setTimeout(function () {
+                    window.RenderM8Menu('menu-system-area');
+                }, 120);
+            });
         }]);
 
         // --- Chat Controller ---

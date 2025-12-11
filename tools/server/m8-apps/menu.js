@@ -8,7 +8,7 @@
         </a>
         <div class="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-textMuted">Engines</div>
 
-        <a href="pipeline-visualizer.php" class="flex items-center gap-2 px-3 py-2 rounded-md text-textMuted hover:bg-surface hover:text-textMain transition-colors">
+        <a href="visualizer.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-textMuted hover:bg-surface hover:text-textMain transition-colors">
             <i data-lucide="zap" class="w-4 h-4"></i><span>
             VM Visualization</span>
         </a>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8 Cortex Console</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- External Libs -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="menu.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#0f172a',      
+                        background: '#020617',   
+                        surface: '#1e293b',      
+                        border: '#334155',       
+                        primary: '#d946ef', 
+                        textMain: '#f8fafc',     
+                        textMuted: '#94a3b8',
+                        consoleBg: '#0f172a'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'scan': 'scan 4s linear infinite',
+                    },
+                    keyframes: {
+                        scan: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        /* 3D Stage Styles */
+        .perspective-stage {
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+        .register-block {
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            box-shadow: 0 0 20px rgba(217, 70, 239, 0.1);
+        }
+        .register-block.active {
+            transform: translateZ(30px) scale(1.05);
+            box-shadow: 0 0 50px rgba(217, 70, 239, 0.5);
+            border-color: #d946ef;
+            background: rgba(217, 70, 239, 0.1);
+        }
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            transform: rotateX(20deg) rotateY(-10deg);
+            transform-style: preserve-3d;
+            transition: transform 1s ease;
+        }
+        .stream-emitter {
+            position: relative;
+        }
+        .stream-particle {
+            position: absolute;
+            animation: streamFlow 1s linear forwards;
+            opacity: 0;
+            white-space: nowrap;
+        }
+        @keyframes streamFlow {
+            0% { transform: translateX(0) translateY(0) scale(0.8); opacity: 1; color: #fff; }
+            100% { transform: translateX(100px) translateY(-50px) scale(1.2); opacity: 0; color: #d946ef; }
+        }
+        .code-line {
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+        }
+        .code-line.current {
+            background: rgba(217, 70, 239, 0.1);
+            border-left: 2px solid #d946ef;
+            color: #fff;
+            padding-left: 12px;
+        }
+        .scanline {
+            background: linear-gradient(to bottom, transparent, rgba(217, 70, 239, 0.2), transparent);
+            height: 20px;
+            width: 100%;
+            position: absolute;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body ng-app="m8-app" ng-controller="AppController as app" class="bg-background text-textMain h-screen flex overflow-hidden text-xs antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-56 bg-sidebar border-r border-border flex flex-col flex-none z-20">
+        <div class="h-14 flex items-center px-4 border-b border-border">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(217,70,239,0.5)]"><i data-lucide="brain-circuit" class="w-4 h-4 text-white"></i></div>
+                <span class="font-semibold tracking-tight text-white text-sm">Cortex M8</span>
+            </div>
+        </div>
+        
+        <div id="menu-system-area"></div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 bg-background relative">
+
+        <!-- ENGINE DEMO VIEW -->
+        <div ng-controller="EngineDemoController as ed" class="flex flex-col h-full bg-[#050505] relative overflow-hidden">
+            <!-- Background Gradients -->
+            <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/10 via-black to-black pointer-events-none"></div>
+            
+            <!-- Header -->
+            <header class="h-16 flex items-center justify-between px-8 z-10 border-b border-white/5 bg-black/40 backdrop-blur-md">
+                <div>
+                    <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+                        M8 ENGINE <span class="text-primary text-shadow-glow">PIPELINE VISUALIZER</span>
+                    </h1>
+                    <p class="text-[10px] text-gray-400 font-mono tracking-widest uppercase flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        Instruction Cycle: {{ed.cycleTime}}ms
+                    </p>
+                </div>
+                <div class="flex gap-4">
+                    <button ng-click="ed.reset()" class="p-2 hover:text-white text-gray-500 transition-colors" title="Reset VM"><i data-lucide="rotate-ccw" class="w-5 h-5"></i></button>
+                    <button ng-click="ed.togglePlay()" class="px-6 py-2 bg-primary hover:bg-fuchsia-500 text-white rounded-full font-bold shadow-[0_0_20px_rgba(217,70,239,0.4)] transition-all transform hover:scale-105 flex items-center gap-2">
+                        <i data-lucide="{{ed.isPlaying ? 'pause' : 'play'}}" class="w-4 h-4 fill-current"></i>
+                        {{ed.isPlaying ? 'HALT SEQUENCE' : 'EXECUTE SCRIPT'}}
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 flex relative z-10 overflow-hidden">
+                <!-- Left: Code Panel -->
+                <div class="w-96 border-r border-white/10 bg-black/40 backdrop-blur-md flex flex-col z-20">
+                    <div class="p-3 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Instruction Buffer</span>
+                        <span class="text-[9px] font-mono text-primary">{{ed.script.length}} OPS</span>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-0.5 scroll-smooth" id="code-panel">
+                        <div ng-repeat="line in ed.script track by $index" 
+                             class="code-line py-1.5 px-3 rounded transition-all cursor-pointer text-gray-500 hover:text-gray-300"
+                             ng-class="{'current text-white font-bold bg-white/5': $index === ed.currentIndex}"
+                             ng-click="ed.jumpTo($index)">
+                            <span class="inline-block w-6 text-gray-700 select-none text-[10px]">{{$index + 1}}</span>
+                            <span ng-bind-html="ed.colorize(line)"></span>
+                        </div>
+                    </div>
+                    <div class="p-2 border-t border-white/5 bg-black/60 font-mono text-[9px] text-gray-500 flex justify-between">
+                        <span>VM_PC: 0x{{(ed.currentIndex * 4).toString(16).toUpperCase().padStart(4,'0')}}</span>
+                        <span>FLAGS: [Z:0 S:0 O:0]</span>
+                    </div>
+                </div>
+
+                <!-- Center: Visual Stage -->
+                <div class="flex-1 relative perspective-stage flex flex-col">
+                    
+                    <!-- HUD Overlay -->
+                    <div class="absolute top-4 left-6 right-6 flex justify-between pointer-events-none z-10">
+                        <div class="flex gap-4">
+                            <div class="bg-black/60 backdrop-blur border border-white/10 px-4 py-2 rounded">
+                                <div class="text-[9px] text-gray-500 uppercase">Operation</div>
+                                <div class="text-xl font-bold text-white font-mono tracking-wider">{{ed.currentOp || 'IDLE'}}</div>
+                            </div>
+                            <div class="bg-black/60 backdrop-blur border border-white/10 px-4 py-2 rounded">
+                                <div class="text-[9px] text-gray-500 uppercase">Target Register</div>
+                                <div class="text-xl font-bold text-primary font-mono">{{ed.activeReg || '---'}}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[9px] text-gray-500 uppercase">System Load</div>
+                            <div class="flex gap-1 items-end h-8">
+                                <div class="w-1 bg-primary/50 animate-pulse" style="height: 40%"></div>
+                                <div class="w-1 bg-primary/70 animate-pulse" style="height: 70%"></div>
+                                <div class="w-1 bg-primary animate-pulse" style="height: 50%"></div>
+                                <div class="w-1 bg-primary/40 animate-pulse" style="height: 90%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3D Workspace -->
+                    <div class="flex-1 flex items-center justify-center relative overflow-hidden">
+                        
+                        <!-- Register Bank (Left Grid) -->
+                        <div class="grid grid-cols-2 gap-4 w-1/3 max-w-md transform rotate-y-12 transition-transform duration-500">
+                            <div ng-repeat="(reg, val) in ed.registers" 
+                                 class="register-block bg-surface/40 border border-white/5 rounded p-3 flex flex-col relative overflow-hidden"
+                                 ng-class="{'active border-primary/50 bg-primary/5': ed.activeReg === reg}">
+                                <div class="text-[9px] font-bold text-gray-500 font-mono">{{reg}}</div>
+                                <div class="text-sm font-bold text-gray-200 truncate font-mono mt-1">{{val}}</div>
+                                <div class="absolute top-0 right-0 p-1 opacity-20"><i data-lucide="cpu" class="w-3 h-3 text-white"></i></div>
+                            </div>
+                        </div>
+
+                        <!-- Central Processor Visual -->
+                        <div class="w-1/3 flex flex-col items-center justify-center relative">
+                            <!-- Matrix Visualizer -->
+                            <div class="matrix-grid bg-black/80 p-4 border border-primary/30 rounded-lg shadow-[0_0_50px_rgba(217,70,239,0.2)] mb-8 transition-opacity duration-300"
+                                 ng-class="{'opacity-100 scale-100': ed.showMatrix, 'opacity-0 scale-50': !ed.showMatrix}">
+                                <div ng-repeat="n in ed.matrixValues track by $index" 
+                                     class="w-10 h-10 flex items-center justify-center border border-white/10 bg-white/5 rounded text-white font-mono text-[10px]">
+                                    {{n}}
+                                </div>
+                            </div>
+
+                            <!-- Stream Emitter -->
+                            <div class="h-24 w-full flex items-center justify-center relative" ng-if="ed.isStreaming">
+                                <div class="absolute inset-0 bg-primary/5 blur-xl rounded-full animate-pulse"></div>
+                                <div ng-repeat="p in ed.particles track by p.id" 
+                                     class="stream-particle font-mono text-white font-bold text-sm bg-black/50 px-2 py-1 rounded border border-primary/30"
+                                     style="top: {{p.y}}%; animation-duration: {{p.speed}}s">
+                                    {{p.text}}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Memory/Tensor Dump (Right Grid) -->
+                        <div class="w-64 h-64 bg-black/80 border border-white/10 rounded font-mono text-[9px] text-green-500/80 p-2 overflow-hidden relative transform -rotate-y-12">
+                            <div class="scanline animate-scan"></div>
+                            <div class="text-gray-500 border-b border-white/10 mb-1 pb-1">VRAM_DUMP_SEG_0x4F</div>
+                            <div class="grid grid-cols-4 gap-1">
+                                <div ng-repeat="byte in ed.memoryDump track by $index" class="hover:text-white cursor-crosshair transition-colors">
+                                    {{byte}}
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LOGIC -->
+    <script type="text/javascript">
+        const app = angular.module('m8-app', ['ngSanitize']); 
+
+        // --- APP CONTROLLER ---
+        app.controller('AppController', ['$scope', '$timeout', function($scope, $timeout) {
+            const vm = this;
+            vm.currentView = 'demo'; 
+            vm.setView = (v) => { vm.currentView = v; $timeout(()=>lucide.createIcons()); };
+            $timeout(() => {
+                lucide.createIcons();
+                setTimeout(function () {
+                    window.RenderM8Menu('menu-system-area');
+                }, 120);
+            });
+
+        }]);
+
+        // --- ENGINE DEMO CONTROLLER ---
+        app.controller('EngineDemoController', ['$scope', '$timeout', '$interval', '$sce', function($scope, $timeout, $interval, $sce) {
+            const vm = this;
+            
+            // Extensive RAG + Inference Simulation Script
+            vm.script = [
+                "store <sys_prompt> 'You are M8 assistant.'",
+                "store <user_input> 'Analyze Q3 projections'",
+                "stall 1",
+                "// --- PHASE 1: EMBEDDING ---",
+                "token_enc <user_input> <tokens> model='bert-v4'",
+                "llm_embed <tokens> <vec_user> dim=4",
+                "quantize <vec_user> f16",
+                "stall 1",
+                "// --- PHASE 2: VECTOR SEARCH ---",
+                "db_connect <vector_db> 'finance_shard_01'",
+                "mat8 <db_index> 0.1 0.4 0.9 0.2",
+                "matmul <vec_user> <db_index> <sim_scores>",
+                "sort <sim_scores> desc",
+                "store <ctx_id> 'DOC-9921'",
+                "db_retrieve <ctx_id> <context_text>",
+                "stall 1",
+                "// --- PHASE 3: INFERENCE ---",
+                "concat <sys_prompt> <context_text> <full_prompt>",
+                "concat <full_prompt> <user_input> <input_tensor>",
+                "load_weights <model_7b> vram_alloc=4GB",
+                "stall 1",
+                "// --- PHASE 4: GENERATION ---",
+                "predict <model_7b> <input_tensor> <logits>",
+                "sample <logits> temp=0.7 top_k=40",
+                "stream 'Analyzing fiscal data...'",
+                "stall 1",
+                "stream 'Q3 revenue shows 14% growth.'",
+                "stream 'Key driver: Cloud sector.'",
+                "stream 'Risk factor: Supply chain.'",
+                "store <final> 'DONE'",
+                "cleanup <input_tensor>"
+            ];
+
+            // State
+            vm.currentIndex = -1;
+            vm.isPlaying = false;
+            vm.registers = { 
+                '<user_input>': '---', 
+                '<vec_user>': '---', 
+                '<context_text>': '---', 
+                '<model_7b>': 'OFFLINE',
+                '<logits>': '---'
+            };
+            vm.activeReg = null;
+            vm.currentOp = '';
+            vm.showMatrix = false;
+            vm.matrixValues = [];
+            vm.isStreaming = false;
+            vm.particles = [];
+            vm.cycleTime = 0;
+            
+            // Memory Dump Mock Data
+            vm.memoryDump = Array.from({length: 64}, () => Math.floor(Math.random()*255).toString(16).toUpperCase().padStart(2,'0'));
+
+            let playInterval;
+            let memInterval;
+
+            vm.colorize = function(line) {
+                if (line.startsWith('//')) return `<span class="text-gray-600 italic">${line}</span>`;
+                let html = line.replace(/(\w+)/, '<span class="text-primary font-bold">$1</span>'); 
+                html = html.replace(/(<[\w_]+>)/g, '<span class="text-blue-400">$1</span>'); 
+                html = html.replace(/('.*?')/g, '<span class="text-yellow-300">$1</span>'); 
+                return $sce.trustAsHtml(html);
+            };
+
+            vm.togglePlay = function() {
+                if (vm.isPlaying) pause();
+                else play();
+            };
+
+            function play() {
+                vm.isPlaying = true;
+                if (vm.currentIndex >= vm.script.length - 1) vm.currentIndex = -1;
+                step();
+                startMemNoise();
+            }
+
+            function pause() {
+                vm.isPlaying = false;
+                $timeout.cancel(playInterval);
+                $interval.cancel(memInterval);
+            }
+
+            function startMemNoise() {
+                memInterval = $interval(() => {
+                    const idx = Math.floor(Math.random() * vm.memoryDump.length);
+                    vm.memoryDump[idx] = Math.floor(Math.random()*255).toString(16).toUpperCase().padStart(2,'0');
+                }, 100);
+            }
+
+            function step() {
+                if (!vm.isPlaying) return;
+                
+                vm.currentIndex++;
+                if (vm.currentIndex >= vm.script.length) {
+                    vm.isPlaying = false;
+                    pause();
+                    return;
+                }
+
+                // Scroll code into view
+                const el = document.getElementById('code-panel');
+                if(el) el.scrollTop = vm.currentIndex * 24;
+
+                const line = vm.script[vm.currentIndex];
+                if (!line.startsWith('//')) executeLine(line);
+                else vm.currentOp = "COMMENT"; // Skip logic for comments
+                
+                vm.cycleTime = Math.floor(Math.random() * 20 + 5);
+
+                // Variable delay
+                let delay = 1200;
+                if (line.includes('stall')) delay = 1500;
+                if (line.includes('stream')) delay = 800;
+                if (line.startsWith('//')) delay = 500;
+
+                playInterval = $timeout(step, delay);
+            }
+
+            vm.jumpTo = (idx) => { 
+                pause(); 
+                vm.currentIndex = idx; 
+                if(!vm.script[idx].startsWith('//')) executeLine(vm.script[idx]); 
+            };
+            
+            vm.reset = () => {
+                pause();
+                vm.currentIndex = -1;
+                vm.registers = { '<user_input>': '---', '<vec_user>': '---', '<context_text>': '---', '<model_7b>': 'OFFLINE', '<logits>': '---' };
+                vm.activeReg = null;
+                vm.showMatrix = false;
+                vm.isStreaming = false;
+                vm.currentOp = "READY";
+            };
+
+            function executeLine(line) {
+                const parts = line.split(' ');
+                const cmd = parts[0];
+                vm.currentOp = cmd.toUpperCase();
+                vm.activeReg = null;
+                vm.showMatrix = false;
+                vm.isStreaming = false;
+
+                // --- VISUAL LOGIC ---
+                if (cmd === 'store') {
+                    const reg = parts[1];
+                    const val = line.match(/'(.*?)'/)[1];
+                    updateRegister(reg, val.substring(0, 15) + (val.length>15?'...':''));
+                }
+                else if (cmd === 'token_enc') {
+                    const dest = parts[2];
+                    updateRegister(dest, '[102, 4992, 11...]');
+                }
+                else if (cmd === 'llm_embed') {
+                    const dest = parts[2];
+                    updateRegister(dest, '[0.2, -0.9, 0.5, ...]');
+                    vm.showMatrix = true;
+                    vm.matrixValues = [0.2, 0.9, 0.1, 0.5];
+                }
+                else if (cmd === 'mat8' || cmd === 'matmul') {
+                    vm.showMatrix = true;
+                    vm.matrixValues = Array.from({length:4}, ()=>Math.random().toFixed(1));
+                    if(parts[3] && parts[3].startsWith('<')) updateRegister(parts[3], '[TENSOR 4x4]');
+                }
+                else if (cmd === 'db_retrieve') {
+                    const dest = parts[2];
+                    updateRegister(dest, '...revenue up 14%...');
+                }
+                else if (cmd === 'load_weights') {
+                    const dest = parts[1];
+                    updateRegister(dest, 'LOADED (4GB)');
+                }
+                else if (cmd === 'predict') {
+                    const dest = parts[2];
+                    updateRegister(dest, '[LOGITS_F32]');
+                    vm.showMatrix = true;
+                    vm.matrixValues = ['99%','0%','1%','0%'];
+                }
+                else if (cmd === 'stream') {
+                    vm.isStreaming = true;
+                    const pId = Math.random();
+                    let text = line.match(/'(.*?)'/)[1];
+                    vm.particles.push({ id: pId, text: text, y: Math.random() * 80 + 10, speed: 1.5 });
+                    $timeout(() => {
+                        vm.particles = vm.particles.filter(p => p.id !== pId);
+                    }, 1500);
+                }
+            }
+
+            function updateRegister(reg, val) {
+                vm.activeReg = reg;
+                // Only update if key exists in our visual subset, or add dynamically
+                if (vm.registers[reg] !== undefined) vm.registers[reg] = val;
+                else vm.registers[reg] = val; // Add dynamic registers
+            }
+        }]);
+
+        app.requires.push('ngSanitize');
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-sanitize/1.8.2/angular-sanitize.min.js"></script>
+</body>
+</html>
