@@ -1690,12 +1690,36 @@ namespace m8p {
                     M8->nilValue
                 );
             }
+
             if (vB.size() > AVX_V_SIZE) {
                 return std::make_pair(
                     errorf("mat "+rB+" => size("+std::to_string(vB.size())+") exceeds max-vector-size " + std::to_string(AVX_V_SIZE)),
                     M8->nilValue
                 );
             }
+
+            if (vA.size() < AVX_V_SIZE) {
+                vA.resize(AVX_V_SIZE, 0.0f); 
+            }
+
+            if (vB.size() < AVX_V_SIZE) {
+                vB.resize(AVX_V_SIZE, 0.0f);
+            }
+
+            // if (vA.size() < AVX_V_SIZE) {
+            //     int32_t rem = AVX_V_SIZE - vA.size();
+            //     for (int i=rem; i<AVX_V_SIZE; ++i) {
+            //         vA.push_back(0);
+            //     }
+            // }
+
+            // if (vB.size() < AVX_V_SIZE) {
+            //     int32_t rem = AVX_V_SIZE - vB.size();
+            //     for (int i=rem; i<AVX_V_SIZE; ++i) {
+            //         vB.push_back(0);
+            //     }
+            // }
+
             // if (vB.size()%AVX_V_SIZE!=0) {
             //     int diff = __abs(AVX_V_SIZE - vB.size());
             //     vB.resize(diff);
