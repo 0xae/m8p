@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8 Console</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Ace Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <!-- External Libs -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#f9fafb',      
+                        background: '#ffffff',   
+                        surface: '#f3f4f6',      
+                        border: '#e5e7eb',       
+                        primary: '#b21010',      
+                        primaryHover: '#d61313',
+                        textMain: '#111827',     
+                        textMuted: '#6b7280',
+                        consoleBg: '#1e1e1e',
+                        consolePanel: '#252526',
+                        consoleHeader: '#007acc',
+                        consoleText: '#cccccc'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    },
+                    fontSize: {
+                        xxs: '0.65rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .console-scroll ::-webkit-scrollbar-thumb { background: #444; }
+        
+        .typing-dot { animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
+</head>
+
+<body ng-app="m8-app" ng-controller="AppController as app" class="bg-background text-textMain h-screen flex overflow-hidden text-xs antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-56 bg-sidebar border-r border-border flex flex-col flex-none">
+        <div class="h-10 flex items-center px-3 border-b border-border">
+            <div class="flex items-center gap-2">
+                <div class="w-5 h-5 rounded bg-primary flex items-center justify-center">
+                    <span class="font-bold text-white text-[10px]">M8</span>
+                </div>
+                <span class="font-semibold tracking-tight text-textMain text-sm">Console</span>
+                <span class="px-1 py-0.5 rounded text-[9px] bg-surface border border-border text-textMuted uppercase">Beta</span>
+            </div>
+        </div>
+
+        <?php require "menu.php"; ?>
+
+        <div class="p-2 border-t border-border">
+            <div class="flex items-center gap-2 px-2 py-1">
+                <div class="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[9px] font-bold text-gray-500">BM</div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-medium text-textMain">BrainMaster</span>
+                    <span class="text-[8px] text-textMuted">Pro Plan</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 bg-background relative">
+        <!-- VIEW 2: SESSION LIST -->
+        <div ng-if="app.currentView === 'sessions'" class="flex flex-col h-full bg-surface">
+            <!-- (Session List UI Preserved) -->
+            <header class="h-14 border-b border-border bg-background flex items-center justify-between px-6 flex-none">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
+                        <i data-lucide="terminal" class="w-4 h-4 text-gray-600"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-semibold text-textMain">Active Sessions</h1>
+                        <p class="text-[10px] text-textMuted">Manage your running M8 instances</p>
+                    </div>
+                </div>
+                <button ng-click="app.createSession()" class="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primaryHover text-white text-xs font-medium rounded-md shadow-sm transition-colors" ng-disabled="app.isCreating">
+                    <i ng-if="!app.isCreating" data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <i ng-if="app.isCreating" data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+                    <span>{{app.isCreating ? 'Creating...' : 'New Session'}}</span>
+                </button>
+            </header>
+            <main class="flex-1 overflow-y-auto p-6">
+                <div class="max-w-5xl mx-auto">
+                    <div ng-if="app.sessions.length === 0" class="flex flex-col items-center justify-center py-20 bg-background rounded-lg border border-border border-dashed">
+                        <div class="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3"><i data-lucide="box" class="w-6 h-6 text-gray-300"></i></div>
+                        <h3 class="text-sm font-medium text-textMain">No active sessions</h3><p class="text-xs text-textMuted mt-1">Create a new session to start coding M8 assembly</p>
+                    </div>
+                    <div ng-if="app.sessions.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div ng-repeat="session in app.sessions track by $index" 
+                            class="group bg-background border border-border hover:border-primary/50 rounded-lg p-4 cursor-pointer transition-all shadow-sm hover:shadow-md" ng-click="app.openSession(session)">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-green-500"></div><span class="font-mono text-xs font-medium text-textMain">#{{session.id}}</span></div>
+                                <button ng-click="$event.stopPropagation(); app.deleteSession(session.id)" class="text-gray-300 hover:text-red-500 transition-colors p-1"><i data-lucide="trash" class="w-3.5 h-3.5"></i></button>
+                            </div>
+                            <div class="bg-gray-50 rounded p-2 mb-3 border border-gray-100">
+                                <p class="font-mono text-[9px] text-gray-500 truncate">{{session.code.split('\n')[0] || 'Empty session'}}</p>
+                                <p class="font-mono text-[9px] text-gray-400 mt-1">...</p>
+                            </div>
+                            <div class="flex items-center justify-between text-[10px] text-textMuted"><span>{{session.createdAt | fromNow}}</span><span class="group-hover:text-primary transition-colors flex items-center gap-1">Open <i data-lucide="arrow-right" class="w-3 h-3"></i></span></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+
+        <!-- VIEW 3: CONSOLE (Developer IDE) -->
+        <div ng-controller="ConsoleController as con" class="flex flex-col h-full bg-[#1e1e1e] text-gray-300 console-scroll relative">
+            
+            <!-- Library Modal -->
+            <div ng-if="con.showLibrary" class="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" ng-click="con.toggleLibrary()">
+                <div class="bg-[#1e1e2e] border border-[#3e3e42] rounded-lg shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col overflow-hidden" ng-click="$event.stopPropagation()">
+                    
+                    <!-- Modal Header -->
+                    <div class="p-4 border-b border-[#3e3e42] flex items-center justify-between bg-[#252526]">
+                        <h2 class="text-sm font-semibold text-white flex items-center gap-2">
+                            <button ng-if="con.selectedSnippet" ng-click="con.selectedSnippet = null" class="mr-1 hover:text-blue-400 transition-colors" title="Back to List">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                            </button>
+                            <i ng-if="!con.selectedSnippet" data-lucide="book" class="w-4 h-4 text-blue-400"></i>
+                            {{ con.selectedSnippet ? con.selectedSnippet.title : 'M8 Library' }}
+                        </h2>
+                        <button ng-click="con.toggleLibrary()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </div>
+
+                    <!-- Search (List View Only) -->
+                    <div ng-if="!con.selectedSnippet" class="p-4 border-b border-[#3e3e42]">
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
+                            <input ng-model="con.librarySearch" type="text" placeholder="Search operations..." 
+                                   class="w-full bg-[#111] border border-[#3e3e42] rounded-md py-2 pl-9 pr-4 text-xs text-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <!-- List View -->
+                    <div ng-if="!con.selectedSnippet" class="flex-1 overflow-y-auto p-2">
+                        <div ng-repeat="item in con.snippets | filter:con.librarySearch" 
+                             class="group p-3 hover:bg-[#2d2d30] rounded-md cursor-pointer transition-colors border border-transparent hover:border-[#3e3e42] mb-1"
+                             ng-click="con.viewSnippet(item)">
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="text-blue-400 font-bold text-xs">{{item.title}}</h3>
+                                <i data-lucide="chevron-right" class="w-3 h-3 text-gray-500 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all"></i>
+                            </div>
+                            <pre class="text-[10px] text-gray-500 group-hover:text-gray-400 font-mono whitespace-pre-wrap line-clamp-2 pointer-events-none">{{item.preview}}</pre>
+                        </div>
+                    </div>
+
+                    <!-- Detail View (Code Preview) -->
+                    <div ng-if="con.selectedSnippet" class="flex-1 flex flex-col min-h-0">
+                        <div class="flex-1 overflow-y-auto p-4 bg-[#111]">
+                            <pre class="font-mono text-xs text-gray-300 whitespace-pre-wrap select-text">{{con.selectedSnippet.code}}</pre>
+                        </div>
+                        <div class="p-4 border-t border-[#3e3e42] bg-[#252526] flex justify-end gap-2">
+                            <button ng-click="con.selectedSnippet = null" class="px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-[#3e3e42] rounded transition-colors">
+                                Back
+                            </button>
+                            <button ng-click="con.insertSnippet(con.selectedSnippet.code)" class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded font-medium flex items-center gap-2 shadow-sm transition-colors">
+                                <i data-lucide="plus" class="w-3 h-3"></i>
+                                Insert Code
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="h-8 bg-[#2d2d2d] flex items-center justify-between px-2 border-b border-[#3e3e42] z-40">
+                <div class="flex items-center gap-3">
+                    <button ng-click="app.exitSession()" class="text-gray-400 hover:text-white flex items-center gap-1 px-1 py-0.5 rounded hover:bg-white/5 transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span class="text-[10px] font-medium">Back</span>
+                    </button>
+                    <div class="h-4 w-px bg-[#3e3e42]"></div>
+                    <span class="text-xs text-gray-400 font-mono">brain@master | <span class="text-blue-400 font-bold">#{{app.activeSession.id}}</span></span>
+                    
+                    <button ng-click="con.exportToPython()" class="ml-4 flex items-center gap-1 px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-white text-[10px] font-bold rounded shadow-sm transition-colors" title="Download Python Script">
+                        <i data-lucide="download" class="w-3 h-3"></i>
+                        <span>Export Python</span>
+                    </button>
+
+                    <button ng-click="con.exportToCurl()" class="ml-2 flex items-center gap-1 px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-white text-[10px] font-bold rounded shadow-sm transition-colors" title="Download Shell Script">
+                        <i data-lucide="terminal" class="w-3 h-3"></i>
+                        <span>Export SSH</span>
+                    </button>
+
+                    <button ng-click="con.toggleLibrary()" class="ml-2 flex items-center gap-1 px-2 py-0.5 bg-blue-900/50 hover:bg-blue-800 border border-blue-800 text-blue-100 text-[10px] font-bold rounded shadow-sm transition-colors" title="Open Library">
+                        <i data-lucide="book" class="w-3 h-3"></i>
+                        <span>Library</span>
+                    </button>
+
+                    <button ng-click="con.runCode()" class="flex items-center gap-1 px-2 py-0.5 bg-green-700 hover:bg-green-600 text-white text-[10px] font-bold rounded shadow-sm transition-colors ml-2" ng-disabled="con.isRunning">
+                        <!-- <i ng-if="!con.isRunning" data-lucide="play" class="w-3 h-3 fill-current"></i> -->
+                        <i ng-if="con.isRunning" data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>
+                        <span ng-if="!con.isRunning">RUN (Ctrl+Enter)</span>
+                        <span ng-if="con.isRunning">Hold on...</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-gray-500">{{ con.M8_HOST }}</span>
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                </div>
+            </div>
+
+            <!-- IDE Split Pane -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- Left: Ace Editor -->
+                <div class="w-1/2 flex flex-col border-r border-[#3e3e42]">
+                    <div id="m8-editor" class="flex-1 text-sm"></div>
+                </div>
+
+                <!-- Right: Output & State -->
+                <div class="w-1/2 flex flex-col bg-black font-mono text-xs">
+                    <div class="p-4 text-green-500 select-text">
+                        <pre class="leading-tight text-[5px] opacity-50 mb-4">
+          |\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\|
+          |/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/|
+          |\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\|
+          |_________________________________________|
+__________|                                         |__________
+__________|                                         |__________
+__________|                                         |__________
+__________|       /$$      /$$  /$$$$$$             |__________
+__________|      | $$$    /$$$ /$$__  $$            |__________
+__________|      | $$$$  /$$$$| $$  \ $$            |__________
+__________|      | $$ $$/$$ $$|  $$$$$$/            |__________
+__________|      | $$  $$$| $$ >$$__  $$            |__________
+__________|      | $$\  $ | $$| $$  \ $$            |__________
+__________|      | $$ \/  | $$|  $$$$$$/            |__________
+__________|      |__/     |__/ \______/             |__________
+__________|                                         |__________
+__________|                                         |__________
+__________|_________________________________________|__________
+          |_________________________________________|
+          |\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\|
+          |/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/|
+          |\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\|
+                        </pre>
+                        <div class="text-gray-500 mb-2">
+                            Runtime: <span class="text-yellow-500">mxroberlyn</span><br>
+                            Version: <span class="text-yellow-500">1.0.0</span> | Session: <span class="text-blue-500">{{app.activeSession.id}}</span>
+                        </div>
+                    </div>
+
+                    <!-- Execution Output -->
+                    <div class="flex-1 p-4 border-t border-[#333] overflow-y-auto">
+                        <div ng-if="con.result">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-gray-500">Status:</span>
+                                <span class="font-bold" ng-class="{'text-green-500': con.result.Status === 'OK', 'text-red-500': con.result.Status !== 'OK'}">{{con.result.Status}}</span>
+                                <span class="text-gray-600">|</span>
+                                <span class="text-gray-500">Time:</span>
+                                <span class="text-gray-300">{{con.result.Tms}}</span>
+                            </div>
+                            <div ng-if="con.result.Error" class="text-red-400 mb-2">Error: {{con.result.Error}}</div>
+                            <div class="flex flex-col gap-1 mt-2">
+                                <div class="flex items-center gap-2 text-[10px]">
+                                    <span class="text-blue-400">Return</span>
+                                    <span class="text-gray-500">{{con.result.Type}}</span>
+                                </div>
+                                <pre class="text-blue-300 whitespace-pre-wrap font-mono bg-[#111] p-2 rounded border border-[#333]">{{con.result.R}}</pre>
+                            </div>
+                        </div>
+                        <div ng-if="!con.result && !con.isRunning" class="text-gray-600 italic">Waiting for execution...</div>
+                        <div ng-if="con.isRunning" class="text-yellow-500">Running on remote session...</div>
+                    </div>
+
+                    <!-- Registers Panel -->
+                    <div class="border-t border-blue-900">
+                        <div class="bg-[#1e1e2e] px-2 py-1 flex items-center justify-between border-b border-blue-900"><div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-blue-500"></div><span class="font-bold text-gray-300">REGISTERS</span></div><i data-lucide="refresh-cw" class="w-3 h-3 text-gray-500 cursor-pointer hover:text-white"></i></div>
+                        <div class="bg-[#0d0d15] p-2 space-y-1 h-32 overflow-y-auto">
+                             <div class="flex items-center justify-between group hover:bg-[#1e1e2e] p-1 rounded"><span class="text-blue-400 font-bold">&lt;r1&gt;</span><div class="flex items-center gap-2"><span class="text-gray-500 text-[10px]">contents of R1</span><i data-lucide="trash" class="w-3 h-3 text-red-900 group-hover:text-red-500 cursor-pointer"></i></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LOGIC -->
+    <script type="text/javascript">
+        const M8_HOST = "";
+        const app = angular.module('m8-app', []);
+
+        app.filter('fromNow', function() { return function(date) { return moment(date).fromNow(); } });
+
+        // --- Session Service ---
+        app.factory('SessionService', function() {
+            const STORAGE_KEY = 'm8_sessions';
+            let sessions = [];
+            let activeSession = null;
+            const DEFAULT_CODE = `store <r1> hello world
+vdb_instance ADM dim=16 max_elements=500 M=16 ef_construction=200
+llm_tokenize <r1> <baset>
+align <baset> 16
+vdb_add ADM <baset> 1`;
+
+            const saveSessions = () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)); };
+            const loadSessions = () => {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) { try { sessions = JSON.parse(stored); sessions.forEach(s => s.createdAt = new Date(s.createdAt)); } catch (e) { sessions = []; } }
+            };
+            loadSessions();
+
+            return {
+                getSessions: () => sessions,
+                createSession: async () => {
+                    const id = 'session_' + Math.random().toString(36).substring(2, 9);
+                    try {
+                        const response = await fetch(`${M8_HOST}/api/v1/m8/session-check/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: "ustall 1" }) });
+                        if (!response.ok) throw new Error("Failed to init session");
+                    } catch (e) { console.error("Session creation warning:", e); }
+                    const newSession = { id: id, code: DEFAULT_CODE, createdAt: new Date(), lastResult: null };
+                    sessions.push(newSession); saveSessions(); return newSession;
+                },
+                checkSession: async (id) => {
+                    try {
+                        const response = await fetch(`${M8_HOST}/api/v1/m8/session-check/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: "ustall 1" }) });
+                        if (!response.ok) throw new Error("Failed to init session");
+                    } catch (e) { console.error("Session creation warning:", e); }
+                },
+
+                deleteSession: (id) => { const idx = sessions.findIndex(s => s.id === id); if (idx !== -1) { sessions.splice(idx, 1); saveSessions(); } },
+                setActiveSession: (session) => { activeSession = session; },
+                getActiveSession: () => activeSession,
+                updateSessionCode: (id, code) => { const s = sessions.find(s => s.id === id); if (s) { s.code = code; saveSessions(); } },
+                updateSessionResult: (id, result) => { const s = sessions.find(s => s.id === id); if (s) { s.lastResult = result; saveSessions(); } }
+            };
+        });
+
+        // --- App Controller ---
+        app.controller('AppController', ['$scope', '$timeout', 'SessionService', function($scope, $timeout, SessionService) {
+            const vm = this;
+            vm.currentView = 'sessions'; 
+            vm.sessions = SessionService.getSessions();
+            vm.activeSession = null;
+            vm.isCreating = false;
+            vm.M8_HOST = M8_HOST;
+
+            vm.setView = function(view) {
+                if (view === 'console' && !vm.activeSession) { vm.currentView = 'sessions'; } else { vm.currentView = view; }
+                $timeout(() => lucide.createIcons());
+            };
+            vm.createSession = function() {
+                if (vm.isCreating) return; vm.isCreating = true;
+                SessionService.createSession().then(session => { $scope.$apply(() => { vm.openSession(session); vm.isCreating = false; }); }).catch(err => { $scope.$apply(() => vm.isCreating = false); });
+            };
+            vm.openSession = function(session) { SessionService.setActiveSession(session); vm.activeSession = session; vm.currentView = 'console'; $timeout(() => lucide.createIcons()); };
+            vm.exitSession = function() { vm.activeSession = null; SessionService.setActiveSession(null); vm.currentView = 'sessions'; $timeout(() => lucide.createIcons()); };
+            vm.deleteSession = function(id) { SessionService.deleteSession(id); };
+            $timeout(() => lucide.createIcons());
+        }]);
+
+
+        // --- Console Controller ---
+        app.controller('ConsoleController', ['$scope', '$timeout', '$http', 'SessionService', function($scope, $timeout, $http, SessionService) {
+            const vm = this;
+            vm.isRunning = false;
+            vm.result = null;
+            vm.showLibrary = false;
+            vm.selectedSnippet = null;
+            vm.M8_HOST = M8_HOST;
+            let editor = null;
+            const activeSession = SessionService.getActiveSession();
+            if (activeSession) { vm.result = activeSession.lastResult; }
+
+            // Library Data
+            vm.snippets = [
+                { title: 'Basic Operations', preview: 'f32set, i32set, store, dup, ret', 
+                    code: `f32set <rage> 12.2\ni32set <r2> 5\nstore <r1> ..string... # store string\nstore <r3> My age is <rage> and i have <r2> friends\ndup <r1> <r2>\nstore <r2> ulala\nclr <rr>\nret <r1> <r2>` },
+
+                { title: 'Assertions', preview: 'asserteq, assertcontains, assertnotempty', code: `store <r1> ...string...\ndup <r1> <r2>\ni32set <i1> 10\ni32set <i2> 10\nf32set <f1> 10\nf32set <f2> 10\nasserteq <f1> <f2>\nasserteq <i1> <i2>\nassertcontains <r1> ...string...\nassertnotempty <r1>\nassertempty <r1>\nassertnil <r1>\nasserteq <r1> <r2>` },
+                { title: 'LLM Embeddings', preview: 'llm_embed, llm_tokenize', code: `store <r1> Hello there\nllm_embed <r1> <rv2> dim=16\nllm_tokenize <r1> <r1tokens>\nllm_detokenize <r1tokens> <r4>\nret <r4>` },
+                { title: 'Math Operations', preview: 'f32add, i32mul, store', code: `f32add <r10> 23.44533\nf32sub <r10> 23.44533\nf32mul <r10> 23.44533\nf32set <r10> 78\ni32set <r9> 123\ni32add <r9> 123\ni32mul <r9> 123\nstore <response> r10=<r10> r9=<r9>\nret <response>` },
+                { title: 'Matrix Operations', preview: 'matn, mat8, matmul, matdot', code: `matn <r1> 1 376 306 626\nmat8 <r1> 10 20 30 40 50 60 70 89\nmat8 <r2> 12.3 20.23 30.23 40.23 50.23 60.23 70 89\nmatsub <r1> <r2> <r3>\nmatadd <r1> <r2> <r3>\nmatmul <r1> <r2> <r3>\nmatdot <r1> <r2> <result>\nmatcosim <r3> <r2> <result>\nmatl2d <r1> <r2> <result>\nret <r3>` },
+                { title: 'Inference', preview: 'llm_instance, llm_instancestatus', code: `store <r1> Tell me a joke\nllm_instance <r1> instname n_predict=24 temperature=0.5\nllm_instancestatus instname <r3>` },
+                { title: 'Inference Forced', preview: 'force=true, ignore cache', code: `store <r1> Tell me a joke\nllm_instance <r1> instname n_predict=24 temperature=0.5 force=true\nllm_instancestatus instname <r3>` },
+
+                { title: 'NLP Search', preview: 'vectordb, search, vdb_search, matcosim, llm_embed', 
+                    code: `
+## Search with natural language queries and calculate rudimentary similarity
+store <query> check python timeit function in javascript
+llm_embed <query> <qembed> dim=32
+vdb_search CODE_SEARCH <qembed> <match1> distance=0.06
+llm_detokenize <match1> <result1>
+llm_embed <result1> <res_embed> dim=32
+align <qembed> 8
+align <match1> 8
+matcosim <match1> <qembed> <similarity>
+store <sim_result> Similarity: <similarity><br/>: Lookup(<query>) : <result1>
+ret <sim_result>
+                    ` },
+
+                { title: 'VectorDB Operations', preview: 'vdb_instance, vdb_add, vdb_search', 
+                    code: `
+## Create DB (idempotent)
+vdb_instance DB_NAME dim=32 max_elements=5 M=16 ef_construction=200
+
+## Index first
+store <s1> Python function to read CSV file and parse data
+llm_embed <s1> <e1> dim=32
+align <e1> 32
+vdb_add DB_NAME <e1> Python: df = pd.read_csv('data.csv')
+
+## Index second
+store <s2> JavaScript async function to fetch API data
+llm_embed <s2> <e2> dim=32
+align <e2> 32
+vdb_add DB_NAME <e2> JavaScript: const data = await fetch(url).then(r => r.json())
+
+
+## Now Search
+store <query> my query
+llm_embed <query> <qembed> dim=32
+align <qembed> 32
+vdb_search DB_NAME <qembed> <match1> distance=0.5
+llm_detokenize <match1> <result1>
+store <output1> Lookup(<query>) => <result1>
+ret <output1>
+                    ` },
+                { title: 'Alignment & Batch Add', preview: 'align, vdb_add (batch)', code: `mat8 <r1> 1 2 3 4 5 6 7 8\nalign <r1> 16\nmat8 <r2> 10 20 30 40 50 60 70 80\nalign <r2> 16\nvdb_instance MYDB dim=16 max_elements=500\nvdb_add MYDB <r1> 1 2 3 4 5 6 7 8\nvdb_add MYDB <r2> 10 20 30 40 50 60 70 80` },
+
+                { title: 'Advanced Market Sentiment & Rist Analysis', preview: 'align, vdb_add (batch)', code: `
+## Advanced Market Sentiment & Risk Analysis System
+## Analyzes news, volatility, correlations, and risk metrics
+vdb_instance MARKET_NEWS dim=8 max_elements=600 M=24 ef_construction=300
+vdb_instance RISK_EVENTS dim=8 max_elements=400 M=20 ef_construction=250
+vdb_instance SECTOR_SIGNALS dim=8 max_elements=300 M=16 ef_construction=200
+
+## Market news sentiment embeddings
+store <news1> Federal Reserve signals potential interest rate cuts amid inflation concerns
+llm_embed <news1> <n1> dim=8
+vdb_add MARKET_NEWS <n1> Fed rate cuts inflation
+
+store <news2> Tech sector rallies on strong earnings from major companies
+llm_embed <news2> <n2> dim=8
+vdb_add MARKET_NEWS <n2> Tech rally earnings strong
+
+store <news3> Oil prices surge due to geopolitical tensions in Middle East
+llm_embed <news3> <n3> dim=8
+vdb_add MARKET_NEWS <n3> Oil surge geopolitical tensions
+
+store <news4> Banking sector faces regulatory scrutiny over capital requirements
+llm_embed <news4> <n4> dim=8
+vdb_add MARKET_NEWS <n4> Banking regulation capital
+
+store <news5> Retail sales exceed expectations showing consumer strength
+llm_embed <news5> <n5> dim=8
+vdb_add MARKET_NEWS <n5> Retail sales consumer strong
+
+store <news6> Dollar weakens as Treasury yields decline sharply
+llm_embed <news6> <n6> dim=8
+vdb_add MARKET_NEWS <n6> Dollar weak yields decline
+
+store <news7> Semiconductor shortage eases boosting manufacturing outlook
+llm_embed <news7> <n7> dim=8
+vdb_add MARKET_NEWS <n7> Semiconductor shortage eases manufacturing
+
+store <news8> Housing market shows signs of cooling with lower mortgage demand
+llm_embed <news8> <n8> dim=8
+vdb_add MARKET_NEWS <n8> Housing cooling mortgage demand
+
+## Historical risk events for pattern matching
+store <risk1> Market crash preceded by inverted yield curve and high volatility
+llm_embed <risk1> <r1> dim=8
+vdb_add RISK_EVENTS <r1> Crash yield curve volatility
+
+store <risk2> Bull run characterized by low VIX and rising corporate profits
+llm_embed <risk2> <r2> dim=8
+vdb_add RISK_EVENTS <r2> Bull low VIX profits
+
+store <risk3> Correction triggered by sudden credit crunch and liquidity crisis
+llm_embed <risk3> <r3> dim=8
+vdb_add RISK_EVENTS <r3> Correction credit crunch liquidity
+
+store <risk4> Sector rotation driven by changing monetary policy expectations
+llm_embed <risk4> <r4> dim=8
+vdb_add RISK_EVENTS <r4> Rotation monetary policy
+
+## Current market condition analysis
+store <current_condition> Rising volatility with mixed earnings and rate uncertainty
+llm_embed <current_condition> <curr> dim=8
+## Search for similar historical patterns
+vdb_search RISK_EVENTS <curr> <pattern_match> distance=0.6
+llm_detokenize <pattern_match> <historical_pattern>
+
+## Build sector sentiment vectors
+matadd <n2> <n7> <tech_sentiment>
+matadd <n4> <n6> <financial_sentiment>
+matadd <n3> <n3> <energy_sentiment>
+matadd <n5> <n8> <consumer_sentiment>
+
+## Calculate sector correlations
+matcosim <tech_sentiment> <financial_sentiment> <tech_fin_corr>
+matcosim <energy_sentiment> <financial_sentiment> <energy_fin_corr>
+matcosim <tech_sentiment> <consumer_sentiment> <tech_consumer_corr>
+
+## Market regime detection - aggregate all news
+matadd <n1> <n2> <temp1>
+matadd <temp1> <n3> <temp2>
+matadd <temp2> <n4> <temp3>
+matadd <temp3> <n5> <temp4>
+matadd <temp4> <n6> <temp5>
+matadd <temp5> <n7> <temp6>
+matadd <temp6> <n8> <market_aggregate>
+
+## Compare current regime to historical patterns
+matcosim <market_aggregate> <r1> <crash_similarity>
+matcosim <market_aggregate> <r2> <bull_similarity>
+matcosim <market_aggregate> <r3> <correction_similarity>
+matcosim <market_aggregate> <r4> <rotation_similarity>
+
+## Volatility indicators - simulate price movements
+mat8 <vol_short_term> 0.15 0.18 0.22 0.19 0.16 0.20 0.25 0.23
+align <vol_short_term> 8
+mat8 <vol_long_term> 0.12 0.13 0.14 0.13 0.12 0.13 0.14 0.15
+align <vol_long_term> 8
+
+## Calculate volatility ratio (short/long)
+matdot <vol_short_term> <vol_short_term> <vol_short_power>
+matdot <vol_long_term> <vol_long_term> <vol_long_power>
+
+## Risk-adjusted return metrics
+mat8 <returns> 0.08 0.12 -0.03 0.15 0.09 -0.05 0.11 0.07
+align <returns> 8
+mat8 <risks> 0.18 0.22 0.15 0.25 0.16 0.12 0.20 0.14
+align <risks> 8
+
+## Calculate Sharpe-like ratio components
+matdot <returns> <returns> <return_magnitude>
+matdot <risks> <risks> <risk_magnitude>
+
+## Factor exposure analysis
+mat8 <market_beta> 1.2 0.95 1.35 0.88 1.05 1.15 0.92 1.08
+align <market_beta> 8
+mat8 <size_factor> 0.3 -0.2 0.5 -0.4 0.1 0.3 -0.3 0.2
+align <size_factor> 8
+mat8 <value_factor> -0.15 0.25 -0.30 0.40 0.10 -0.20 0.35 0.05
+align <value_factor> 8
+mat8 <momentum_factor> 0.45 0.60 -0.20 0.75 0.50 -0.15 0.65 0.40
+align <momentum_factor> 8
+
+## Portfolio construction weights
+mat8 <port_weights> 0.15 0.12 0.18 0.08 0.20 0.10 0.09 0.08
+align <port_weights> 8
+
+## Calculate portfolio factor exposures
+matdot <port_weights> <market_beta> <portfolio_beta>
+matdot <port_weights> <size_factor> <portfolio_size>
+matdot <port_weights> <value_factor> <portfolio_value>
+matdot <port_weights> <momentum_factor> <portfolio_momentum>
+
+## Expected return calculation
+matdot <port_weights> <returns> <portfolio_expected_return>
+matdot <port_weights> <risks> <portfolio_risk>
+
+## Tail risk analysis - extreme scenarios
+mat8 <stress_scenario_1> -0.25 -0.30 -0.15 -0.35 -0.20 -0.18 -0.28 -0.22
+align <stress_scenario_1> 8
+mat8 <stress_scenario_2> 0.40 0.35 0.50 0.30 0.38 0.42 0.33 0.37
+align <stress_scenario_2> 8
+
+matdot <port_weights> <stress_scenario_1> <crash_impact>
+matdot <port_weights> <stress_scenario_2> <rally_impact>
+
+## Correlation matrix diagonal elements
+matcosim <n1> <n1> <news_auto_corr>
+matcosim <tech_sentiment> <tech_sentiment> <tech_consistency>
+
+## Sentiment divergence detection
+matl2d <tech_sentiment> <financial_sentiment> <tech_fin_divergence>
+matl2d <energy_sentiment> <consumer_sentiment> <energy_consumer_divergence>
+
+## News clustering for theme extraction
+matcosim <n1> <n6> <monetary_theme_strength>
+matcosim <n2> <n7> <tech_theme_strength>
+matcosim <n3> <n4> <risk_theme_strength>
+
+## Forward-looking indicators
+store <forward1> Analyst expectations point to earnings growth acceleration
+llm_embed <forward1> <f1> dim=8
+vdb_search MARKET_NEWS <f1> <related_forward_news> distance=0.65
+llm_detokenize <related_forward_news> <forward_context>
+
+## Market microstructure signals
+store <micro1> Unusual options activity suggests institutional positioning
+llm_embed <micro1> <m1> dim=8
+
+matcosim <m1> <curr> <positioning_relevance>
+
+## Regime change probability
+f32set <regime_threshold> 0.75
+f32set <regime_confidence> 0.0
+
+## Check if any historical pattern strongly matches
+f32set <max_similarity> <bull_similarity>
+
+## Risk score aggregation
+mat8 <risk_components> 0.15 0.22 0.18 0.12 0.25 0.20 0.16 0.19
+align <risk_components> 8
+mat8 <risk_weights> 0.25 0.20 0.15 0.10 0.15 0.08 0.04 0.03
+align <risk_weights> 8
+
+matdot <risk_weights> <risk_components> <aggregate_risk_score>
+
+## Diversification benefit calculation
+f32set <individual_risks_sum> 1.68
+f32set <portfolio_risk_val> <portfolio_risk>
+
+## Sentiment momentum
+matcosim <n1> <n5> <positive_momentum>
+matcosim <n4> <n8> <negative_momentum>
+
+## Generate trading signals
+store <signal_query> Should I increase or decrease market exposure now
+llm_embed <signal_query> <sq> dim=8
+vdb_search RISK_EVENTS <sq> <signal_context> distance=0.7
+llm_detokenize <signal_context> <positioning_advice>
+
+## Build comprehensive analysis report
+store <analysis> MARKET REGIME: Bull_sim=<bull_similarity> Crash_sim=<crash_similarity> Correction_sim=<correction_similarity> Rotation_sim=<rotation_similarity> | HISTORICAL: Pattern=<historical_pattern> | SECTORS: Tech-Fin_corr=<tech_fin_corr> Energy-Fin=<energy_fin_corr> Tech-Consumer=<tech_consumer_corr> | PORTFOLIO: Beta=<portfolio_beta> Size=<portfolio_size> Value=<portfolio_value> Momentum=<portfolio_momentum> Expected_return=<portfolio_expected_return> Risk=<portfolio_risk> | STRESS: Crash_impact=<crash_impact> Rally_impact=<rally_impact> | DIVERGENCE: Tech-Fin=<tech_fin_divergence> Energy-Consumer=<energy_consumer_divergence> | THEMES: Monetary=<monetary_theme_strength> Tech=<tech_theme_strength> Risk=<risk_theme_strength> | AGGREGATE_RISK: <aggregate_risk_score> | POSITIONING: <positioning_advice> | FORWARD: <forward_context> | SENTIMENT: Positive=<positive_momentum> Negative=<negative_momentum>
+
+ret <analysis>
+                ` }
+
+            ];
+
+            // Initialize Ace
+            $timeout(() => {
+                editor = ace.edit("m8-editor");
+                editor.setTheme("ace/theme/monokai");
+                editor.session.setMode("ace/mode/python");
+                editor.setFontSize(13);
+                editor.setShowPrintMargin(false);
+                if (activeSession) { editor.setValue(activeSession.code, -1); }
+                editor.session.on('change', function() { if (activeSession) { SessionService.updateSessionCode(activeSession.id, editor.getValue()); } });
+                editor.commands.addCommand({ name: 'runCode', bindKey: {win: 'Ctrl-Enter', mac: 'Command-Enter'}, exec: function(editor) { 
+                        $timeout(function () {
+                            vm.runCode(); 
+                        }, 20);
+                    } }
+                );
+            });
+
+            vm.toggleLibrary = function() {
+                vm.showLibrary = !vm.showLibrary;
+                vm.selectedSnippet = null;
+                $timeout(() => lucide.createIcons());
+                if(vm.showLibrary) {
+                    setTimeout(() => document.querySelector('input[ng-model="con.librarySearch"]')?.focus(), 100);
+                }
+            };
+
+            vm.viewSnippet = function(snippet) {
+                vm.selectedSnippet = snippet;
+                $timeout(() => lucide.createIcons());
+            };
+
+            vm.insertSnippet = function(code) {
+                if (editor) {
+                    editor.insert(code + '\n');
+                    editor.focus();
+                }
+                vm.showLibrary = false;
+                vm.selectedSnippet = null;
+            };
+
+            // Export Python (Preserved)
+            vm.exportToPython = function() {
+                if (!activeSession) return;
+                const code = editor.getValue();
+                const pythonScript = `import requests\nimport json\n\nAPI_BASE = "${M8_HOST}/api/v1/m8"\n\ndef create_session(session_id):\n    url = f"{API_BASE}/session-check/{session_id}"\n    payload = {"code": "ustall 1"}\n    requests.post(url, json=payload)\n\ndef run_m8_code(session_id, code):\n    url = f"{API_BASE}/session-run/{session_id}"\n    payload = {"code": code}\n    response = requests.post(url, json=payload)\n    print(json.dumps(response.json(), indent=2))\n\nif __name__ == "__main__":\n    session_id = "${activeSession.id}"\n    m8_code = r"""${code.replace(/'/g, "\\'")}"""\n    create_session(session_id)\n    run_m8_code(session_id, m8_code)`;
+                const blob = new Blob([pythonScript], { type: 'text/x-python' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `m8_export_${activeSession.id}.py`;
+                document.body.appendChild(a); a.click();
+            };
+
+            // Export Curl (Preserved)
+            vm.exportToCurl = function() {
+                if (!activeSession) return;
+                const code = editor.getValue();
+                const jsonPayload = JSON.stringify({ code: code }).replace(/'/g, "'\\''");
+                const shScript = `#!/bin/bash\nAPI_BASE="${M8_HOST}/api/v1/m8"\nSESSION_ID="${activeSession.id}"\ncurl -X POST "$API_BASE/session-check/$SESSION_ID" -H "Content-Type: application/json" -d '{"code": "ustall 1"}'\ncurl -X POST "$API_BASE/session-run/$SESSION_ID" -H "Content-Type: application/json" -d '${jsonPayload}'`;
+                const blob = new Blob([shScript], { type: 'application/x-sh' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `m8_export_${activeSession.id}.sh`;
+                document.body.appendChild(a); a.click();
+            };
+
+            vm.retries = 0;
+            vm.runCode = function() {
+                if (vm.isRunning || !activeSession) return;
+                vm.isRunning = true; vm.result = null;
+                const code = editor.getValue();
+                const url = M8_HOST + `/api/v1/m8/session-run/${activeSession.id}`;
+                fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code }) })
+                .then(response => response.json())
+                .then(data => {
+                    console.info("===> data: ", data);
+                    if (data.error && data.error.code==400 && vm.retries < 3) {
+                        vm.retries += 1;
+                        SessionService.checkSession(activeSession.id)
+                        .then((resp) => {
+                            $timeout(function () {
+                                vm.isRunning=false;
+                                vm.runCode();
+                            }, 10);
+                        })
+                        return;
+                    }
+
+                    vm.retries = 0;
+
+                    $timeout(() => {
+                        try { if (data.R && typeof data.R === 'string' && (data.R.startsWith('{') || data.R.startsWith('['))) { data.R = JSON.stringify(JSON.parse(data.R), null, 2); } } catch (e) {}
+                        vm.result = data; SessionService.updateSessionResult(activeSession.id, data); vm.isRunning = false;
+                    }, 500);
+                })
+                .catch(err => { 
+                    $timeout(() => { 
+                        vm.result = { Status: 'FAILED', Error: 'Network/API Error', Type: '<error>' }; 
+                        vm.isRunning = false; 
+                    }, 500); 
+                });
+            };
+        }]);
+    </script>
+</body>
+</html>

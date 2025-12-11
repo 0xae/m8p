@@ -42,7 +42,7 @@ CXX_FLAGS = -O3 -DNDEBUG -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra
 #CXX_FLAGS = -O3 -DNDEBUG -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -mavx512f
 ```
 
-Build to enable AVX (Advanced vector eXtensions)
+Build with AVX Support (Advanced vector eXtensions)
 ```bash
 # change 17 for your processor count - 2 (ideally)
 cp flags.make tools/server/CMakeFiles/llama-server.dir && make -j 17 llama-server
