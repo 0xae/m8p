@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8 Cortex Console</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- External Libs -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="menu.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#f9fafb',      
+                        background: '#ffffff',   
+                        surface: '#f3f4f6',      
+                        border: '#e5e7eb',       
+                        primary: '#d946ef', // Fuchsia default
+                        textMain: '#111827',     
+                        textMuted: '#6b7280',
+                        consoleBg: '#1e1e1e'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    },
+                    fontSize: {
+                        xxs: '0.65rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .ticker-wrap { width: 100%; overflow: hidden; height: 100%; position: relative; }
+    </style>
+</head>
+
+<body ng-app="m8-app" ng-controller="AppController as app" class="bg-background text-textMain h-screen flex overflow-hidden text-xs antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-56 bg-sidebar border-r border-border flex flex-col flex-none z-20">
+        <div class="h-14 flex items-center px-4 border-b border-border">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-primary flex items-center justify-center"><i data-lucide="brain-circuit" class="w-4 h-4 text-white"></i></div>
+                <span class="font-semibold tracking-tight text-textMain text-sm">Cortex M8</span>
+            </div>
+        </div>
+        
+        <div id="menu-system-area"></div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 bg-background relative">
+
+        <!-- 1. DASHBOARD VIEW -->
+        <div ng-if="app.currentView === 'dashboard'" ng-controller="DashboardController as dc" class="flex flex-col h-full bg-surface overflow-hidden">
+            <!-- Header -->
+            <header class="h-14 border-b border-border bg-background flex items-center justify-between px-6 flex-none z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center"><i data-lucide="activity" class="w-4 h-4 text-purple-600"></i></div>
+                    <div>
+                        <h1 class="text-sm font-semibold text-textMain flex items-center gap-2">
+                            M8 Compute Stream 
+                            <span class="relative flex h-2 w-2" ng-if="dc.streaming">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            <span class="w-2 h-2 rounded-full bg-red-400" ng-if="!dc.streaming"></span>
+                        </h1>
+                        <p class="text-[10px] text-textMuted">Live Pipe: {{dc.streaming ? 'Active' : 'Idle'}} | {{dc.eventsProcessed}} Events</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 text-[10px] font-mono text-textMuted">
+                    <button ng-click="dc.toggleStream()" class="px-3 py-1.5 rounded text-white font-bold transition-colors flex items-center gap-2" ng-class="dc.streaming ? 'bg-red-500 hover:bg-red-600' : 'bg-purple-600 hover:bg-purple-700'">
+                        <i data-lucide="{{dc.streaming ? 'stop-circle' : 'play-circle'}}" class="w-3 h-3"></i>
+                        {{dc.streaming ? 'Stop Stream' : 'Start M8 Pipe'}}
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 flex overflow-hidden p-4 gap-4">
+                
+                <!-- Main Graphs Column -->
+                <div class="flex-1 flex flex-col gap-4 min-w-0">
+                    <!-- Graph 1: Neural Activity (Matrix Ops) -->
+                    <div class="bg-white border border-border rounded-lg p-4 shadow-sm flex-1 flex flex-col min-h-0">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-xs font-bold text-textMain uppercase tracking-wide">Matrix Compute (M8 MatMul Output)</h3>
+                            <div class="flex gap-2">
+                                <span class="text-[9px] text-purple-600 font-mono bg-purple-50 px-2 py-0.5 rounded">r1: {{dc.lastVals.neural || 0}}</span>
+                            </div>
+                        </div>
+                        <div class="relative flex-1 min-h-0 w-full">
+                            <canvas id="chart-neural"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Graph 2: Analytics (Float Ops) -->
+                    <div class="bg-white border border-border rounded-lg p-4 shadow-sm flex-1 flex flex-col min-h-0">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-xs font-bold text-textMain uppercase tracking-wide">F32 Register Operations</h3>
+                            <span class="text-[9px] text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded">f1: {{dc.lastVals.float || 0}}</span>
+                        </div>
+                        <div class="relative flex-1 min-h-0 w-full">
+                            <canvas id="chart-cluster"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: News Stream -->
+                <div class="w-80 flex-none flex flex-col gap-4">
+                    
+                    <!-- Raw Stream Log (Debug) -->
+                    <div class="h-32 bg-gray-900 rounded-lg p-3 font-mono text-[9px] text-green-400 overflow-y-auto border border-gray-800 shadow-inner">
+                        <div class="text-gray-500 mb-1 border-b border-gray-800 pb-1">RAW M8 OUTPUT STREAM</div>
+                        <div ng-repeat="line in dc.rawLog track by $index" class="whitespace-pre-wrap break-all">{{line}}</div>
+                        <div id="log-anchor"></div>
+                    </div>
+
+                    <!-- News Feed -->
+                    <div class="bg-white border border-border rounded-lg shadow-sm flex flex-col flex-1 overflow-hidden">
+                        <div class="p-3 border-b border-border bg-gray-50 flex justify-between items-center">
+                            <h3 class="text-xs font-bold text-textMain flex items-center gap-2">
+                                <i data-lucide="rss" class="w-3 h-3 text-orange-500"></i> M8 Intelligence Feed
+                            </h3>
+                            <button class="text-[9px] text-blue-600 hover:underline" ng-click="dc.clearFeed()">Clear</button>
+                        </div>
+                        
+                        <div class="flex-1 overflow-y-auto p-0 relative">
+                            <div class="absolute inset-0 p-2 space-y-2">
+                                <div ng-repeat="item in dc.news track by $index" class="p-3 rounded border-l-2 bg-gray-50 animate-in fade-in slide-in-from-right-4 duration-500" 
+                                     ng-class="{
+                                        'border-blue-500': item.type==='info',
+                                        'border-red-500': item.type==='alert',
+                                        'border-green-500': item.type==='success',
+                                        'border-purple-500': item.type==='ai'
+                                     }">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="text-[9px] font-bold uppercase" ng-class="{
+                                            'text-blue-600': item.type==='info',
+                                            'text-red-600': item.type==='alert',
+                                            'text-green-600': item.type==='success',
+                                            'text-purple-600': item.type==='ai'
+                                        }">{{item.category}}</span>
+                                        <span class="text-[8px] text-gray-400 font-mono">{{item.time}}</span>
+                                    </div>
+                                    <div class="text-[10px] text-textMain leading-snug">{{item.message}}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LOGIC -->
+    <script type="text/javascript">
+        // Init Angular
+        const app = angular.module('m8-app', []);
+        const M8_HOST = "";
+        const M8_API_EXEC = M8_HOST + '/api/v1/m8/session-stream'; 
+
+        app.controller('AppController', ['$scope', '$timeout', function($scope, $timeout) {
+            const vm = this;
+            vm.currentView = 'dashboard'; 
+            vm.setView = (v) => { vm.currentView = v; $timeout(()=>lucide.createIcons()); };
+            $timeout(() => lucide.createIcons());
+            setTimeout(function () {
+                window.RenderM8Menu('menu-system-area');
+            }, 120);
+        }]);
+
+        // --- DASHBOARD CONTROLLER (M8 STREAMING) ---
+        app.controller('DashboardController', ['$scope', '$timeout', function($scope, $timeout) {
+            const vm = this;
+            vm.streaming = false;
+            vm.news = [];
+            vm.rawLog = [];
+            vm.lastVals = { neural: 0, float: 0 };
+            vm.eventsProcessed = 0;
+            vm.abortController = null;
+
+            let neuralChart, clusterChart;
+
+            $timeout(() => initCharts());
+
+            // 1. Generate M8 Script for Streaming
+            function buildM8StreamScript() {
+                // We create a script that calculates values and streams them with pauses
+                let script = `store <h> [M8 PIPE STARTED]\nstream <h>\nstall 1\n`;
+                
+                // We'll generate 60 frames of data (approx 1-2 min stream)
+                for (let i = 0; i < 60; i++) {
+                    // Neural Graph Data: Matrix Multiplcation Result (Simulation)
+                    // We simulate varying inputs for mat8 to get dynamic results
+                    const v1 = (Math.sin(i * 0.2) + 2).toFixed(2);
+                    const v2 = (Math.cos(i * 0.3) + 2).toFixed(2);
+                    
+                    script += `mat8 <m1> ${v1} 0.5 0.5 ${v2}\n`;
+                    script += `mat8 <m2> 1.0 0.0 0.0 1.0\n`; // Identity-ish
+                    script += `matmul <m1> <m2> <res>\n`;
+                    // Stream format: GRAPH:NEURAL:[val1,val2,val3,val4] (simplified to single val for chart)
+                    script += `stream GRAPH:NEURAL:<res>\n`; 
+                    
+                    // Float Data: F32 Ops
+                    const fBase = 40 + (Math.random() * 20);
+                    script += `f32set <f1> ${fBase.toFixed(2)}\n`;
+                    script += `f32add <f1> 5.5\n`;
+                    script += `stream GRAPH:FLOAT:<f1>\n`;
+
+                    // Occasional News
+                    if (i % 8 === 0) {
+                        const newsItems = [
+                            "Optimizing latent vectors...",
+                            "Garbage collection cycle complete.",
+                            "New peer connected to mesh.",
+                            "Inference latency stable at 12ms."
+                        ];
+                        const news = newsItems[Math.floor(Math.random()*newsItems.length)];
+                        script += `store <n> NEWS:INFO:${news}\nstream <n>\n`;
+                    }
+                    if (i % 15 === 0) {
+                         script += `store <warn> NEWS:WARN:High throughput detected on sector ${i}\nstream <warn>\n`;
+                    }
+
+                    script += `stall 1\n`; // 1 second delay between frames
+                }
+                
+                script += `store <end> [STREAM END]\nstream <end>\n`;
+                return script;
+            }
+
+            vm.toggleStream = function() {
+                if (vm.streaming) stopStream();
+                else startStream();
+            };
+
+            function startStream() {
+                vm.streaming = true;
+                vm.news = [];
+                vm.rawLog = [];
+                vm.eventsProcessed = 0;
+                addNews("Initializing M8 Secure Pipe...", "success", "SYS");
+
+                vm.abortController = new AbortController();
+                const script = buildM8StreamScript();
+
+                fetch(M8_API_EXEC, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: script }),
+                    signal: vm.abortController.signal
+                }).then(async (response) => {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = "";
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value, { stream: true });
+                        buffer += chunk;
+                        
+                        // Process lines
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // Keep incomplete line
+
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            handleStreamLine(line);
+                        }
+                    }
+                    vm.streaming = false;
+                    addNews("Stream connection closed by server.", "alert", "SYS");
+                    $scope.$apply();
+                }).catch(e => {
+                    if (e.name !== 'AbortError') {
+                        addNews("Stream Error: " + e.message, "alert", "ERR");
+                        console.error(e);
+                    }
+                    vm.streaming = false;
+                    $scope.$apply();
+                });
+            }
+
+            function stopStream() {
+                if (vm.abortController) {
+                    vm.abortController.abort();
+                    vm.abortController = null;
+                }
+                vm.streaming = false;
+                addNews("Stream aborted by user.", "alert", "SYS");
+            }
+
+            function handleStreamLine(line) {
+                // The server might wrap stream in JSON or just raw text depending on implementation.
+                // Assuming raw text or basic cleaning based on user prompt "stream <r1>"
+                
+                // Clean input if it comes as JSON string from dry-run API
+                let cleanLine = line;
+                try {
+                    // Sometimes dry-run returns JSON object per line or one big JSON.
+                    // If we assume a streaming-capable endpoint acting like the LLaVA one:
+                    // It just sends text.
+                    // However, if the user's M8 api wraps it, we adapt. 
+                    // Let's assume RAW string output from the 'stream' command.
+                } catch(e) {}
+
+                vm.rawLog.unshift(cleanLine);
+                if(vm.rawLog.length > 50) vm.rawLog.pop();
+                vm.eventsProcessed++;
+
+                // PARSE M8 COMMANDS
+                // Format: GRAPH:TYPE:VALUE or NEWS:TYPE:MSG
+                
+                if (cleanLine.includes("GRAPH:NEURAL:")) {
+                    // Extract value. <res> output might look like [1.2, 3.4...] or just numbers
+                    // Simple parsing for demo: get last number
+                    const parts = cleanLine.split(':');
+                    let val = parseFloat(parts[parts.length-1]); 
+                    // If it's a matrix string "[1, 2]", parse it
+                    if (isNaN(val) && cleanLine.includes('[')) {
+                         const match = cleanLine.match(/\[(.*?)\]/);
+                         if(match) {
+                             // Fix malformed array e.g. [1,2,]
+                             const cleanStr = match[1].replace(/,+$/, ''); 
+                             const nums = cleanStr.split(',').filter(n => n.trim() !== '').map(Number);
+                             if (nums.length > 0) {
+                                val = nums.reduce((a,b)=>a+b,0) / nums.length; // Average of matrix
+                             }
+                         }
+                    }
+                    if (!isNaN(val)) {
+                        updateNeuralChart(val);
+                        vm.lastVals.neural = val.toFixed(2);
+                    }
+                } 
+                else if (cleanLine.includes("GRAPH:FLOAT:")) {
+                    const val = parseFloat(cleanLine.split(':').pop());
+                    if (!isNaN(val)) {
+                        updateFloatChart(val);
+                        vm.lastVals.float = val.toFixed(2);
+                    }
+                }
+                else if (cleanLine.includes("NEWS:")) {
+                    const parts = cleanLine.split(':');
+                    // Expected: ...NEWS:TYPE:MSG
+                    const msg = parts.slice(parts.indexOf("NEWS")+2).join(':');
+                    const type = parts[parts.indexOf("NEWS")+1].toLowerCase();
+                    addNews(msg, type === 'warn' ? 'alert' : 'info', 'M8');
+                }
+
+                $scope.$applyAsync();
+            }
+
+            // --- CHART UPDATERS ---
+            function updateNeuralChart(val) {
+                if(!neuralChart) return;
+                const data = neuralChart.data.datasets[0].data;
+                data.shift();
+                data.push(val);
+                neuralChart.update('none');
+            }
+
+            function updateFloatChart(val) {
+                if(!clusterChart) return;
+                const data = clusterChart.data.datasets[0].data;
+                // Shift bars or just randomize one? Let's treat it as a history for bar 1
+                data[0] = val;
+                // Randomize others to look alive
+                for(let i=1; i<data.length; i++) data[i] += (Math.random()-0.5)*5;
+                clusterChart.update('none');
+            }
+
+            // --- UI HELPERS ---
+            function initCharts() {
+                // Line Chart
+                const ctx1 = document.getElementById('chart-neural');
+                if(ctx1) {
+                    neuralChart = new Chart(ctx1, {
+                        type: 'line',
+                        data: {
+                            labels: Array(50).fill(''),
+                            datasets: [{
+                                label: 'M8 Matrix Output',
+                                data: Array(50).fill(0),
+                                borderColor: '#d946ef',
+                                backgroundColor: 'rgba(217, 70, 239, 0.1)',
+                                borderWidth: 1.5,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            animation: false, 
+                            scales: {
+                                y: { beginAtZero: false, display: true, grid: {color:'#f3f4f6'} },
+                                x: { display: false }
+                            },
+                            plugins: { legend: {display: false} }
+                        }
+                    });
+                }
+
+                // Bar Chart
+                const ctx2 = document.getElementById('chart-cluster');
+                if(ctx2) {
+                    clusterChart = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: ['F32-Reg', 'Cache', 'Bus', 'VRAM', 'I/O', 'Net'],
+                            datasets: [{
+                                label: 'Load',
+                                data: [0, 59, 80, 81, 56, 55],
+                                backgroundColor: ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444'],
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { beginAtZero: true, max: 100, grid: {display:false} },
+                                x: { grid: {display:false} }
+                            },
+                            plugins: { legend: {display: false} }
+                        }
+                    });
+                }
+            }
+
+            function addNews(msg, type='info', cat='LOG') {
+                vm.news.unshift({
+                    message: msg,
+                    type: type,
+                    category: cat,
+                    time: new Date().toLocaleTimeString()
+                });
+                if(vm.news.length > 20) vm.news.pop();
+            }
+            vm.clearFeed = () => vm.news = [];
+        }]);
+    </script>
+</body>
+</html>
