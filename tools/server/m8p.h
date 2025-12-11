@@ -1676,7 +1676,7 @@ namespace m8p {
 
             if (!IsValid_DF32(M8, A) || !IsValid_DF32(M8, B)) {
                 return std::make_pair(
-                    errorf("mat"+op+" => operands must be matrices"),
+                    errorf("mat"+op+" => operands must be matrices. "),
                     M8->nilValue
                 );
             }
@@ -1686,17 +1686,16 @@ namespace m8p {
 
             if (vA.size() > AVX_V_SIZE) {
                 return std::make_pair(
-                    errorf("mat "+rA+" => size exceeds max-vector-size " + std::to_string(AVX_V_SIZE)),
+                    errorf("mat "+rA+" => size("+std::to_string(vB.size())+") exceeds max-vector-size " + std::to_string(AVX_V_SIZE)),
                     M8->nilValue
                 );
             }
             if (vB.size() > AVX_V_SIZE) {
                 return std::make_pair(
-                    errorf("mat "+rB+" => size exceeds max-vector-size " + std::to_string(AVX_V_SIZE)),
+                    errorf("mat "+rB+" => size("+std::to_string(vB.size())+") exceeds max-vector-size " + std::to_string(AVX_V_SIZE)),
                     M8->nilValue
                 );
             }
-
             // if (vB.size()%AVX_V_SIZE!=0) {
             //     int diff = __abs(AVX_V_SIZE - vB.size());
             //     vB.resize(diff);
