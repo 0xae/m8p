@@ -1676,7 +1676,7 @@ namespace m8p {
 
             if (!IsValid_DF32(M8, A) || !IsValid_DF32(M8, B)) {
                 return std::make_pair(
-                    errorf("xmatadd operands must be matrices"),
+                    errorf("mat"+op" => operands must be matrices"),
                     M8->nilValue
                 );
             }
@@ -1708,11 +1708,11 @@ namespace m8p {
             }
 
             // Scalar fallback for remainder
-            for (; i<N; ++i) {
-                result[i] = vA[i] + vB[i];
-            }
-
+            // for (; i<N; ++i) {
+            //     result[i] = vA[i] + vB[i];
+            // }
             // Store result
+
             REG[rOut] = m8p::m8_obj(M8, m8p::MP8_DF32, "");
             REG[rOut]->AR_F32 = result;
             return std::make_pair(M8_Err_nil, REG[rOut]);
@@ -2969,8 +2969,10 @@ namespace m8p {
             #ifdef __AVX__
                         } else if (opCode=="matadd") {
                             lastRet = MatFlex_OP("add", M8, instr_tokens);
+
                         } else if (opCode=="matsub") {
                             lastRet = MatFlex_OP("sub", M8, instr_tokens);
+
                         } else if (opCode=="matmul") {
                             lastRet = MatFlex_OP("mul", M8, instr_tokens);
 
