@@ -138,7 +138,9 @@
 
 
         <!-- VIEW 3: CONSOLE (Developer IDE) -->
-        <div ng-controller="ConsoleController as con" class="flex flex-col h-full bg-[#1e1e1e] text-gray-300 console-scroll relative">
+        <div ng-controller="ConsoleController as con" 
+            ng-if="app.currentView === 'console'"
+            class="flex flex-col h-full bg-[#1e1e1e] text-gray-300 console-scroll relative">
             
             <!-- Library Modal -->
             <div ng-if="con.showLibrary" class="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" ng-click="con.toggleLibrary()">

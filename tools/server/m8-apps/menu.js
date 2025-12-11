@@ -13,7 +13,7 @@
             VM Visualization</span>
         </a>
 
-        <a href="stream-engine.php" class="flex items-center gap-2 px-3 py-2 rounded-md transition-colors group" 
+        <a href="stream-engine.html" class="flex items-center gap-2 px-3 py-2 rounded-md transition-colors group" 
             ng-class="'bg-purple-50 border border-purple-100 text-purple-600 font-medium' : 'text-textMuted hover:bg-surface'">
             <i data-lucide="activity" class="w-4 h-4"></i><span>Stream Engine</span>
         </a>
