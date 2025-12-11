@@ -1516,22 +1516,36 @@ namespace m8p {
         std::map<std::string, M8_Obj*> &REG = M8->Registers;
         string m1 = params.at(1);// dont forget 0 is for the op_code
         string sizeVal = params.at(2);
-        int32_t number=0;
+        size_t MAX_ALIGN_SIZE = 5000;
 
-        try {
-            number=std::stof(sizeVal);
-            if (number<=0 || number>2000) {
+        __trim(m1);
+        __trim(sizeVal);
+        int32_t number=0;
+        if (sizeVal=="AVX_V_SIZE") {
+            number = AVX_V_SIZE;
+        } else {        
+            try {
+                number=std::stof(sizeVal);
+                if (number<=0 || number>2000) {
+                    return std::make_pair(
+                        errorf("ALIGN SIZE MUST BE BETWEEN (0 and 2000)"),
+                        M8->nilValue
+                    );
+                }
+
+            } catch (const std::invalid_argument& ia) {
                 return std::make_pair(
-                    errorf("ALIGN SIZE MUST BE BETWEEN (0 and 2000)"),
+                    errorf("EXPECTING_INT32["+sizeVal+"]"),
                     M8->nilValue
                 );
             }
+        }
 
-        } catch (const std::invalid_argument& ia) {
+        if (number > MAX_ALIGN_SIZE) {
             return std::make_pair(
-                errorf("EXPECTING_INT32["+sizeVal+"]"),
+                errorf("TOO_BIG_EXCEEDS_RANGE["+std::to_string(MAX_ALIGN_SIZE)+"]"),
                 M8->nilValue
-            );
+            );            
         }
 
         int32_t align_size = number;
@@ -1558,26 +1572,32 @@ namespace m8p {
             );
         }
 
+        MR1->AR_F32.resize(align_size, 0.0f);
+
         // MR1->AR_I32.clear();
         // MR1->AR_F32.clear();
 
-        std::vector<float> tokens;
-        uint32_t count_items = 0;
-        for (std::vector<float>::iterator i=MR1->AR_F32.begin(); 
-                i!=MR1->AR_F32.end() && count_items<align_size; 
-                ++i) {
-            tokens.push_back(*i);
-            count_items += 1;
-        }
+        // MR1->AR_F32.size()==align_size
+        // if (MR1->AR_F32.size() < align_size) {
+        //     vA.resize(AVX_V_SIZE, 0.0f); 
+        // }
 
-        if (tokens.size()<align_size) {
-            int start = align_size-tokens.size();
-            for (int i=tokens.size(); i<align_size; ++i) {
-                tokens.push_back(0);
-            }
-        }
+        // std::vector<float> tokens;
+        // uint32_t count_items = 0;
+        // for (std::vector<float>::iterator i=MR1->AR_F32.begin(); 
+        //         i!=MR1->AR_F32.end() && count_items<align_size; 
+        //         ++i) {
+        //     tokens.push_back(*i);
+        //     count_items += 1;
+        // }
 
-        MR1->AR_F32 = tokens;
+        // if (tokens.size()<align_size) {
+        //     int start = align_size-tokens.size();
+        //     for (int i=tokens.size(); i<align_size; ++i) {
+        //         tokens.push_back(0);
+        //     }
+        // }
+        // MR1->AR_F32 = tokens;
         return std::make_pair(
             M8_Err_nil,
             MR1
@@ -3031,10 +3051,11 @@ namespace m8p {
             } else if (opCode=="matn"||opCode=="mat8"||opCode=="mat"||opCode=="matx") {
                 lastRet = MatNSet_OP(M8, instr_tokens);
 
-            } else if (opCode=="align8"||opCode=="pad8") {
-                lastRet = ALIGN8_OP(M8, instr_tokens);
+            // } else if (opCode=="align8"||opCode=="pad8") {
+            //     lastRet = ALIGN8_OP(M8, instr_tokens);
             } else if (opCode=="align"||opCode=="pad") {
                 lastRet = ALIGN_OP(M8, instr_tokens);
+            
             #ifdef __AVX__
                         } else if (opCode=="matadd") {
                             lastRet = MatFlex_OP("add", M8, instr_tokens);
