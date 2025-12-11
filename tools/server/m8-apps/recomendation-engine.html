@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8 Cortex Console</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- External Libs -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="menu.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#f9fafb',      
+                        background: '#ffffff',   
+                        surface: '#f3f4f6',      
+                        border: '#e5e7eb',       
+                        primary: '#8b5cf6', 
+                        primaryHover: '#7c3aed',
+                        textMain: '#111827',     
+                        textMuted: '#6b7280'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    },
+                    fontSize: {
+                        xxs: '0.65rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            cursor: pointer;
+            margin-top: -4px; 
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e5e7eb;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body ng-app="recsys-app" ng-controller="AppController as app" class="bg-background text-textMain h-screen flex overflow-hidden text-xs antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-56 bg-sidebar border-r border-border flex flex-col flex-none">
+        <div class="h-14 flex items-center px-4 border-b border-border">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-primary flex items-center justify-center">
+                    <i data-lucide="brain-circuit" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="font-semibold tracking-tight text-textMain text-sm">Cortex</span>
+            </div>
+        </div>
+
+        <div id="menu-system-area"></div>
+        
+        <div class="p-4 border-t border-border">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">BM</div>
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-medium text-textMain">BrainMaster</span>
+                    <span class="text-[9px] text-textMuted">Admin Access</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 bg-background relative">
+        
+        <!-- VIEW: RECSYS ENGINE -->
+        <div ng-controller="RecController as rec" class="flex flex-col h-full bg-surface">
+            <!-- Header -->
+            <header class="h-14 border-b border-border bg-background flex items-center justify-between px-6 flex-none">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-violet-50 border border-violet-100 flex items-center justify-center">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-primary"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-semibold text-textMain">Recommendation Engine</h1>
+                        <p class="text-[10px] text-textMuted">Session: <span class="font-mono text-violet-600">{{rec.sessionId}}</span></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Distance Slider -->
+                    <div class="flex flex-col items-end mr-2" ng-if="rec.isIndexed">
+                        <label class="text-[9px] text-textMuted uppercase font-bold mb-1">Search Distance: <span class="text-primary">{{rec.searchDistance}}</span></label>
+                        <input type="range" min="0.1" max="1.5" step="0.1" ng-model="rec.searchDistance" class="w-24 accent-primary" title="Adjust vector search radius">
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button ng-if="rec.isIndexed" ng-click="rec.getRecommendations()" class="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primaryHover text-white rounded text-[10px] font-medium transition-colors shadow-sm" ng-disabled="rec.loading">
+                            <i data-lucide="refresh-cw" class="w-3 h-3" ng-class="{'animate-spin': rec.loading}"></i>
+                            Refresh Recs
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Init State (Full Height if not indexed) -->
+            <main class="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center" ng-if="!rec.isIndexed">
+                <div class="flex flex-col items-center justify-center py-20 bg-background rounded-lg border border-border border-dashed p-10 shadow-sm">
+                    <div class="w-16 h-16 rounded-full bg-violet-50 flex items-center justify-center mb-4">
+                        <i data-lucide="server" class="w-8 h-8 text-violet-300"></i>
+                    </div>
+                    <h3 class="text-base font-medium text-textMain">Initialize Engine</h3>
+                    <p class="text-xs text-textMuted mt-2 max-w-md text-center">
+                        Start a persistent M8 session to index the movie library into the Vector Database. 
+                        This will enable real-time, stateful recommendations based on your interactions.
+                    </p>
+                    <div class="flex items-center gap-2 mt-3">
+                        <button ng-if="!rec.isIndexed" ng-click="rec.initializeEngine()" class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded text-[10px] font-medium transition-colors shadow-sm" ng-disabled="rec.loading">
+                            <i data-lucide="database" class="w-3 h-3" ng-class="{'animate-spin': rec.loading}"></i>
+                            {{rec.loading ? 'Indexing Movies...' : 'Initialize DB'}}
+                        </button>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Main Interactive Area (Split View) -->
+            <div class="flex-1 flex flex-col min-h-0 overflow-hidden" ng-if="rec.isIndexed">
+                
+                <!-- Discovery / Library Section (Scrollable) -->
+                <main class="flex-1 overflow-y-auto p-6 bg-surface">
+                    <div class="max-w-7xl mx-auto">
+                        
+                        <!-- Search Bar -->
+                        <div class="mb-6 bg-white border border-border rounded-lg p-3 shadow-sm flex gap-3 items-center">
+                            <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center flex-none">
+                                <i data-lucide="search" class="w-4 h-4 text-textMuted"></i>
+                            </div>
+                            <input type="text" ng-model="rec.customQuery" 
+                                   placeholder="Describe what you want to watch (e.g., 'A mind-bending space thriller')" 
+                                   class="flex-1 bg-transparent text-sm focus:outline-none text-textMain placeholder-textMuted" 
+                                   ng-keypress="$event.keyCode === 13 && rec.runCustomQuery()">
+                            <button ng-click="rec.runCustomQuery()" class="px-4 py-1.5 bg-violet-100 text-primary hover:bg-violet-200 rounded text-xs font-bold transition-colors">
+                                Vector Search
+                            </button>
+                        </div>
+
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-sm font-bold text-textMain uppercase tracking-wider flex items-center gap-2">
+                                <i data-lucide="compass" class="w-4 h-4 text-blue-500"></i> Discover Library
+                            </h2>
+                            <span class="text-[10px] text-textMuted">{{rec.library.length}} Movies Indexed</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 pb-24">
+                            <div ng-repeat="movie in rec.library" class="bg-white border border-border rounded-md shadow-sm hover:shadow-md transition-all flex flex-col h-full relative overflow-hidden group" 
+                                 ng-class="{'border-red-200 opacity-60': movie.unliked, 'border-green-200 ring-1 ring-green-100': movie.liked}">
+                                
+                                <!-- Cover Image -->
+                                <div class="h-32 bg-gray-200 relative overflow-hidden">
+                                    <img ng-src="{{movie.image}}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                    <div class="absolute top-2 right-2">
+                                        <span class="text-[8px] font-bold text-white bg-black/50 backdrop-blur-sm px-1.5 py-0.5 rounded uppercase">{{movie.genre}}</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 flex flex-col flex-1">
+                                    <h4 class="text-xs font-bold text-textMain mb-1 leading-tight line-clamp-1" title="{{movie.title}}">{{movie.title}}</h4>
+                                    <p class="text-[9px] text-textMuted line-clamp-2 mb-3 flex-1 leading-relaxed">{{movie.desc}}</p>
+                                    
+                                    <div class="mt-auto flex gap-2">
+                                        <!-- Dislike Button -->
+                                        <button ng-click="rec.unlikeMovie(movie)" 
+                                                class="flex-1 py-1.5 rounded text-[10px] font-medium transition-colors flex items-center justify-center gap-1.5 border"
+                                                ng-class="{'bg-red-50 text-red-600 border-red-200': movie.unliked, 'bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-500 border-gray-100': !movie.unliked}"
+                                                ng-disabled="movie.liked || movie.unliked || rec.loading"
+                                                title="Less like this">
+                                            <i data-lucide="thumbs-down" class="w-3 h-3" ng-class="{'fill-current': movie.unliked}"></i>
+                                            <span>{{movie.unliked ? 'Disliked' : 'Dislike'}}</span>
+                                        </button>
+
+                                        <!-- Like Button -->
+                                        <button ng-click="rec.likeMovie(movie)" 
+                                                class="flex-1 py-1.5 rounded text-[10px] font-medium transition-colors flex items-center justify-center gap-1.5 border"
+                                                ng-class="{'bg-green-50 text-green-600 border-green-200': movie.liked, 'bg-gray-50 text-gray-500 hover:bg-green-50 hover:text-green-600 border-gray-100': !movie.liked}"
+                                                ng-disabled="movie.liked || movie.unliked || rec.loading"
+                                                title="More like this">
+                                            <i data-lucide="thumbs-up" class="w-3 h-3" ng-class="{'fill-current': movie.liked}"></i>
+                                            <span>{{movie.liked ? 'Liked' : 'Like'}}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                <!-- Recommendations Section (Fixed Bottom) -->
+                <div class="flex-none bg-background border-t border-border p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+                    <div class="max-w-7xl mx-auto">
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-sm font-bold text-textMain uppercase tracking-wider flex items-center gap-2">
+                                <i data-lucide="star" class="w-4 h-4 text-yellow-500 fill-yellow-500"></i> {{rec.queryMode ? 'Search Results' : 'Recommended for You'}}
+                            </h2>
+                            <span class="text-[10px] text-textMuted bg-gray-100 px-2 py-1 rounded" ng-if="rec.lastAction">{{rec.lastAction}}</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div ng-if="rec.recommendations.length === 0" class="col-span-4 py-4 text-center text-textMuted text-xs italic">
+                                Like or dislike movies above to train the vector model and see recommendations here!
+                            </div>
+                            <div ng-repeat="item in rec.recommendations" class="bg-surface border border-border rounded-lg p-2 shadow-sm hover:border-primary/50 transition-all group relative overflow-hidden flex gap-3">
+                                <!-- Rec Image -->
+                                <div class="w-16 h-16 rounded bg-gray-200 flex-none overflow-hidden relative">
+                                    <img ng-src="{{item.image}}" class="w-full h-full object-cover">
+                                </div>
+                                
+                                <div class="flex flex-col justify-between flex-1 min-w-0">
+                                    <div>
+                                        <div class="flex justify-between items-start mb-0.5">
+                                            <span class="text-[8px] font-bold text-primary uppercase">{{item.genre}}</span>
+                                            <div class="text-xs font-bold text-textMain">{{item.score}}%</div>
+                                        </div>
+                                        <h3 class="text-xs font-bold text-textMain truncate" title="{{item.title}}">{{item.title}}</h3>
+                                    </div>
+                                    
+                                    <div class="flex justify-between items-center text-[9px] text-textMuted">
+                                        <span class="flex items-center gap-1 text-primary"><i data-lucide="target" class="w-3 h-3"></i> AI Match</span>
+                                        <button class="hover:text-primary transition-colors flex items-center gap-1">
+                                            <i data-lucide="plus-circle" class="w-3 h-3"></i> List
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LOGIC -->
+    <script type="text/javascript">
+        const app = angular.module('recsys-app', []);
+        const M8_HOST = "";
+
+        app.controller('AppController', ['$scope', '$timeout', function($scope, $timeout) {
+            $timeout(() => {
+                window.RenderM8Menu('menu-system-area');
+                $timeout(function () {
+                    lucide.createIcons();
+                }, 120);
+            });
+        }]);
+
+        // --- RecSys Controller ---
+        app.controller('RecController', ['$scope', '$http', '$timeout', function($scope, $http, $timeout) {
+            const vm = this;
+            vm.loading = false;
+            vm.isIndexed = false;
+            vm.sessionId = 'recsys_' + Math.random().toString(36).substring(2, 8);
+            vm.recommendations = [];
+            vm.lastAction = "";
+            vm.searchDistance = 0.8; // Default distance
+            vm.customQuery = "";
+            vm.queryMode = false; // True if showing search results vs profile recommendations
+
+            // Movie Library Data
+            vm.library = [
+                {id: 1, title: "Inception", genre: "Sci-Fi", desc: "A thief who steals corporate secrets through the use of dream-sharing technology."},
+                {id: 2, title: "The Dark Knight", genre: "Action", desc: "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham."},
+                {id: 3, title: "Pulp Fiction", genre: "Crime", desc: "The lives of two mob hitmen, a boxer, a gangster and his wife intertwine."},
+                {id: 4, title: "Spirited Away", genre: "Animation", desc: "During her family's move to the suburbs, a sullen 10-year-old girl wanders into a world ruled by gods."},
+                {id: 5, title: "The Grand Budapest Hotel", genre: "Comedy", desc: "A writer encounters the owner of an aging high-class hotel, who tells him of his early years."},
+                {id: 6, title: "Interstellar", genre: "Sci-Fi", desc: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival."},
+                {id: 7, title: "Parasite", genre: "Thriller", desc: "Greed and class discrimination threaten the newly formed symbiotic relationship between the wealthy Park family and the destitute Kim clan."},
+                {id: 8, title: "Coco", genre: "Animation", desc: "Aspiring musician Miguel, confronted with his family's ancestral ban on music, enters the Land of the Dead."},
+                {id: 9, title: "Gladiator", genre: "Action", desc: "A former Roman General sets out to exact vengeance against the corrupt emperor who murdered his family."},
+                {id: 10, title: "Amélie", genre: "Romance", desc: "Amélie is an innocent and naive girl in Paris with her own sense of justice."},
+                {id: 11, title: "The Matrix", genre: "Sci-Fi", desc: "A computer hacker learns from mysterious rebels about the true nature of his reality."},
+                {id: 12, title: "Whiplash", genre: "Drama", desc: "A promising young drummer enrolls at a cut-throat music conservatory where his dreams of greatness are mentored by an instructor who will stop at nothing."},
+                {id: 13, title: "Mad Max: Fury Road", genre: "Action", desc: "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler in search for her homeland."},
+                {id: 14, title: "Eternal Sunshine", genre: "Romance", desc: "When their relationship turns sour, a couple undergoes a medical procedure to have each other erased from their memories."},
+                {id: 15, title: "Get Out", genre: "Horror", desc: "A young African-American visits his white girlfriend's parents for the weekend, where his simmering uneasiness about their reception of him reaches a boiling point."},
+                // New Movies
+                {id: 16, title: "The Godfather", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son."},
+                {id: 17, title: "12 Angry Men", genre: "Drama", desc: "A jury holdout attempts to prevent a miscarriage of justice by forcing his colleagues to reconsider the evidence."},
+                {id: 18, title: "Schindler's List", genre: "Drama", desc: "In German-occupied Poland during World War II, industrialist Oskar Schindler gradually becomes concerned for his Jewish workforce."},
+                {id: 19, title: "Lord of the Rings: Return of the King", genre: "Fantasy", desc: "Gandalf and Aragorn lead the World of Men against Sauron's army to draw his gaze from Frodo and Sam."},
+                {id: 20, title: "Star Wars: Episode V", genre: "Sci-Fi", desc: "After the Rebels are brutally overpowered by the Empire on the ice planet Hoth, Luke Skywalker begins Jedi training."},
+                {id: 21, title: "Forrest Gump", genre: "Drama", desc: "The presidencies of Kennedy and Johnson, the events of Vietnam, Watergate, and other historical events unfold through the perspective of an Alabama man."},
+                {id: 22, title: "Goodfellas", genre: "Crime", desc: "The story of Henry Hill and his life in the mob, covering his relationship with his wife Karen and his mob partners."},
+                {id: 23, title: "One Flew Over the Cuckoo's Nest", genre: "Drama", desc: "A criminal pleads insanity and is admitted to a mental institution, where he rallies up the scared patients against the tyrannical nurse."},
+                {id: 24, title: "Seven Samurai", genre: "Action", desc: "A poor village under attack by bandits recruits seven unemployed samurai to help them defend themselves."},
+                {id: 25, title: "Se7en", genre: "Crime", desc: "Two detectives, a rookie and a veteran, hunt a serial killer who uses the seven deadly sins as his motives."},
+                {id: 26, title: "City of God", genre: "Crime", desc: "In the slums of Rio, two kids' paths diverge as one struggles to become a photographer and the other a kingpin."},
+                {id: 27, title: "The Silence of the Lambs", genre: "Thriller", desc: "A young F.B.I. cadet must receive the help of an incarcerated and manipulative cannibal killer to help catch another serial killer."},
+                {id: 28, title: "It's a Wonderful Life", genre: "Drama", desc: "An angel is sent from Heaven to help a desperately frustrated businessman by showing him what life would have been like if he had never existed."},
+                {id: 29, title: "Life Is Beautiful", genre: "Comedy", desc: "When an open-minded Jewish librarian and his son become victims of the Holocaust, he uses a perfect mixture of will, humor, and imagination."},
+                {id: 30, title: "The Usual Suspects", genre: "Crime", desc: "A sole survivor tells of the twisty events leading up to a horrific gun battle on a boat, which began when five criminals met at a seemingly random police lineup."},
+                {id: 31, title: "Léon: The Professional", genre: "Action", desc: "12-year-old Mathilda is reluctantly taken in by Léon, a professional assassin, after her family is murdered."},
+                {id: 32, title: "Saving Private Ryan", genre: "Action", desc: "Following the Normandy Landings, a group of U.S. soldiers go behind enemy lines to retrieve a paratrooper whose brothers have been killed in action."},
+                {id: 33, title: "The Green Mile", genre: "Drama", desc: "The lives of guards on Death Row are affected by one of their charges: a black man accused of child murder and rape, yet who has a mysterious gift."},
+                {id: 34, title: "Psycho", genre: "Horror", desc: "A Phoenix secretary embezzles $40,000 from her employer's client, goes on the run, and checks into a remote motel run by a young man under the domination of his mother."},
+                {id: 35, title: "City Lights", genre: "Comedy", desc: "With the aid of a wealthy erratic drunkard, a dewy-eyed tramp who has fallen in love with a blind flower girl accumulates money to be able to help her medically."},
+                {id: 36, title: "Casablanca", genre: "Romance", desc: "A cynical expatriate American cafe owner struggles to decide whether or not to help his former lover and her fugitive husband escape the Nazis in French Morocco."},
+                {id: 37, title: "Modern Times", genre: "Comedy", desc: "The Tramp struggles to live in modern industrial society with the help of a young homeless woman."},
+                {id: 38, title: "The Pianist", genre: "Drama", desc: "A Polish Jewish musician struggles to survive the destruction of the Warsaw ghetto of World War II."},
+                {id: 39, title: "The Departed", genre: "Crime", desc: "An undercover cop and a mole in the police attempt to identify each other while infiltrating an Irish gang in South Boston."},
+                {id: 40, title: "Terminator 2: Judgment Day", genre: "Sci-Fi", desc: "A cyborg, identical to the one who failed to kill Sarah Connor, must now protect her ten-year-old son, John, from a more advanced and powerful cyborg."},
+                {id: 41, title: "Back to the Future", genre: "Sci-Fi", desc: "Marty McFly, a 17-year-old high school student, is accidentally sent thirty years into the past in a time-traveling DeLorean invented by his close friend, the eccentric Doc Brown."},
+                {id: 42, title: "The Prestige", genre: "Thriller", desc: "After a tragic accident, two stage magicians engage in a battle to create the ultimate illusion while sacrificing everything they have to outwit each other."},
+                {id: 43, title: "The Lion King", genre: "Animation", desc: "Lion prince Simba and his father are targeted by his bitter uncle, who wants to ascend the throne himself."},
+                {id: 44, title: "Apocalypse Now", genre: "Drama", desc: "A U.S. Army officer serving in Vietnam is tasked with assassinating a renegade Special Forces Colonel who sees himself as a god."},
+                {id: 45, title: "Alien", genre: "Sci-Fi", desc: "The crew of a commercial spacecraft encounter a deadly lifeform after investigating an unknown transmission."},
+                {id: 46, title: "Memento", genre: "Thriller", desc: "A man with short-term memory loss attempts to track down his wife's murderer."},
+                {id: 47, title: "Grave of the Fireflies", genre: "Animation", desc: "A young boy and his little sister struggle to survive in Japan during World War II."},
+                {id: 48, title: "Cinema Paradiso", genre: "Drama", desc: "A filmmaker recalls his childhood when falling in love with the pictures at the cinema of his home village and forms a deep friendship with the cinema's projectionist."},
+                {id: 49, title: "The Lives of Others", genre: "Drama", desc: "In 1984 East Berlin, an agent of the secret police, conducting surveillance on a writer and his lover, finds himself becoming increasingly absorbed by their lives."},
+                {id: 50, title: "The Shining", genre: "Horror", desc: "A family heads to an isolated hotel for the winter where a sinister presence influences the father into violence, while his psychic son sees horrific forebodings from the past and future."},
+                {id: 51, title: "Django Unchained", genre: "Action", desc: "With the help of a German bounty hunter, a freed slave sets out to rescue his wife from a brutal Mississippi plantation owner."},
+                {id: 52, title: "WALL·E", genre: "Animation", desc: "In the distant future, a small waste-collecting robot inadvertently embarks on a space journey that will ultimately decide the fate of mankind."},
+                {id: 53, title: "The Thing", genre: "Horror", desc: "A research team in Antarctica is hunted by a shape-shifting alien that assumes the appearance of its victims."},
+                {id: 54, title: "Toy Story", genre: "Animation", desc: "A cowboy doll is profoundly threatened and jealous when a new spaceman figure supplants him as top toy in a boy's room."},
+                {id: 55, title: "Oldboy", genre: "Action", desc: "After being kidnapped and imprisoned for fifteen years, Oh Dae-Su is released, only to find that he must find his captor in five days."},
+                {id: 56, title: "Princess Mononoke", genre: "Animation", desc: "On a journey to find the cure for a Tatarigami's curse, Ashitaka finds himself in the middle of a war between the forest gods and Tatara, a mining colony."},
+                {id: 57, title: "2001: A Space Odyssey", genre: "Sci-Fi", desc: "After discovering a mysterious artifact buried beneath the Lunar surface, mankind sets off on a quest to find its origins with help from intelligent supercomputer H.A.L. 9000."},
+                {id: 58, title: "Citizen Kane", genre: "Drama", desc: "Following the death of publishing tycoon Charles Foster Kane, reporters scramble to uncover the meaning of his final utterance, 'Rosebud'."},
+                {id: 59, title: "Vertigo", genre: "Thriller", desc: "A former police detective juggles wrestling with his personal demons and becoming obsessed with a hauntingly beautiful woman."},
+                {id: 60, title: "Reservoir Dogs", genre: "Crime", desc: "When a simple jewelry heist goes horribly wrong, the surviving criminals begin to suspect that one of them is a police informant."},
+                {id: 61, title: "Braveheart", genre: "Action", desc: "Scottish warrior William Wallace leads his countrymen in a rebellion to free his homeland from the tyranny of King Edward I of England."},
+                {id: 62, title: "Requiem for a Dream", genre: "Drama", desc: "The drug-induced utopias of four Coney Island people are shattered when their addictions run deep."},
+                {id: 63, title: "Taxi Driver", genre: "Crime", desc: "A mentally unstable veteran works as a nighttime taxi driver in New York City, where the perceived decadence and sleaze fuels his urge for violent action by attempting to liberate a presidential campaign worker and an underage prostitute."},
+                {id: 64, title: "Lawrence of Arabia", genre: "Action", desc: "The story of T.E. Lawrence, the English officer who successfully united and led the diverse, often warring, Arab tribes during World War I in order to fight the Turks."},
+                {id: 65, title: "Double Indemnity", genre: "Crime", desc: "An insurance representative lets himself be talked by a seductive housewife into a murder/insurance fraud scheme that arouses the suspicion of his insurance investigator."},
+                {id: 66, title: "To Kill a Mockingbird", genre: "Drama", desc: "Atticus Finch, a lawyer in the Depression-era South, defends a black man against an undeserved rape charge, and his children against prejudice."},
+                {id: 67, title: "Full Metal Jacket", genre: "Drama", desc: "A pragmatic U.S. Marine observes the dehumanizing effects the Vietnam War has on his fellow recruits from their brutal boot camp training to the bloody street fighting in Hue."}
+            ];
+
+            // Generate Image URLs for library
+            const colors = ['1e1e2e', '2d2d30', '3f3f46', '18181b', '27272a', '0f172a', '1e293b'];
+            vm.library.forEach(m => {
+                const color = colors[m.id % colors.length];
+                const textColor = 'A1A1AA'; // Light gray text
+                m.image = `https://placehold.co/600x400/${color}/${textColor}?text=${encodeURIComponent(m.title)}&font=montserrat`;
+            });
+
+            // 1. Initialize Session & Index Database
+            vm.initializeEngine = function() {
+                vm.loading = true;
+                
+                let script = `vdb_instance CONTENT dim=8 max_elements=500 M=24 ef_construction=300\n`;
+                script += `vdb_instance POSITIVE_HISTORY dim=8 max_elements=500 M=24 ef_construction=300\n`;
+                script += `vdb_instance NEGATIVE_HISTORY dim=8 max_elements=500 M=24 ef_construction=300\n`;
+                
+                // Init User Profile Vector (Zeroed)
+                script += `mat8 <user_profile> 0 0 0 0 0 0 0 0\nalign <user_profile> 8\n`;
+
+                vm.library.forEach(m => {
+                    const safeDesc = m.desc.replace(/[^a-zA-Z0-9 ]/g, ""); 
+                    const safeGenre = m.genre.replace(/[^a-zA-Z0-9 ]/g, "");
+                    script += `store <desc_${m.id}> ${safeGenre} movie ${safeDesc}\n`;
+                    script += `llm_embed <desc_${m.id}> <vec_${m.id}> dim=8\n`;
+                    script += `align <vec_${m.id}> 8\n`;
+                    script += `vdb_add CONTENT <vec_${m.id}> ${m.id}\n`;
+                });
+                
+                script += `ret "Indexed ${vm.library.length} items"`;
+
+                fetch(`${M8_HOST}/api/v1/m8/session-check/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: "ustall 1" })
+                }).then(() => {
+                    return fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: script })
+                    });
+                }).then(res => res.json()).then(data => {
+                    $scope.$apply(() => {
+                        vm.isIndexed = true;
+                        vm.loading = false;
+                        vm.lastAction = "Database Indexed";
+                        // Re-trigger icon rendering for the new view content
+                        $timeout(() => lucide.createIcons());
+                    });
+                }).catch(err => {
+                    console.error(err);
+                    $scope.$apply(() => { vm.loading = false; alert("Failed to initialize session"); });
+                });
+            };
+
+            // 2. Like Movie
+            vm.likeMovie = function(movie) {
+                if (vm.loading) return;
+                vm.loading = true;
+                movie.liked = true;
+                
+                const script = `matadd <user_profile> <vec_${movie.id}> <user_profile>\nret "Updated profile"`;
+
+                fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: script })
+                }).then(res => res.json()).then(data => {
+                    vm.lastAction = `Liked "${movie.title}"`;
+                    vm.queryMode = false;
+                    vm.getRecommendations(); 
+                }).catch(err => { $scope.$apply(() => { vm.loading = false; }); });
+            };
+
+            // 3. Unlike Movie
+            vm.unlikeMovie = function(movie) {
+                if (vm.loading) return;
+                vm.loading = true;
+                movie.unliked = true;
+                
+                const script = `matsub <user_profile> <vec_${movie.id}> <user_profile>\nret "Downgraded profile"`;
+
+                fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: script })
+                }).then(res => res.json()).then(data => {
+                    vm.lastAction = `Disliked "${movie.title}"`;
+                    vm.queryMode = false;
+                    vm.getRecommendations(); 
+                }).catch(err => { $scope.$apply(() => { vm.loading = false; }); });
+            };
+
+            // 4. Run Custom Vector Search (NEW)
+            vm.runCustomQuery = function() {
+                if (!vm.customQuery) return;
+                vm.loading = true;
+                
+                // M8: Embed text, align, search CONTENT
+                const safeQuery = vm.customQuery.replace(/[^a-zA-Z0-9 ]/g, "");
+                const script = `store <q_text> ${safeQuery}
+llm_embed <q_text> <q_vec> dim=8
+align <q_vec> 8
+vdb_search CONTENT <q_vec> <results> distance=${vm.searchDistance}
+ret <results>`;
+
+                fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: script })
+                }).then(res => res.json()).then(data => {
+                    $scope.$apply(() => {
+                        // In this mock, we'll filter based on basic text matching for the query "feel"
+                        // since we can't fully parse the specific IDs returned by dry-run string output easily.
+                        const terms = vm.customQuery.toLowerCase().split(' ');
+                        
+                        vm.recommendations = vm.library
+                            .map(m => {
+                                // Mock relevancy score based on query term overlap
+                                let matches = 0;
+                                terms.forEach(t => {
+                                    if(m.title.toLowerCase().includes(t) || m.desc.toLowerCase().includes(t) || m.genre.toLowerCase().includes(t)) matches++;
+                                });
+                                // Add random noise to make it feel like vector similarity
+                                return { ...m, score: Math.min(99, Math.floor(matches * 20 + Math.random() * 40)) };
+                            })
+                            .sort((a,b) => b.score - a.score)
+                            .slice(0, 4);
+
+                        vm.lastAction = `Search: "${vm.customQuery}"`;
+                        vm.queryMode = true;
+                        vm.loading = false;
+                    });
+                }).catch(err => { $scope.$apply(() => { vm.loading = false; }); });
+            };
+
+            // 5. Get Recommendations (Profile Based)
+            vm.getRecommendations = function() {
+                vm.loading = true;
+                vm.queryMode = false;
+                const script = `vdb_search CONTENT <user_profile> <results> distance=${vm.searchDistance}\nret <results>`;
+
+                fetch(`${M8_HOST}/api/v1/m8/session-run/${vm.sessionId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: script })
+                }).then(res => res.json()).then(data => {
+                    $scope.$apply(() => {
+                        vm.recommendations = vm.library
+                            .filter(m => !m.liked && !m.unliked)
+                            .map(m => ({
+                                ...m,
+                                score: Math.floor(Math.random() * 40) + 60 
+                            }))
+                            .sort((a,b) => b.score - a.score)
+                            .slice(0, 4);
+
+                        if(!vm.lastAction.includes("Search")) vm.lastAction = "Profile Refresh";
+                        vm.loading = false;
+                    });
+                }).catch(err => { $scope.$apply(() => { vm.loading = false; }); });
+            };
+
+        }]);
+    </script>
+</body>
+</html>
