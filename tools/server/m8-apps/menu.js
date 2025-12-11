@@ -39,6 +39,14 @@
             <span>Procedural Geo</span>
         </a>
 
+        <div class="px-2 py-1.5 mt-4 text-[9px] font-semibold uppercase tracking-wider text-textMuted">Financial Modules</div>
+
+        <a href="market-analysis.html" class="flex items-center gap-2 px-3 py-2 rounded-md text-textMuted hover:bg-surface hover:text-textMain transition-colors opacity-60">
+            <i data-lucide="trending-up" class="w-4 h-4"></i>
+            <span>Market Overview</span>
+        </a>
+
+
     </nav>
 
     <div class="p-4 border-t border-border">

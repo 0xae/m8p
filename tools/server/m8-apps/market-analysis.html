@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8 Market Console</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Ace Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <!-- External Libs -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="menu.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#f9fafb',
+                        background: '#ffffff',   
+                        surface: '#f3f4f6',      
+                        border: '#e5e7eb',       
+                        primary: '#2563eb', 
+                        primaryHover: '#1d4ed8',
+                        textMain: '#111827',     
+                        textMuted: '#6b7280'
+                    },
+                    // colors: {
+                    //     sidebar: '#0f172a',      
+                    //     background: '#020617',   
+                    //     surface: '#1e293b',      
+                    //     border: '#334155',       
+                    //     primary: '#d946ef', 
+                    //     textMain: '#f8fafc',     
+                    //     textMuted: '#94a3b8',
+                    //     consoleBg: '#0f172a',
+                    // },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    },
+                    fontSize: {
+                        xxs: '0.65rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+    </style>
+</head>
+
+<body ng-app="market-app" ng-controller="AppController as app" class="bg-background text-textMain h-screen flex overflow-hidden text-xs antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-56 bg-sidebar border-r border-border flex flex-col flex-none">
+        <div class="h-14 flex items-center px-4 border-b border-border">
+<!--             <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-primary flex items-center justify-center">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="font-semibold tracking-tight text-textMain text-sm">Market</span>
+            </div>
+ -->            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-primary flex items-center justify-center">
+                    <i data-lucide="brain-circuit" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="font-semibold tracking-tight text-textMain text-sm">Cortex</span>
+            </div>
+        </div>
+
+        <div id="menu-system-area"></div>
+        
+        <div class="p-4 border-t border-border">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">TR</div>
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-medium text-textMain">Trader One</span>
+                    <span class="text-[9px] text-textMuted">Pro License</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 bg-background relative">
+        
+        <!-- VIEW: MARKET ASSISTANT -->
+        <div ng-controller="MarketController as mkt" class="flex flex-col h-full bg-surface relative">
+            
+            <!-- Code Modal -->
+            <div ng-if="mkt.selectedIndicator" class="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" ng-click="mkt.selectedIndicator = null">
+                <div class=" rounded-lg shadow-2xl w-full max-w-2xl border border-gray-200 overflow-hidden" ng-click="$event.stopPropagation()">
+                    <div class="bg-gray-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-4 h-4 text-primary"></i>
+                            <h3 class="font-semibold text-textMain">M8 Source: {{mkt.selectedIndicator.name}}</h3>
+                        </div>
+                        <button ng-click="mkt.selectedIndicator = null" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="p-0 bg-[#1e1e1e]">
+                        <pre class="font-mono text-xs text-gray-300 p-4 overflow-x-auto">{{mkt.selectedIndicator.m8_code}}</pre>
+                    </div>
+                    <div class="bg-gray-50 border-t border-gray-200 px-4 py-2 text-[10px] text-textMuted flex justify-between items-center">
+                        <span>Instruction Set: V1</span>
+                        <span class="font-mono">Align: 8</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <header class="h-14 border-b border-border bg-background flex items-center justify-between px-6 flex-none">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-base font-semibold text-textMain">Market Overview</h1>
+                    <span class="h-4 w-px bg-border"></span>
+                    <p class="text-xs text-textMuted">15mn dealyed economic data from St. Louis Fed (FRED)</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button ng-click="mkt.calculateAllIndicators()" class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-border hover:bg-gray-50 text-textMain rounded text-[10px] font-medium transition-colors shadow-sm">
+                        <i data-lucide="refresh-cw" class="w-3 h-3" ng-class="{'animate-spin': mkt.calculating}"></i>
+                        Run Analysis
+                    </button>
+                    <span class="flex items-center gap-1.5 text-[10px] text-textMuted bg-gray-50 px-2 py-1 rounded border border-gray-100 font-mono">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        API Connected
+                    </span>
+                </div>
+            </header>
+
+            <!-- Scrollable Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <div class="max-w-7xl mx-auto space-y-8">
+                    
+                    <!-- M8 Custom Indicators Section -->
+                    <section>
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="cpu" class="w-4 h-4 text-primary"></i>
+                            <h2 class="text-sm font-bold text-textMain uppercase tracking-wider">M8 Computed Indices</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div ng-repeat="ind in mkt.indicators" class="bg-background border border-border rounded-lg p-4 shadow-sm hover:border-primary/50 transition-colors relative group">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="text-xs font-semibold text-textMain">{{ind.name}}</h3>
+                                    <button ng-click="mkt.showCode(ind)" class="text-gray-300 hover:text-primary transition-colors" title="View M8 Assembly">
+                                        <i data-lucide="code-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                                <div class="min-h-[2rem] flex items-end">
+                                    <div ng-if="!ind.loading" class="text-2xl font-bold text-textMain tracking-tight">{{ind.value || '--'}}</div>
+                                    <div ng-if="ind.loading" class="text-textMuted text-xs flex items-center gap-1"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Calculating...</div>
+                                </div>
+                                <div class="mt-3 text-[10px] text-textMuted leading-snug">{{ind.description}}</div>
+                                <div ng-if="ind.latency" class="mt-2 pt-2 border-t border-gray-100 text-[9px] text-gray-400 font-mono flex justify-between">
+                                    <span>Latency: {{ind.latency}}</span>
+                                    <span>M8 Core</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Standard Assets Section -->
+                    <section>
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="database" class="w-4 h-4 text-textMuted"></i>
+                            <h2 class="text-sm font-bold text-textMain uppercase tracking-wider">Raw Asset Data</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            
+                            <div ng-repeat="asset in mkt.assets" class="bg-background border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider mb-1"
+                                              ng-class="{'bg-blue-50 text-blue-700': asset.category === 'Stocks', 'bg-purple-50 text-purple-700': asset.category === 'Bonds', 'bg-orange-50 text-orange-700': asset.category === 'Energy'}">
+                                            {{asset.category}}
+                                        </span>
+                                        <h3 class="text-sm font-semibold text-textMain mt-0.5 leading-tight">{{asset.label}}</h3>
+                                    </div>
+                                    <span class="font-mono text-[10px] text-textMuted bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">{{asset.ticker}}</span>
+                                </div>
+                                
+                                <div class="flex-1 min-h-[100px] flex flex-col">
+                                    <!-- Loading -->
+                                    <div ng-if="asset.loading" class="flex-1 flex items-center justify-center text-textMuted">
+                                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-primary"></i>
+                                    </div>
+
+                                    <!-- Data -->
+                                    <div ng-if="asset.data" class="flex-1 flex flex-col justify-between">
+                                        <div class="flex justify-between items-end border-b border-border pb-2 mb-2">
+                                            <span class="text-[10px] text-textMuted font-medium">Latest Close</span>
+                                            <div class="text-right">
+                                                <span class="text-xl font-bold text-textMain tracking-tight">{{asset.data[0].value | number:2}}</span>
+                                                <span ng-if="asset.isMock" class="block text-[8px] text-orange-500 font-mono">*Simulated</span>
+                                            </div>
+                                        </div>
+                                        <div class="overflow-hidden">
+                                            <table class="w-full text-[10px]">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-left font-medium text-textMuted pb-1">Date</th>
+                                                        <th class="text-right font-medium text-textMuted pb-1">Value</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr ng-repeat="obs in asset.data | limitTo:3" class="border-b border-gray-50 last:border-0">
+                                                        <td class="text-textMuted py-1">{{obs.date}}</td>
+                                                        <td class="text-right font-mono text-textMain py-1">{{obs.value}}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Empty -->
+                                    <div ng-if="!asset.data && !asset.loading" class="flex-1 flex items-center justify-center  rounded-lg border border-dashed border-gray-200">
+                                        <button ng-click="mkt.loadData(asset)" class="text-xs text-primary hover:text-primaryHover font-medium flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors">
+                                            <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
+                                            Load Data
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Error -->
+                                    <div ng-if="asset.error" class="flex-1 flex items-center justify-center">
+                                        <div class="text-center">
+                                            <i data-lucide="alert-circle" class="w-5 h-5 text-red-400 mx-auto mb-1"></i>
+                                            <span class="text-[10px] text-red-500 block">Failed to load data</span>
+                                            <button ng-click="mkt.loadData(asset)" class="text-[9px] text-textMuted underline mt-1 hover:text-textMain">Retry</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <!-- LOGIC -->
+    <script type="text/javascript">
+        const M8_HOST="";
+        const app = angular.module('market-app', []);
+
+        app.controller('AppController', ['$scope', '$timeout', function($scope, $timeout) {
+            $timeout(() => {
+                window.RenderM8Menu('menu-system-area');
+                $timeout(function () {
+                    lucide.createIcons();
+                }, 120);
+            });
+        }]);
+
+        app.controller('MarketController', ['$scope', '$http', '$timeout', function($scope, $http, $timeout) {
+            const vm = this;
+            vm.selectedIndicator = null;
+            vm.calculating = false;
+
+            // --- Custom M8 Indicators ---
+            vm.indicators = [
+                {
+                    name: "M8 Fear Index",
+                    description: "Calculates L2 distance between current volatility vector (VIX) and a theoretical 'Panic' baseline.",
+                    m8_code: `## M8 Fear Index Calculation
+# 1. Load Volatility Vectors (VIX samples)
+matn <vix_vec> 14.5 15.2 18.9 21.0 20.5 19.8 18.2 17.5
+align <vix_vec> 8
+
+# 2. Define Panic Baseline (Threshold)
+mat8 <panic_base> 40.0 40.0 40.0 40.0 40.0 40.0 40.0 40.0
+
+# 3. Calculate L2 Distance to Panic
+matl2d <vix_vec> <panic_base> <fear_score>
+
+# 4. Store Result
+store <result> <fear_score>
+ret <result>`
+                },
+                {
+                    name: "Recession Indicator",
+                    description: "Yield curve inversion analysis. Computes dot product of the 10Y-2Y spread against a negative bias vector.",
+                    m8_code: `## M8 Recession Probability
+# 1. Load Treasury Yields (10Y)
+matn <yield_10y> 3.8 3.7 3.6 3.7 3.6 3.5 3.6 3.7
+align <yield_10y> 8
+
+# 2. Load Treasury Yields (2Y)
+matn <yield_2y> 4.2 4.3 4.2 4.1 4.0 3.9 4.0 4.1
+align <yield_2y> 8
+
+# 3. Calculate Spread (10Y - 2Y)
+matsub <yield_10y> <yield_2y> <spread_vec>
+
+# 4. Inversion Check (Dot Product Sum)
+mat8 <ones> 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+matdot <spread_vec> <ones> <inversion_sum>
+
+store <result> <inversion_sum>
+ret <result>`
+                },
+                {
+                    name: "Energy Market Correlation",
+                    description: "Cosine similarity analysis between WTI Oil prices and Natural Gas futures.",
+                    m8_code: `## M8 Energy Correlation
+# 1. Load Oil Prices (WTI)
+matn <oil> 75.0 76.5 78.0 77.5 76.0 75.5 74.0 73.5
+align <oil> 8
+
+# 2. Load Gas Prices (Nat Gas)
+matn <gas> 2.5 2.6 2.8 2.7 2.6 2.5 2.4 2.3
+align <gas> 8
+
+# 3. Calculate Cosine Similarity
+matcosim <oil> <gas> <correlation>
+
+store <result> <correlation>
+ret <result>`
+                },
+                {
+                    name: "Debt Risk Aggregate",
+                    description: "Weighted average spread between High Yield and Investment Grade corporate debt.",
+                    m8_code: `## M8 Debt Risk Index
+# 1. Load High Yield Rates
+matn <high_yield> 8.5 8.6 8.8 9.0 9.2 9.1 8.9 8.7
+align <high_yield> 8
+
+# 2. Load Investment Grade Rates
+matn <inv_grade> 4.5 4.6 4.7 4.8 4.9 4.8 4.7 4.6
+align <inv_grade> 8
+
+# 3. Calculate Spread
+matsub <high_yield> <inv_grade> <spread>
+
+# 4. Weighted Average (Risk Weighting)
+mat8 <weights> 0.125 0.125 0.125 0.125 0.125 0.125 0.125 0.125
+matdot <spread> <weights> <risk_score>
+
+store <result> <risk_score>
+ret <result>`
+                },
+                {
+                    name: "Tech Momentum",
+                    description: "Weighted momentum analysis of Nasdaq Composite performance over recent periods.",
+                    m8_code: `## M8 Tech Momentum
+# 1. Load Nasdaq Returns
+matn <nasdaq> 1.2 0.8 1.5 1.1 0.9 1.3 1.4 1.2
+align <nasdaq> 8
+
+# 2. Momentum Weights (Recent biased)
+mat8 <weights> 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2
+
+# 3. Calculate Weighted Score
+matdot <nasdaq> <weights> <momentum_score>
+
+store <result> <momentum_score>
+ret <result>`
+                },
+                {
+                    name: "Inflation Pressure",
+                    description: "Commodity basket deviation analysis using L2 distance from stability baseline.",
+                    m8_code: `## M8 Inflation Gauge
+# 1. Commodity Basket (Normalized)
+matn <commodities> 105.0 106.2 108.5 107.8 109.0 110.5 111.2 112.0
+align <commodities> 8
+
+# 2. Stability Baseline
+mat8 <baseline> 100.0 100.0 100.0 100.0 100.0 100.0 100.0 100.0
+
+# 3. Calculate Deviation (Pressure)
+matl2d <commodities> <baseline> <pressure>
+
+store <result> <pressure>
+ret <result>`
+                },
+                {
+                    name: "Safe Haven Flow",
+                    description: "Differential analysis between Bond yields and Equity returns to gauge safety seeking.",
+                    m8_code: `## M8 Safe Haven Flow
+# 1. Treasury Yields (Inverse Price)
+matn <yields> 4.0 4.1 4.0 3.9 3.8 3.7 3.6 3.5
+align <yields> 8
+
+# 2. Equity Returns (S&P 500)
+matn <equities> 4200 4210 4190 4180 4150 4120 4100 4080
+align <equities> 8
+
+# 3. Normalize & Compare (Scaled down)
+mat8 <scale> 0.001 0.001 0.001 0.001 0.001 0.001 0.001 0.001
+matmul <equities> <scale> <eq_norm>
+matsub <eq_norm> <yields> <flow_vec>
+
+# 4. Aggregate Flow
+mat8 <ones> 1 1 1 1 1 1 1 1
+matdot <flow_vec> <ones> <flow_score>
+
+store <result> <flow_score>
+ret <result>`
+                },
+                {
+                    name: "Crypto Volatility",
+                    description: "Volatility dispersion analysis of major cryptocurrencies against standard deviation baseline.",
+                    m8_code: `## M8 Crypto Volatility
+# 1. BTC Volatility Vector (7-day rolling)
+matn <btc_vol> 45.0 48.2 52.1 50.5 49.0 55.2 60.1 58.5
+align <btc_vol> 8
+
+# 2. Low Vol Baseline
+mat8 <base_vol> 30.0 30.0 30.0 30.0 30.0 30.0 30.0 30.0
+
+# 3. Distance Calculation
+matl2d <btc_vol> <base_vol> <vol_score>
+
+store <result> <vol_score>
+ret <result>`
+                }
+            ];
+
+            vm.calculateAllIndicators = function() {
+                vm.calculating = true;
+                vm.indicators.forEach(ind => {
+                    ind.loading = true;
+                    
+                    fetch(M8_HOST + '/api/v1/m8/dry-run', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: ind.m8_code })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        $scope.$apply(() => {
+                            // Extract just the number/string from the result
+                            // M8 sometimes returns quotes or brackets depending on version
+                            let val = data.R;
+                            if (val) val = val.replace(/['"]+/g, '').trim();
+                            
+                            // Format if number
+                            const num = parseFloat(val);
+                            if (!isNaN(num)) {
+                                ind.value = num.toFixed(4);
+                            } else {
+                                ind.value = val;
+                            }
+                            
+                            ind.latency = data.Tms || "0ms";
+                            ind.loading = false;
+                        });
+                    })
+                    .catch(err => {
+                        $scope.$apply(() => {
+                            ind.value = "Error";
+                            ind.loading = false;
+                        });
+                    })
+                    .finally(() => {
+                        // Check if all done
+                        if(!vm.indicators.some(i => i.loading)) vm.calculating = false;
+                    });
+                });
+            };
+
+            vm.showCode = function(ind) {
+                vm.selectedIndicator = ind;
+            };
+
+            // Initial Calc
+            $timeout(() => vm.calculateAllIndicators(), 500);
+
+
+            // --- Standard Assets ---
+            vm.assets = [
+                {ticker: "SP500", label: "S&P 500", category: "Stocks"},
+                {ticker: "DJIA", label: "Dow Jones Industrial Average", category: "Stocks"},
+                {ticker: "VIXCLS", label: "VIX Volatility Index", category: "Stocks"},
+                {ticker: "VXVCLS", label: "S&P 500 3-Month Volatility", category: "Stocks"},
+                {ticker: "NASDAQCOM", label: "Nasdaq Composite", category: "Stocks"},
+                {ticker: "BAMLHYH0A0HYM2TRIV", label: "US High Yield Corp Debt", category: "Bonds"},
+                {ticker: "BAMLCC0A0CMTRIV", label: "US Corp Master Debt", category: "Bonds"},
+                {ticker: "BAMLHE00EHYITRIV", label: "Euro High Yield Debt", category: "Bonds"},
+                {ticker: "BAMLEMCBPITRIV", label: "Emerging Markets Corp Debt", category: "Bonds"},
+                {ticker: "DCOILWTICO", label: "WTI Crude Oil", category: "Energy"},
+                {ticker: "DCOILBRENTEU", label: "Brent Crude Oil", category: "Energy"},
+                {ticker: "POILDUBUSDM", label: "Dubai Crude Oil", category: "Energy"},
+                {ticker: "PNGASEUUSDM", label: "Global Nat Gas (EU)", category: "Energy"}
+            ];
+
+            function getMockData(ticker) {
+                const data = [];
+                let baseValue = ticker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 1000 + 50;
+                for(let i=0; i<5; i++) {
+                    const date = moment().subtract(i, 'days').format('YYYY-MM-DD');
+                    const volatility = (Math.random() - 0.5) * (baseValue * 0.02);
+                    const val = (baseValue + volatility).toFixed(2);
+                    data.push({ date: date, value: val });
+                    baseValue = parseFloat(val);
+                }
+                return data;
+            }
+
+            vm.loadData = function(asset) {
+            };
+
+            function Execute(reqBody) {
+                // body...
+            }
+        }]);
+    </script>
+</body>
+</html>
