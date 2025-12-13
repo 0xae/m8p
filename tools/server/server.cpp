@@ -4876,6 +4876,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
             std::string Value = options["n_predict"];
             try {
                 number=std::stof(Value);
+                if (number<=0) {
+                    return std::make_pair(
+                        m8p::errorf("n_predict cannot be zero or negative => "+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+
                 n_predict = number;
             } catch (const std::invalid_argument& ia) {
                 return std::make_pair(
@@ -5181,6 +5188,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             std::string Value = options["n_predict"];
             try {
                 number=std::stof(Value);
+                if (number<=0) {
+                    return std::make_pair(
+                        m8p::errorf("n_predict cannot be zero or negative => "+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+
                 n_predict = number;
             } catch (const std::invalid_argument& ia) {
                 return std::make_pair(
@@ -5526,6 +5540,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
             std::string Value = options["n_predict"];
             try {
                 number=std::stof(Value);
+                if (number<=0) {
+                    return std::make_pair(
+                        m8p::errorf("n_predict cannot be zero or negative => "+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+
                 n_predict = number;
             } catch (const std::invalid_argument& ia) {
                 return std::make_pair(
