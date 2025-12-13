@@ -8800,7 +8800,7 @@ std::string M8_BANNER =
     // svr->Get("/api/v1/m8/session-activity",  handle_stats_Activity);
 
     // if (true) {
-    if (false) {
+    if (!params.webui) {
         LOG_INF("Web UI is disabled\n");
     } else {
         // register static assets routes
