@@ -37,6 +37,7 @@
 using json = nlohmann::ordered_json;
 
 constexpr int HTTP_POLLING_SECONDS = 1;
+const int MAX_PREDICT_SIZE = 500;
 
 enum stop_type {
     STOP_TYPE_NONE,
@@ -4882,6 +4883,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
                         M8->nilValue
                     );
                 }
+                if (number>MAX_PREDICT_SIZE) {
+                    return std::make_pair(
+                        m8p::errorf("n_predict cannot exceed => "+std::to_string(MAX_PREDICT_SIZE)+"]"),
+                        M8->nilValue
+                    );                    
+                }
 
                 n_predict = number;
             } catch (const std::invalid_argument& ia) {
@@ -5193,6 +5200,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
                         m8p::errorf("n_predict cannot be zero or negative => "+Value+"]"),
                         M8->nilValue
                     );
+                }
+                if (number>MAX_PREDICT_SIZE) {
+                    return std::make_pair(
+                        m8p::errorf("n_predict cannot exceed => "+std::to_string(MAX_PREDICT_SIZE)+"]"),
+                        M8->nilValue
+                    );                    
                 }
 
                 n_predict = number;
@@ -5545,6 +5558,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
                         m8p::errorf("n_predict cannot be zero or negative => "+Value+"]"),
                         M8->nilValue
                     );
+                }
+                if (number>MAX_PREDICT_SIZE) {
+                    return std::make_pair(
+                        m8p::errorf("n_predict cannot exceed => "+std::to_string(MAX_PREDICT_SIZE)+"]"),
+                        M8->nilValue
+                    );                    
                 }
 
                 n_predict = number;
