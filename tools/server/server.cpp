@@ -5877,6 +5877,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 LLMDB[ins_name].conv_messages.push_back(CONV);
             }
 
+            if (hasConnfall) {
+                return false;
+            } 
             return true;
 
         }, [&LLMDB, &ins_name](json error_data) {
