@@ -5725,15 +5725,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             // {"chat_format", json::array()}
         };
 
-// <start_of_turn>user
-//   | You are a helpful assistant
-//   | Hello<end_of_turn>
-//   | <start_of_turn>model
-//   | Hi there<end_of_turn>
-//   | <start_of_turn>user
-//   | How are you?<end_of_turn>
-//   | <start_of_turn>model
-
         json data = oaicompat_chat_params_parse(
             body,
             ctx_server->oai_parser_opt,
@@ -5770,7 +5761,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         try {
             std::vector<server_task> tasks;
             std::vector<server_tokens> inputs;
-            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, prompt, true, true);
+            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, data["prompt"], true, true);
             const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
             tasks.reserve(inputs.size());
             for (size_t i = 0; i < inputs.size(); i++) {
