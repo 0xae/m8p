@@ -5629,7 +5629,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             instance_data &Ref = LLMDB[ins_name];
             // conv_messages
 
-            std::string last_msg = traverse_response_json(Ref.arr)
+            std::string last_msg = traverse_response_json(Ref.arr);
 
             std::cout << " LAST RESPONSE: " 
                 << last_msg
