@@ -5780,7 +5780,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         // chat_prompt = ss_prompt.str();
         // data["prompt"] = chat_prompt;
 
-        std::cout << "=======> llm_openai2[]: "
+        std::cout << "=======> llm_openai2  RESULT CALL []: "
             << data.dump(4) 
             << "\n" << std::endl;
 
