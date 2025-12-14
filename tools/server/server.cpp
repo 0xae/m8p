@@ -5712,7 +5712,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             files
         );
 
-        std::cout << "=======> llm_openai2: "
+        std::cout << "=======> llm_openai2[]: "
             << data.dump() 
             << "\n" << std::endl;
 
@@ -5728,7 +5728,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         try {
             std::vector<server_task> tasks;
             std::vector<server_tokens> inputs;
-            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, prompt, true, true);
+            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, data["prompt"], true, true);
             const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
             tasks.reserve(inputs.size());
             for (size_t i = 0; i < inputs.size(); i++) {
@@ -8200,9 +8200,9 @@ std::string M8_BANNER =
             ctx_server.oai_parser_opt,
             files);
 
-        std::cout << "========> [chatcompletion] request:"
-            << data.dump()
-            << "\n" << std::endl;
+        // std::cout << "========> [chatcompletion] request:"
+        //     << data.dump()
+        //     << "\n" << std::endl;
 
         // return;
 
