@@ -5804,15 +5804,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                     auto sink = GlobalSession[M8->Name].sink;
                     if (sink->is_writable()) {
                         // hasRun = true;
+                        bool hasConnfall = false;
                         if (res_json.is_array()) {
                             for (const auto & res : res_json) {
-                                if (!server_sent_event(*sink, res)) {
-                                    // return false;
+                                if (hasConnfall) {
+                                    break;
                                 }
+                                hasConnfall=server_sent_event(*sink, res);
                             }
-                            // return true;
+
                         } else {
-                            server_sent_event(*sink, res_json);
+                            hasConnfall=server_sent_event(*sink, res_json);
                         }
                     }
                 }
