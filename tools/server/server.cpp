@@ -5458,7 +5458,8 @@ std::string traverse_response_json(json &Ref) {
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         server_context *ctx_server,
         m8p::M8System* M8, 
-        std::vector<std::string> params) 
+        std::vector<std::string> params,
+        std::mutex *g_session) 
 {
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 2) {
@@ -5486,6 +5487,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
     std::string prompt = "what is your name";
     std::string tools = "no";
     std::string conv = "false";
+    std::string conv_session = "no";
     std::string system_prompt = "You are a helpful assistant.";
 
     m8p::M8_Obj *R = REG[rsource];
@@ -5532,6 +5534,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         }
         if (options.count("stream")>0) {
             stream = options["stream"];
+        }
+        if (options.count("conv_session")>0) {
+            conv_session = options["conv_session"];
         }
         if (options.count("sysprompt")>0) {
             std::string r_prt = options["sysprompt"];
@@ -5623,7 +5628,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         );
 
     } else {
-        // replaceAll2(prompt, "<<<NL>>>", "\n");
+        replaceAll2(prompt, "<<<NL>>>", "\n");
         std::vector<raw_buffer> files;
         json messages = json::array({
             {{"role", "system"}, {"content", system_prompt}},
@@ -5633,18 +5638,32 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         std::string chat_prompt = "";
 
         if (instance_exists && conv=="true") {
-            instance_data &Ref = LLMDB[ins_name];
-            // conv_messages
-            // std::string last_msg = traverse_response_json(Ref.arr);
-            // std::cout << " LAST RESPONSE: " 
-            //     << last_msg
-            //     << "\n" << std::endl;
-
             std::string last_question = "empty";
             std::string last_msg = "empty";
-            if (!Ref.conv_messages.empty()) {
-                last_question = Ref.conv_messages.back().question;
-                last_msg = Ref.conv_messages.back().answer;
+
+            if (conv_session!="no" && conv_session.size()>=5){
+                const std::lock_guard<std::mutex> lock(*g_session);
+                if (GlobalSession.count(conv_session)==0) {
+                    GlobalSession[conv_session].name = conv_session;
+                    auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
+                    local_lmdb[ins_name].Status = 1; // success
+                    local_lmdb[ins_name].arr = json::array();
+                }
+
+                auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
+                instance_data &Ref = local_lmdb[ins_name];
+
+                if (!Ref.conv_messages.empty()) {
+                    last_question = Ref.conv_messages.back().question;
+                    last_msg = Ref.conv_messages.back().answer;
+                }
+
+            } else {
+                instance_data &Ref = LLMDB[ins_name];
+                if (!Ref.conv_messages.empty()) {
+                    last_question = Ref.conv_messages.back().question;
+                    last_msg = Ref.conv_messages.back().answer;
+                }
             }
 
             if (last_question=="empty" || last_msg=="empty") {
@@ -5653,6 +5672,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                     M8->nilValue
                 );
             }
+
+            // conv_messages
+            // std::string last_msg = traverse_response_json(Ref.arr);
+            // std::cout << " LAST RESPONSE: " 
+            //     << last_msg
+            //     << "\n" << std::endl;
 
             messages = json::array({
                 {{"role", "system"}, {"content", system_prompt}},
@@ -5813,7 +5838,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         };
 
          // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
-         ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, prompt, conv, stream, instance_exists, M8, &ins_name](server_task_result_ptr & result) -> bool {
+         ctx_server->receive_cmpl_results_stream(task_ids, 
+            [&LLMDB, prompt, conv_session, conv, stream, instance_exists, M8, &ins_name]
+            (server_task_result_ptr & result) -> bool {
             json res_json = result->to_json();
             bool hasRun = false;
             json arr = json::array();
@@ -5855,7 +5882,20 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                     .question = prompt, 
                     .answer= last_msg
                 };
-                LLMDB[ins_name].conv_messages.push_back(CONV);
+
+                if (conv_session!="no" && conv_session.size()>=5){
+                    const std::lock_guard<std::mutex> lock(*g_session);
+                    if (GlobalSession.count(conv_session)==0) {
+                        GlobalSession[conv_session].name = conv_session;
+                        auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
+                        local_lmdb[ins_name].Status = 1; // success
+                    }
+                    auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
+                    instance_data &Ref = local_lmdb[ins_name];
+                    Ref.conv_messages.push_back(CONV);
+                } else {
+                    LLMDB[ins_name].conv_messages.push_back(CONV);
+                }
             }
 
             // if (instance_exists) {
@@ -6482,9 +6522,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
             << std::endl;
 
         if (Ref.Status==1) {
-            // LOG_INFO("=====================> INSTANCE RESPONSE : ", Ref.arr);            
-            // ::ALLOC::
-            // std::stringstream ss;
             std::string last_msg = "";
 
             if (Ref.arr.count("content")) {
@@ -7337,7 +7374,7 @@ public:
             return LLM_OPENAI(this->ctx_server, M8, params);
 
         } else if (opCode=="llm_openai2") {
-            return LLM_OPENAI2(this->ctx_server, M8, params);
+            return LLM_OPENAI2(this->ctx_server, M8, params, this->g_session);
 
         } else if (opCode=="llm_mturn" || opCode=="llm_turn") {
             if (this->g_session!=nullptr) {
@@ -8845,7 +8882,7 @@ std::string M8_BANNER =
         try {
             m8p::M8System *m8 = m8Session.m8;
             if (m8==nullptr) {
-                res_error(res, format_error_response("Invalid session state", ERROR_TYPE_INVALID_REQUEST));
+                res_error(res, format_error_response("Invalid session state[NO M8 INSTANCE ATTACHED]", ERROR_TYPE_INVALID_REQUEST));
                 return;
             }
 
