@@ -5600,7 +5600,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
             std::cout << "LAST RESPONSE: " <<
                 Ref.arr.dump()
-                << "\n" << std::enl;
+                << "\n" << std::endl;
 
             // if (res_json.is_array()) {
             //     for (const auto & res : res_json) {
