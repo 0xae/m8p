@@ -4436,13 +4436,18 @@ struct vectordb_index {
     std::map<size_t, std::string> ValueCache;
 };
 
+struct convel {
+    std::string question;
+    std::string answer;
+};
+
 struct instance_data {
     int Status=1; // 1=OK, 0=FAILED, 2=PENDING
     std::string instance_name;
     std::string prompt;
     std::unordered_set<int> tasks;
     json arr;
-    json conv_messages = json::array();
+    std::vector<convel> conv_messages;
 };
 
 std::map<std::string, M8Session> GlobalSession;
@@ -5811,9 +5816,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
             LLMDB[ins_name].Status = 1; // success
             LLMDB[ins_name].arr = arr;
+            convel CONV = {
+                .question= prompt, 
+                .answer= ""
+            };
+            LLMDB[ins_name].conv_messages.push_back(CONV);
 
             // if (instance_exists) {
-            //     LLMDB[ins_name].conv_messages = 
             // } else {
             // }
 
