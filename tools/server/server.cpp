@@ -5834,6 +5834,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 .answer= last_msg
             };
 
+            std::cout << "=======>>> CONV: " 
+                << "Q: " << CONV.question
+                << "\n"
+                << "A: " << CONV.answer
+                << "\n" << std::endl;
+
             if (conv=="true") {
                 if (conv_session!="no" && conv_session.size()>=5){
                     const std::lock_guard<std::mutex> lock(*g_session);
