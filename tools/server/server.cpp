@@ -6472,31 +6472,27 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         instance_data &Ref = LLMDB[ins_name];
         // LOG_VERBOSE("===============> GOT RESULT", Ref.arr);
         // TODO: MEMOIZE
-        LOG_INFO("=====================> INSTANCE_STATUS : ", {
-            {"Status", Ref.Status},
-            {"Array", Ref.arr.dumps(4)}
-        });
-
-        // Array=[[{"finish_reason":"length","index":0,
-        //     "message":{"role":"assistant","content":"Para executar a busca e filtragem de leads e oportunidades no Odoo, utilize o comando `execute_odoo_command[search_read]`.  
-        //     Defina os parâmetros `l2d=0` para indicar que a busca deve ser realizada sem filtros complexos, e `Cosim=1` para ativar a exibição"}}],
-        // 1765233306,"default","b246-9278898","chat.completion",
-        // {"completion_tokens":75,"prompt_tokens":56,"total_tokens":131},"chatcmpl-3xkCtaePbc7dacoth91zCIapkVWFf7xS",
-        // {"cache_n":1,"prompt_n":55,"prompt_ms":483.136,"prompt_per_token_ms":8.78429090909091,"prompt_per_second":113.83958140151013,
-        // "predicted_n":75,"predicted_ms":6039.435,"predicted_per_token_ms":80.5258,"predicted_per_second":12.418380196160733}
-        // ]
+        std::cout <<
+            "=====================> INSTANCE_STATUS : "
+            << "\nStatus   =" 
+            << Ref.Status
+            << "\nContents ="
+            << Ref.arr.dump(4)
+            << "\n" 
+            << std::endl;
 
         if (Ref.Status==1) {
             // LOG_INFO("=====================> INSTANCE RESPONSE : ", Ref.arr);            
             // ::ALLOC::
             // std::stringstream ss;
-            // if (Ref.arr.count("content")) {
-            //     ss << Ref.arr.at("content");
-            // } else {
-            //     ss << Ref.arr.dump();
-            // }
-            // // ::ALLOC::
-            std::string last_msg = traverse_response_json(Ref.arr);
+            std::string last_msg = "";
+
+            if (Ref.arr.count("content")) {
+                last_msg = Ref.arr.at("content").get<std::string>();
+            } else {
+                last_msg = traverse_response_json(Ref.arr);
+            }
+
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, last_msg);
 
         } else if (Ref.Status==2) {
