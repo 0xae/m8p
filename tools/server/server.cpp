@@ -5419,6 +5419,37 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
 }
 
+std::string traverse_response_json(json &Ref) {
+    // std::string content = "";
+    std::stringstream buf;
+
+    if (Ref.is_object() && Ref.count("choices")>0) {
+        auto choices=Ref["choices"];
+        if (choices.size()>0 && choices.at(0).count("message")>0) {
+            auto message = choices.at(0)["message"];
+            if (message.count("content")>0) {
+                auto content = message["message"];
+                buf << content.get<std::string>();
+            }
+        }
+
+    } else if (Ref.is_array() && Ref.size()>0 && Ref.at(0).count("choices")>0) {
+        auto choices=Ref.at(0)["choices"];
+        if (choices.size()>0 && choices.at(0).count("delta")>0) {
+            auto delta_x = choices.at(0)["delta"];
+            if (delta_x.count("content")>0) {
+                auto content = delta_x["content"];
+                buf << content.get<std::string>();
+            }
+        }
+
+    } else {
+        buf << Ref.dump();
+    }
+
+    return buf.str();
+}
+
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         server_context *ctx_server,
         m8p::M8System* M8, 
