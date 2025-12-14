@@ -5428,7 +5428,7 @@ std::string traverse_response_json(json &Ref) {
         if (choices.size()>0 && choices.at(0).count("message")>0) {
             auto message = choices.at(0)["message"];
             if (message.count("content")>0) {
-                auto content = message["message"];
+                auto content = message["content"];
                 buf << content.get<std::string>();
             }
         }
@@ -5776,7 +5776,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         };
 
          // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
-         ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, stream, M8, &ins_name](server_task_result_ptr & result) -> bool {
+         ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, stream, instance_exists, M8, &ins_name](server_task_result_ptr & result) -> bool {
             json res_json = result->to_json();
             bool hasRun = false;
             json arr = json::array();
@@ -5811,6 +5811,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
             LLMDB[ins_name].Status = 1; // success
             LLMDB[ins_name].arr = arr;
+
+            if (instance_exists) {
+                LLMDB[ins_name].conv_messages = 
+            } else {
+            }
+
             return true;
 
         }, [&LLMDB, &ins_name](json error_data) {
