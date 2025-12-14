@@ -5643,39 +5643,31 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
         std::string chat_prompt = "";
 
-        if (instance_exists && conv=="true") {
+        if (instance_exists || conv=="true") {
             std::string last_question = "empty";
             std::string last_msg = "empty";
 
             if (conv_session!="no" && conv_session.size()>=5){
                 const std::lock_guard<std::mutex> lock(*g_session);
-                if (GlobalSession.count(conv_session)==0) {
-                    return std::make_pair(
-                        m8p::errorf(conv_session +" CONV_SESSION NOT FOUND!"),
-                        M8->nilValue
-                    );
+                if (GlobalSession.count(conv_session)>0) {
+                    if (!GlobalSession[conv_session].is_store_only) {
+                        return std::make_pair(
+                            m8p::errorf(conv_session +" SESSION IS NOT STORE ONLY!"),
+                            M8->nilValue
+                        );
+                    }
+
+                    std::cout << " DISTRIBUTED SESSION FOUND: " << conv_session << "\n" << std::endl;
+                    auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
+                    instance_data &Ref = local_lmdb[ins_name];
+                    if (!Ref.conv_messages.empty()) {
+                        last_question = Ref.conv_messages.back().question;
+                        last_msg = Ref.conv_messages.back().answer;
+                    }
                 }
 
-                if (!GlobalSession[conv_session].is_store_only) {
-                    return std::make_pair(
-                        m8p::errorf(conv_session +" SESSION IS NOT STORE ONLY!"),
-                        M8->nilValue
-                    );
-                }
-
-                std::cout << " DISTRIBUTED SESSION FOUND: " << conv_session << "\n" << std::endl;
-
-                auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
-                instance_data &Ref = local_lmdb[ins_name];
-
-                if (!Ref.conv_messages.empty()) {
-                    last_question = Ref.conv_messages.back().question;
-                    last_msg = Ref.conv_messages.back().answer;
-                }
-
-            } else {
+            } else if (instance_exists) {
                 std::cout << " USING TEMPORARY SESSION \n" << std::endl;
-
                 instance_data &Ref = LLMDB[ins_name];
                 if (!Ref.conv_messages.empty()) {
                     last_question = Ref.conv_messages.back().question;
@@ -5684,25 +5676,27 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             }
 
             if (last_question=="empty" || last_msg=="empty") {
-                return std::make_pair(
-                    m8p::errorf("EMPTY_SEQUENCE[conv_messages.length=0]"),
-                    M8->nilValue
-                );
+                // return std::make_pair(
+                //     m8p::errorf("EMPTY_SEQUENCE[conv_messages.length=0]"),
+                //     M8->nilValue
+                // );
+
+            } else {
+                // conv_messages
+                // std::string last_msg = traverse_response_json(Ref.arr);
+                std::cout << " LAST RESPONSE: " 
+                    << "last_question: " << last_question << "\n" 
+                    << "last_msg: " << last_msg << "\n" 
+                    << std::endl;
+
+                messages = json::array({
+                    {{"role", "system"}, {"content", system_prompt}},
+                    {{"role", "user"}, {"content", last_question}},
+                    {{"role", "assistant"}, {"content", last_msg}},
+                    {{"role", "user"}, {"content", prompt}},
+                });                
             }
 
-            // conv_messages
-            // std::string last_msg = traverse_response_json(Ref.arr);
-            std::cout << " LAST RESPONSE: " 
-                << "last_question: " << last_question << "\n" 
-                << "last_msg: " << last_msg << "\n" 
-                << std::endl;
-
-            messages = json::array({
-                {{"role", "system"}, {"content", system_prompt}},
-                {{"role", "user"}, {"content", last_question}},
-                {{"role", "assistant"}, {"content", last_msg}},
-                {{"role", "user"}, {"content", prompt}},
-            });
 
             // std::stringstream ss_prompt;
             // ss_prompt 
@@ -5914,20 +5908,22 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                         auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
                         instance_data &Ref = local_lmdb[ins_name];
                         Ref.conv_messages.push_back(CONV);
-                        std::cout << " INDEXING ON DISTRIBUTED SESSION" << conv_session << "\n" << std::endl;
-
+                        std::cout << "========>>> INDEXING ON DISTRIBUTED SESSION" << conv_session << "\n" << std::endl;
                     } else {
-                        std::cout << " INDEXING ON LOCAL SESSION\n" << std::endl;
+                        std::cout << "=======>>> INDEXING ON LOCAL SESSION\n" << std::endl;
                         LLMDB[ins_name].conv_messages.push_back(CONV);                        
                     }
+
                 } else {
+                    std::cout << "=======>>> INDEXING ON LOCAL SESSION\n" << std::endl;
                     LLMDB[ins_name].conv_messages.push_back(CONV);
                 }
+
+            } else{
+                std::cout << "=======>>> INDEXING ON LOCAL SESSION\n" << std::endl;
+                LLMDB[ins_name].conv_messages.push_back(CONV);
             }
 
-            // if (instance_exists) {
-            // } else {
-            // }
             return true;
 
         }, [&LLMDB, &ins_name](json error_data) {
