@@ -5645,10 +5645,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             if (conv_session!="no" && conv_session.size()>=5){
                 const std::lock_guard<std::mutex> lock(*g_session);
                 if (GlobalSession.count(conv_session)==0) {
-                    GlobalSession[conv_session].name = conv_session;
-                    GlobalSession[conv_session].is_store_only = true;
-                    auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
-                    local_lmdb[ins_name].Status = 1; // success
+                    return std::make_pair(
+                        m8p::errorf(conv_session +" CONV_SESSION NOT FOUND!"),
+                        M8->nilValue
+                    );
                 }
 
                 if (!GlobalSession[conv_session].is_store_only) {
