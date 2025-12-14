@@ -4415,6 +4415,7 @@ struct M8Session {
     std::string name;
     int32_t exec_calls;
     std::mutex rlock;
+    int is_store_only=false;
     bool IsLock = false;
     bool has_sink = false;
     m8p::M8System *m8;
@@ -5645,9 +5646,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 const std::lock_guard<std::mutex> lock(*g_session);
                 if (GlobalSession.count(conv_session)==0) {
                     GlobalSession[conv_session].name = conv_session;
+                    GlobalSession[conv_session].is_store_only = true;
                     auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
                     local_lmdb[ins_name].Status = 1; // success
                     local_lmdb[ins_name].arr = json::array();
+                }
+
+                if (!GlobalSession[conv_session].is_store_only) {
+                    return std::make_pair(
+                        m8p::errorf(conv_session +" SESSION IS NOT STORE ONLY!"),
+                        M8->nilValue
+                    );
                 }
 
                 auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
@@ -5887,9 +5896,18 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                     const std::lock_guard<std::mutex> lock(*g_session);
                     if (GlobalSession.count(conv_session)==0) {
                         GlobalSession[conv_session].name = conv_session;
+                        GlobalSession[conv_session].is_store_only = true;
                         auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
                         local_lmdb[ins_name].Status = 1; // success
                     }
+
+                    if (!GlobalSession[conv_session].is_store_only) {
+                        return std::make_pair(
+                            m8p::errorf(conv_session +" SESSION IS NOT STORE ONLY!"),
+                            M8->nilValue
+                        );
+                    }
+
                     auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
                     instance_data &Ref = local_lmdb[ins_name];
                     Ref.conv_messages.push_back(CONV);
