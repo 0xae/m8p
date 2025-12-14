@@ -5529,15 +5529,19 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         options = m8p::parseOptions(3, params);
         if (options.count("force")>0) {
             force = options["force"];
+            m8p::__trim(force);
         }
         if (options.count("conv")>0) {
             conv = options["conv"];
+            m8p::__trim(conv);
         }
         if (options.count("stream")>0) {
             stream = options["stream"];
+            m8p::__trim(tream);
         }
         if (options.count("conv_session")>0) {
             conv_session = options["conv_session"];
+            m8p::__trim(conv_session);
         }
         if (options.count("sysprompt")>0) {
             std::string r_prt = options["sysprompt"];
@@ -5577,6 +5581,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         if (options.count("n_predict")>0) {
             int32_t number=0;
             std::string Value = options["n_predict"];
+            m8p::__trim(Value);
             try {
                 number=std::stof(Value);
                 if (number<=0) {
@@ -5683,9 +5688,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
             // conv_messages
             // std::string last_msg = traverse_response_json(Ref.arr);
-            // std::cout << " LAST RESPONSE: " 
-            //     << last_msg
-            //     << "\n" << std::endl;
+            std::cout << " LAST RESPONSE: " 
+                << "last_question: " << last_question << "\n" 
+                << "last_msg: " << last_msg << "\n" 
+                << std::endl;
 
             messages = json::array({
                 {{"role", "system"}, {"content", system_prompt}},
