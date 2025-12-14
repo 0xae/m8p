@@ -5630,6 +5630,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             {{"role", "user"},   {"content", prompt}}
         });
 
+        std::string chat_prompt = "";
+
         if (instance_exists && conv=="true") {
             instance_data &Ref = LLMDB[ins_name];
             // conv_messages
@@ -5658,6 +5660,21 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 {{"role", "assistant"}, {"content", last_msg}},
                 {{"role", "user"}, {"content", prompt}},
             });
+
+            std::stringstream ss_prompt;
+            ss_prompt 
+                << "<start_of_turn>system\n"
+                << system_prompt 
+                << "<end_of_turn>\n"
+                << "<start_of_turn>user\n"
+                << last_question
+                << "<end_of_turn>\n"
+                << "<start_of_turn>assistant\n"
+                << last_msg
+                << "<start_of_turn>user\n"
+                << prompt;
+
+            chat_prompt = ss_prompt.str();
 
             if (Ref.Status==1) { // last iteration was successful
 
@@ -5711,6 +5728,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             ctx_server->oai_parser_opt,
             files
         );
+
+        if (chat_prompt!="") {
+            data["prompt"] = chat_prompt;
+        }
 
         std::cout << "=======> llm_openai2[]: "
             << data.dump() 
