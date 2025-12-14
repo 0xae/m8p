@@ -5781,7 +5781,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         };
 
          // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
-         ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, stream, instance_exists, M8, &ins_name](server_task_result_ptr & result) -> bool {
+         ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, prompt, stream, instance_exists, M8, &ins_name](server_task_result_ptr & result) -> bool {
             json res_json = result->to_json();
             bool hasRun = false;
             json arr = json::array();
