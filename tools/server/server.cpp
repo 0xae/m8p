@@ -5672,7 +5672,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 << "<start_of_turn>assistant\n"
                 << last_msg
                 << "<start_of_turn>user\n"
-                << prompt;
+                << prompt
+                << "<end_of_turn>\n"
+                << "<start_of_turn>assistant";
 
             chat_prompt = ss_prompt.str();
 
