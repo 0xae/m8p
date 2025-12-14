@@ -6487,16 +6487,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         // ]
 
         if (Ref.Status==1) {
-            // LOG_INFO("=====================> INSTANCE RESPONSE : ", Ref.arr);
+            // LOG_INFO("=====================> INSTANCE RESPONSE : ", Ref.arr);            
             // ::ALLOC::
-            std::stringstream ss;
-            if (Ref.arr.count("content")) {
-                ss << Ref.arr.at("content");
-            } else {
-                ss << Ref.arr.dump();
-            }
-            // ::ALLOC::
-            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, ss.str());
+            // std::stringstream ss;
+            // if (Ref.arr.count("content")) {
+            //     ss << Ref.arr.at("content");
+            // } else {
+            //     ss << Ref.arr.dump();
+            // }
+            // // ::ALLOC::
+            std::string last_msg = traverse_response_json(Ref.arr);
+            REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, last_msg);
 
         } else if (Ref.Status==2) {
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, "processing...");
