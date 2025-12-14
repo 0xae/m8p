@@ -5731,22 +5731,20 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             files
         );
 
-        std::stringstream ss_prompt;
-        ss_prompt 
-            << "<start_of_turn>user\n"
-            << system_prompt 
-            << "\n\n"
-            << prompt
-            << "<end_of_turn>\n"
-            << "<start_of_turn>model\n"
-        ;
-
-        chat_prompt = ss_prompt.str();
-
-        data["prompt"] = chat_prompt;
+        // std::stringstream ss_prompt;
+        // ss_prompt 
+        //     << "<start_of_turn>user\n"
+        //     << system_prompt 
+        //     << "\n\n"
+        //     << prompt
+        //     << "<end_of_turn>\n"
+        //     << "<start_of_turn>model\n"
+        // ;
+        // chat_prompt = ss_prompt.str();
+        // data["prompt"] = chat_prompt;
 
         std::cout << "=======> llm_openai2[]: "
-            << data.dump() 
+            << data.dump(4) 
             << "\n" << std::endl;
 
         // // ::ALLOC::
