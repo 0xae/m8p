@@ -5668,7 +5668,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
             if (last_question=="empty" || last_msg=="empty") {
                 return std::make_pair(
-                    m8p::errorf("EMPTY_SEQUENCE[conv_messages.length="+std::to_string(Ref.conv_messages.size())+"]"),
+                    m8p::errorf("EMPTY_SEQUENCE[conv_messages.length=0]"),
                     M8->nilValue
                 );
             }
@@ -5686,34 +5686,34 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 {{"role", "user"}, {"content", prompt}},
             });
 
-            std::stringstream ss_prompt;
-            ss_prompt 
-                << "<start_of_turn>system\n"
-                << system_prompt 
-                << "<end_of_turn>\n"
-                << "<start_of_turn>user\n"
-                << last_question
-                << "<end_of_turn>\n"
-                << "<start_of_turn>assistant\n"
-                << last_msg
-                << "<start_of_turn>user\n"
-                << prompt
-                << "<end_of_turn>\n"
-                << "<start_of_turn>assistant";
+            // std::stringstream ss_prompt;
+            // ss_prompt 
+            //     << "<start_of_turn>system\n"
+            //     << system_prompt 
+            //     << "<end_of_turn>\n"
+            //     << "<start_of_turn>user\n"
+            //     << last_question
+            //     << "<end_of_turn>\n"
+            //     << "<start_of_turn>assistant\n"
+            //     << last_msg
+            //     << "<start_of_turn>user\n"
+            //     << prompt
+            //     << "<end_of_turn>\n"
+            //     << "<start_of_turn>assistant";
 
-            chat_prompt = ss_prompt.str();
+            // chat_prompt = ss_prompt.str();
 
-            if (Ref.Status==1) { // last iteration was successful
+            // if (Ref.Status==1) { // last iteration was successful
 
-            } else if (Ref.Status==0){ // last iteration was an error
+            // } else if (Ref.Status==0){ // last iteration was an error
 
-            } else if (Ref.Status==2) { // in processing
-                // TODO
-                return std::make_pair(
-                    m8p::M8_Err_nil,
-                    M8->true_
-                );
-            }
+            // } else if (Ref.Status==2) { // in processing
+            //     // TODO
+            //     return std::make_pair(
+            //         m8p::M8_Err_nil,
+            //         M8->true_
+            //     );
+            // }
             // LLMDB[ins_name].Status = 1; // success
             // LLMDB[ins_name].arr = arr;
             // return true;
@@ -5839,7 +5839,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
          // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
          ctx_server->receive_cmpl_results_stream(task_ids, 
-            [&LLMDB, prompt, conv_session, conv, stream, instance_exists, M8, &ins_name]
+            [&LLMDB, prompt, g_session, conv_session, conv, stream, instance_exists, M8, &ins_name]
             (server_task_result_ptr & result) -> bool {
             json res_json = result->to_json();
             bool hasRun = false;
