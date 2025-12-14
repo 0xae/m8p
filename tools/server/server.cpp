@@ -5807,12 +5807,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                         if (res_json.is_array()) {
                             for (const auto & res : res_json) {
                                 if (!server_sent_event(*sink, res)) {
-                                    return false;
+                                    // return false;
                                 }
                             }
-                            return true;
+                            // return true;
                         } else {
-                            return server_sent_event(*sink, res_json);
+                            server_sent_event(*sink, res_json);
                         }
                     }
                 }
