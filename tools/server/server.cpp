@@ -5634,29 +5634,32 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             instance_data &Ref = LLMDB[ins_name];
             // conv_messages
 
-            std::string last_msg = traverse_response_json(Ref.arr);
+            // std::string last_msg = traverse_response_json(Ref.arr);
 
-            std::cout << " LAST RESPONSE: " 
-                << last_msg
-                << "\n" << std::endl;
+            // std::cout << " LAST RESPONSE: " 
+            //     << last_msg
+            //     << "\n" << std::endl;
 
-            // messages = json::array({
-            //     {{"role", "system"}, {"content", system_prompt}},
-            //     {{"role", "user"}, {"content", prompt}}
-            //     {{"role", "assistant"}, {"content", last_msg}}
-            //     {{"role", "user"}, {"content", prompt}}
-            // });
+            std::string last_question = "empty";
+            std::string last_msg = "empty";
+            if (!Ref.conv_messages.empty()) {
+                last_question = Ref.conv_messages.back().question;
+                last_msg = Ref.conv_messages.back().answer;
+            }
 
-            // if (res_json.is_array()) {
-            //     for (const auto & res : res_json) {
-            //         arr.push_back(res);
-            //     }
-            // } else {
-            //     arr = res_json;
-            // }
+            if (last_question=="empty" || last_msg=="empty") {
+                return std::make_pair(
+                    m8p::errorf("EMPTY_SEQUENCE[conv_messages.length="+std::to_string(Ref.conv_messages.size())+"]"),
+                    M8->nilValue
+                );
+            }
 
-            // LLMDB[ins_name].Status = 1; // success
-            // LLMDB[ins_name].arr = arr;
+            messages = json::array({
+                {{"role", "system"}, {"content", system_prompt}},
+                {{"role", "user"}, {"content", last_question}}
+                {{"role", "assistant"}, {"content", last_msg}}
+                {{"role", "user"}, {"content", prompt}}
+            });
 
             if (Ref.Status==1) { // last iteration was successful
 
@@ -5816,16 +5819,19 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
             LLMDB[ins_name].Status = 1; // success
             LLMDB[ins_name].arr = arr;
-            convel CONV = {
-                .question= prompt, 
-                .answer= ""
-            };
-            LLMDB[ins_name].conv_messages.push_back(CONV);
+
+            if (conv=="true") {
+                std::string last_msg = traverse_response_json(arr);
+                convel CONV = {
+                    .question = prompt, 
+                    .answer= last_msg
+                };
+                LLMDB[ins_name].conv_messages.push_back(CONV);
+            }
 
             // if (instance_exists) {
             // } else {
             // }
-
             return true;
 
         }, [&LLMDB, &ins_name](json error_data) {
