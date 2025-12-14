@@ -5725,6 +5725,15 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             // {"chat_format", json::array()}
         };
 
+// <start_of_turn>user
+//   | You are a helpful assistant
+//   | Hello<end_of_turn>
+//   | <start_of_turn>model
+//   | Hi there<end_of_turn>
+//   | <start_of_turn>user
+//   | How are you?<end_of_turn>
+//   | <start_of_turn>model
+
         json data = oaicompat_chat_params_parse(
             body,
             ctx_server->oai_parser_opt,
@@ -5733,13 +5742,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
         std::stringstream ss_prompt;
         ss_prompt 
-            << "<start_of_turn>model\n"
-            << system_prompt 
-            << "<end_of_turn>\n"
             << "<start_of_turn>user\n"
+            << system_prompt 
+            << "\n\n"
             << prompt
-            << "<end_of_turn>\n";
-            // << "<start_of_turn>assistant\n";
+            << "<end_of_turn>\n"
+            << "<start_of_turn>model\n"
+        ;
 
         chat_prompt = ss_prompt.str();
 
