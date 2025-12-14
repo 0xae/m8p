@@ -5440,19 +5440,31 @@ std::string traverse_response_json(json &Ref) {
             auto message = choices.at(0)["message"];
             if (message.count("content")>0) {
                 auto content = message["content"];
-                buf << content.get<std::string>();
+                if (!content.is_null()){
+                    buf << content.get<std::string>();
+                }
             }
         }
 
-    } else if (Ref.is_array() && Ref.size()>0 && Ref.at(0).count("choices")>0) {
-        auto choices=Ref.at(0)["choices"];
-        if (choices.size()>0 && choices.at(0).count("delta")>0) {
-            auto delta_x = choices.at(0)["delta"];
-            if (delta_x.count("content")>0) {
-                auto content = delta_x["content"];
-                buf << content.get<std::string>();
+    // } else if (Ref.is_array() && Ref.size()>0 && Ref.at(0).count("choices")>0) {
+    } else if (Ref.is_array() && Ref.size()>0) {
+        for (auto &step : Ref) {
+            if (step.count("choices")>0) {
+                auto choices=step["choices"];
+                if (choices.size()>0 && choices.at(0).count("delta")>0) {
+                    auto delta_x = choices.at(0)["delta"];
+                    if (delta_x.count("content")>0) {
+                        auto content = delta_x["content"];
+                        if (!content.is_null() && content.is_string()) {
+                            buf << content.get<std::string>();
+                        } else if (!content.is_null()) {
+                            buf << content.dump();
+                        }
+                    }
+                }
             }
         }
+
 
     } else {
         buf << Ref.dump();
