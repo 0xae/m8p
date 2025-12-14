@@ -4442,6 +4442,7 @@ struct instance_data {
     std::string prompt;
     std::unordered_set<int> tasks;
     json arr;
+    json conv_messages = json::array();
 };
 
 std::map<std::string, M8Session> GlobalSession;
@@ -5426,7 +5427,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 2) {
         return std::make_pair(
-            m8p::errorf("llm_openai requires at least 2 parameters (Register and instance name)"),
+            m8p::errorf("llm_openai2 requires at least 2 parameters (Register and instance name)"),
             M8->nilValue
         );
     }
@@ -5448,6 +5449,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
     std::string force="false";
     std::string prompt = "what is your name";
     std::string tools = "no";
+    std::string conv = "false";
     std::string system_prompt = "You are a helpful assistant.";
 
     m8p::M8_Obj *R = REG[rsource];
@@ -5488,6 +5490,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         options = m8p::parseOptions(3, params);
         if (options.count("force")>0) {
             force = options["force"];
+        }
+        if (options.count("conv")>0) {
+            conv = options["conv"];
         }
         if (options.count("stream")>0) {
             stream = options["stream"];
@@ -5570,7 +5575,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         }
     }
 
-    if (LLMDB.count(ins_name) > 0 && force=="false") {
+    bool instance_exists = LLMDB.count(ins_name)>0;
+
+    if (instance_exists && force=="false") {
         // instance_data &Ref = LLMDB[ins_name];
         // instance_data &Ref = LLMDB[ins_name];
         // REG[rdest] = m8_obj(M8, (int32_t)Ref.Status);
@@ -5586,6 +5593,43 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             {{"role", "system"}, {"content", system_prompt}},
             {{"role", "user"},   {"content", prompt}}
         });
+
+        if (instance_exists && conv=="true") {
+            instance_data &Ref = LLMDB[ins_name];
+            // conv_messages
+
+            std::cout << "LAST RESPONSE: " <<
+                Ref.arr.dump()
+                << "\n" << std::enl;
+
+            // if (res_json.is_array()) {
+            //     for (const auto & res : res_json) {
+            //         arr.push_back(res);
+            //     }
+            // } else {
+            //     arr = res_json;
+            // }
+
+            // LLMDB[ins_name].Status = 1; // success
+            // LLMDB[ins_name].arr = arr;
+
+            if (Ref.Status==1) { // last iteration was successful
+
+            } else if (Ref.Status==0){ // last iteration was an error
+
+            } else if (Ref.Status==2) { // in processing
+                // TODO
+                return std::make_pair(
+                    m8p::M8_Err_nil,
+                    M8->true_
+                );
+            }
+            // LLMDB[ins_name].Status = 1; // success
+            // LLMDB[ins_name].arr = arr;
+            // return true;
+            // LLMDB[ins_name].Status = 0; // an error ocurred
+            // LLMDB[ins_name].arr = error_data;
+        }
 
         // ::ALLOC::
         json body = {
@@ -5616,22 +5660,15 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             // {"chat_format", json::array()}
         };
 
-        // auto body = json::parse(req.body);
-        // json data = oaicompat_chat_params_parse(
-        //     body,
-        //     ctx_server->oai_parser_opt,
-        //     files
-        // );
-
         json data = oaicompat_chat_params_parse(
             body,
             ctx_server->oai_parser_opt,
             files
         );
 
-        std::cout << "=======> llm_openai: "
+        std::cout << "=======> llm_openai2: "
             << data.dump() 
-            << "\n" << std::endl; 
+            << "\n" << std::endl;
 
         // // ::ALLOC::
         // LLMDB[ins_name].tasks = task_ids;
@@ -5709,7 +5746,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 if (session->has_sink) {
                     auto sink = GlobalSession[M8->Name].sink;
                     if (sink->is_writable()) {
-                        hasRun = true;
+                        // hasRun = true;
                         if (res_json.is_array()) {
                             for (const auto & res : res_json) {
                                 if (!server_sent_event(*sink, res)) {
@@ -5724,15 +5761,18 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 }
             }
 
-            if (!hasRun) {
-                for (auto res : res_json) {
+            if (res_json.is_array()) {
+                for (const auto & res : res_json) {
                     arr.push_back(res);
                 }
+            } else {
+                arr = res_json;
             }
 
             LLMDB[ins_name].Status = 1; // success
             LLMDB[ins_name].arr = arr;
             return true;
+
         }, [&LLMDB, &ins_name](json error_data) {
             LLMDB[ins_name].Status = 0; // an error ocurred
             LLMDB[ins_name].arr = error_data;
