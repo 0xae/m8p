@@ -5654,9 +5654,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
             messages = json::array({
                 {{"role", "system"}, {"content", system_prompt}},
-                {{"role", "user"}, {"content", last_question}}
-                {{"role", "assistant"}, {"content", last_msg}}
-                {{"role", "user"}, {"content", prompt}}
+                {{"role", "user"}, {"content", last_question}},
+                {{"role", "assistant"}, {"content", last_msg}},
+                {{"role", "user"}, {"content", prompt}},
             });
 
             if (Ref.Status==1) { // last iteration was successful
