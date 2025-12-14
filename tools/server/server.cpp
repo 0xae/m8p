@@ -5873,7 +5873,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         }, is_connection_closed);
 
         auto response = ss_answer.str();
-        m8p::M8System(response);
+        m8p::__trim(response);
 
         if (response!="") {
             convel CONV = {
