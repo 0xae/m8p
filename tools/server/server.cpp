@@ -5537,7 +5537,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         }
         if (options.count("stream")>0) {
             stream = options["stream"];
-            m8p::__trim(tream);
+            m8p::__trim(stream);
         }
         if (options.count("conv_session")>0) {
             conv_session = options["conv_session"];
@@ -5663,6 +5663,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                     );
                 }
 
+                std::cout << " DISTRIBUTED SESSION FOUND: " << conv_session << "\n" << std::endl;
+
                 auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
                 instance_data &Ref = local_lmdb[ins_name];
 
@@ -5672,6 +5674,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 }
 
             } else {
+                std::cout << " USING TEMPORARY SESSION \n" << std::endl;
+
                 instance_data &Ref = LLMDB[ins_name];
                 if (!Ref.conv_messages.empty()) {
                     last_question = Ref.conv_messages.back().question;
@@ -5910,7 +5914,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                         auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
                         instance_data &Ref = local_lmdb[ins_name];
                         Ref.conv_messages.push_back(CONV);
+                        std::cout << " INDEXING ON DISTRIBUTED SESSION" << conv_session << "\n" << std::endl;
+
                     } else {
+                        std::cout << " INDEXING ON LOCAL SESSION\n" << std::endl;
                         LLMDB[ins_name].conv_messages.push_back(CONV);                        
                     }
                 } else {
