@@ -6474,7 +6474,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         // TODO: MEMOIZE
         LOG_INFO("=====================> INSTANCE_STATUS : ", {
             {"Status", Ref.Status},
-            {"Array", Ref.arr}
+            {"Array", Ref.arr.dumps(4)}
         });
 
         // Array=[[{"finish_reason":"length","index":0,
