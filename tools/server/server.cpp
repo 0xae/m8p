@@ -5812,10 +5812,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             LLMDB[ins_name].Status = 1; // success
             LLMDB[ins_name].arr = arr;
 
-            if (instance_exists) {
-                LLMDB[ins_name].conv_messages = 
-            } else {
-            }
+            // if (instance_exists) {
+            //     LLMDB[ins_name].conv_messages = 
+            // } else {
+            // }
 
             return true;
 
