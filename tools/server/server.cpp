@@ -5429,6 +5429,11 @@ std::string traverse_response_json(json &Ref) {
     // std::string content = "";
     std::stringstream buf;
 
+    std::cout << "traverse_response_json: "
+        << Ref.dump(4) 
+        << "\n"
+        << std::endl;
+
     if (Ref.is_object() && Ref.count("choices")>0) {
         auto choices=Ref["choices"];
         if (choices.size()>0 && choices.at(0).count("message")>0) {
@@ -5797,6 +5802,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             json res_json = result->to_json();
             bool hasRun = false;
             json arr = json::array();
+            bool hasConnfall = false;
 
             if ((stream=="true") && GlobalSession.count(M8->Name)) {
                 auto session = &GlobalSession[M8->Name];
@@ -5804,7 +5810,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                     auto sink = GlobalSession[M8->Name].sink;
                     if (sink->is_writable()) {
                         // hasRun = true;
-                        bool hasConnfall = false;
                         if (res_json.is_array()) {
                             for (const auto & res : res_json) {
                                 if (hasConnfall) {
@@ -5872,6 +5877,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 LLMDB[ins_name].conv_messages.push_back(CONV);
             }
 
+            if (hasConnfall) 
             return true;
 
         }, [&LLMDB, &ins_name](json error_data) {
