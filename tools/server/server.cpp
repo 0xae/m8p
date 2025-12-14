@@ -5256,21 +5256,21 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {{"role", "user"},   {"content", prompt}}
         });
 
-        std::string chat_prompt = "";
-        std::stringstream ss_prompt;
+        // std::string chat_prompt = "";
+        // std::stringstream ss_prompt;
 
-        ss_prompt 
-            << "<start_of_turn>user\n"
-            << system_prompt 
-            << "<end_of_turn>\n"
-            << "<start_of_turn>user\n"
-            << prompt
-            << "<end_of_turn>\n"
-            << "<start_of_turn>assistant\n";
+        // ss_prompt 
+        //     << "<start_of_turn>user\n"
+        //     << system_prompt 
+        //     << "<end_of_turn>\n"
+        //     << "<start_of_turn>user\n"
+        //     << prompt
+        //     << "<end_of_turn>\n"
+        //     << "<start_of_turn>assistant\n";
 
         // ::ALLOC::
         json body = {
-            {"prompt", ss_prompt.str()},
+            // {"prompt", ss_prompt.str()},
             {"messages", messages},
             {"temperature", temp},
             {"max_tokens", n_predict},
@@ -5321,7 +5321,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
         try {
             std::vector<server_task> tasks;
             std::vector<server_tokens> inputs;
-            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, prompt, true, true);
+            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, data["prompt"], true, true);
             const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
             tasks.reserve(inputs.size());
             for (size_t i = 0; i < inputs.size(); i++) {
@@ -5728,7 +5728,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         try {
             std::vector<server_task> tasks;
             std::vector<server_tokens> inputs;
-            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, data["prompt"], true, true);
+            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, prompt, true, true);
             const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
             tasks.reserve(inputs.size());
             for (size_t i = 0; i < inputs.size(); i++) {
