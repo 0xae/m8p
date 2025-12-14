@@ -5429,10 +5429,10 @@ std::string traverse_response_json(json &Ref) {
     // std::string content = "";
     std::stringstream buf;
 
-    std::cout << "traverse_response_json: "
-        << Ref.dump(4) 
-        << "\n"
-        << std::endl;
+    // std::cout << "traverse_response_json: "
+    //     << Ref.dump(4) 
+    //     << "\n"
+    //     << std::endl;
 
     if (Ref.is_object() && Ref.count("choices")>0) {
         auto choices=Ref["choices"];
@@ -5704,6 +5704,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 std::cout << " LAST RESPONSE: " 
                     << "last_question: " << last_question << "\n" 
                     << "last_msg: " << last_msg << "\n" 
+                    << "prompt: " << prompt << "\n" 
                     << std::endl;
 
                 messages = json::array({
@@ -5811,9 +5812,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             return false; // fool it thinking this is a connection
         };
 
+        std::stringstream ss_answer;
+
          // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
          ctx_server->receive_cmpl_results_stream(task_ids, 
-            [&LLMDB, prompt, g_session, conv_session, conv, stream, instance_exists, M8, &ins_name]
+            [&LLMDB, prompt, g_session, conv_session, conv, &ss_answer, stream, instance_exists, M8, &ins_name]
             (server_task_result_ptr & result) -> bool {
             json res_json = result->to_json();
             bool hasRun = false;
@@ -5852,9 +5855,30 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             LLMDB[ins_name].Status = 1; // success
             LLMDB[ins_name].arr = arr;
             std::string last_msg = traverse_response_json(arr);
+            ss_answer << last_msg ;
+
+            if (hasConnfall) {
+                return false;
+            } 
+            return true;
+
+        }, [&LLMDB, &ins_name](json error_data) {
+            std::cout << "=======>>> AN ERROR OCURRED: " 
+                << error_data.dump(4)
+                << "\n"
+                << std::endl;
+
+            LLMDB[ins_name].Status = 0; // an error ocurred
+            LLMDB[ins_name].arr = error_data;
+        }, is_connection_closed);
+
+        auto response = ss_answer.str();
+        m8p::M8System(response);
+
+        if (response!="") {
             convel CONV = {
                 .question = prompt, 
-                .answer= last_msg
+                .answer= response
             };
 
             std::cout << "=======>>> CONV: " 
@@ -5892,21 +5916,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                 std::cout << "=======>>> INDEXING ON LOCAL SESSION\n" << std::endl;
                 LLMDB[ins_name].conv_messages.push_back(CONV);
             }
-
-            if (hasConnfall) {
-                return false;
-            } 
-            return true;
-
-        }, [&LLMDB, &ins_name](json error_data) {
-            std::cout << "=======>>> AN ERROR OCURRED: " 
-                << error_data.dump(4)
-                << "\n"
-                << std::endl;
-
-            LLMDB[ins_name].Status = 0; // an error ocurred
-            LLMDB[ins_name].arr = error_data;
-        }, is_connection_closed);
+        }
 
         ctx_server->queue_results.remove_waiting_task_ids(task_ids);
 
