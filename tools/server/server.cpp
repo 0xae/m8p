@@ -5629,9 +5629,18 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             instance_data &Ref = LLMDB[ins_name];
             // conv_messages
 
-            std::cout << "LAST RESPONSE: " <<
-                Ref.arr.dump()
+            std::string last_msg = traverse_response_json(Ref.arr)
+
+            std::cout << " LAST RESPONSE: " 
+                << last_msg
                 << "\n" << std::endl;
+
+            // messages = json::array({
+            //     {{"role", "system"}, {"content", system_prompt}},
+            //     {{"role", "user"}, {"content", prompt}}
+            //     {{"role", "assistant"}, {"content", last_msg}}
+            //     {{"role", "user"}, {"content", prompt}}
+            // });
 
             // if (res_json.is_array()) {
             //     for (const auto & res : res_json) {
