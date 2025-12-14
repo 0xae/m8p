@@ -5245,10 +5245,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
     } else {
         // replaceAll2(prompt, "<<<NL>>>", "\n");
         std::vector<raw_buffer> files;
-        json messages = {
+        json messages = json::array({
             {{"role", "system"}, {"content", system_prompt}},
             {{"role", "user"},   {"content", prompt}}
-        };
+        });
 
         std::string chat_prompt = "";
         std::stringstream ss_prompt;
@@ -5281,7 +5281,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
             {"top_k", 40},
             {"top_p", 0.95},
             {"preserved_tokens", json::array()},
-
             {"grammar_lazy", false},
             {"grammar_triggers", json::array()},
             {"thinking_forced_open", false},
@@ -5302,6 +5301,336 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI(
 
         std::cout << "=======> llm_openai: "
             << body.dump() 
+            << "\n" << std::endl; 
+
+        // // ::ALLOC::
+        // LLMDB[ins_name].tasks = task_ids;
+        LLMDB[ins_name].Status = 2; // IN PROCESSING
+        LLMDB[ins_name].prompt = prompt;
+        LLMDB[ins_name].instance_name = ins_name;
+
+        auto completion_id = gen_chatcmplid();
+        server_task_type type = SERVER_TASK_TYPE_COMPLETION; // SERVER_TASK_TYPE_INFILL
+        std::unordered_set<int> task_ids;
+        try {
+            std::vector<server_task> tasks;
+            std::vector<server_tokens> inputs;
+            inputs = tokenize_input_prompts( ctx_server->vocab,  ctx_server->mctx, prompt, true, true);
+            const size_t n_ctx_slot =  ctx_server->n_ctx /  ctx_server->params_base.n_parallel;
+            tasks.reserve(inputs.size());
+            for (size_t i = 0; i < inputs.size(); i++) {
+                auto n_prompt_tokens = inputs[i].size();
+                if (n_prompt_tokens >= n_ctx_slot) {
+                    json error_data = format_error_response("the request exceeds the available context size, try increasing it", ERROR_TYPE_EXCEED_CONTEXT_SIZE);
+                    LLMDB[ins_name].Status = 0;
+                    LLMDB[ins_name].arr = error_data;
+                    return std::make_pair(
+                        m8p::errorf("the request exceeds the available context size, try increasing it"),
+                        M8->nilValue
+                    );
+                }
+
+                server_task task = server_task(type);
+
+                task.id =  ctx_server->queue_tasks.get_new_id();
+                task.index = i;
+
+                task.tokens = std::move(inputs[i]);
+                task.params = server_task::params_from_json_cmpl(
+                         ctx_server->ctx,
+                         ctx_server->params_base,
+                        data);
+
+                task.id_slot = json_value(data, "id_slot", -1);
+
+                // OAI-compat
+                task.params.oaicompat = OAICOMPAT_TYPE_CHAT;
+                task.params.oaicompat_cmpl_id = completion_id;
+                // task.params.oaicompat = OAICOMPAT_TYPE_COMPLETION;
+                // oaicompat_model is already populated by params_from_json_cmpl
+                tasks.push_back(std::move(task));
+            }
+
+            task_ids = server_task::get_list_id(tasks);
+            ctx_server->queue_results.add_waiting_tasks(tasks);
+            ctx_server->queue_tasks.post(std::move(tasks));
+
+        } catch (const std::exception &e) {
+            LLMDB[ins_name].Status = 0; // an error ocurred
+            std::string err = e.what();
+            return std::make_pair(
+                m8p::errorf("An error ocurred during execution Details: " + err),
+                M8->nilValue
+            );
+        }
+
+        auto is_connection_closed = []() -> bool {
+            return false; // fool it thinking this is a connection
+        };
+
+         // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
+         ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, stream, M8, &ins_name](server_task_result_ptr & result) -> bool {
+            json res_json = result->to_json();
+            bool hasRun = false;
+            json arr = json::array();
+
+            if ((stream=="true") && GlobalSession.count(M8->Name)) {
+                auto session = &GlobalSession[M8->Name];
+                if (session->has_sink) {
+                    auto sink = GlobalSession[M8->Name].sink;
+                    if (sink->is_writable()) {
+                        hasRun = true;
+                        if (res_json.is_array()) {
+                            for (const auto & res : res_json) {
+                                if (!server_sent_event(*sink, res)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        } else {
+                            return server_sent_event(*sink, res_json);
+                        }
+                    }
+                }
+            }
+
+            if (!hasRun) {
+                for (auto res : res_json) {
+                    arr.push_back(res);
+                }
+            }
+
+            LLMDB[ins_name].Status = 1; // success
+            LLMDB[ins_name].arr = arr;
+            return true;
+        }, [&LLMDB, &ins_name](json error_data) {
+            LLMDB[ins_name].Status = 0; // an error ocurred
+            LLMDB[ins_name].arr = error_data;
+        }, is_connection_closed);
+
+        ctx_server->queue_results.remove_waiting_task_ids(task_ids);
+
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->true_
+        );
+    }
+
+}
+
+std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params) 
+{
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize < 2) {
+        return std::make_pair(
+            m8p::errorf("llm_openai requires at least 2 parameters (Register and instance name)"),
+            M8->nilValue
+        );
+    }
+
+    std::string sessionId = M8->Name;
+    std::map<std::string, instance_data> &LLMDB = GlobalSession[sessionId].LLMInstance_DB;
+
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+
+    // llm_instance <r1> I001 n_predict=20 async=True|false frequency_penalty=123
+    std::string rsource = params.at(1);// prompt register
+    std::string ins_name = params.at(2); // instance name
+    m8p::__trim(ins_name);
+
+    int32_t n_predict = 20;
+    const size_t MAX_PROMPT_SIZE = 10200;
+    float temp=0;
+    std::string stream="false";
+    std::string force="false";
+    std::string prompt = "what is your name";
+    std::string tools = "no";
+    std::string system_prompt = "You are a helpful assistant.";
+
+    m8p::M8_Obj *R = REG[rsource];
+    if (R==nullptr){
+        return std::make_pair(
+            m8p::errorf("NULL_REGISTER["+rsource+"]"),
+            M8->nilValue
+        );
+    }
+
+    if (!m8p::is_nil(M8, R) && R->Type==m8p::MP8_STRING) {
+        if (R->Value.size()>0 && R->Value.size()<MAX_PROMPT_SIZE)  {
+            prompt = R->Value;
+        } else if (R->Value.size()==0) {
+            return std::make_pair(
+                m8p::errorf("EMPTY_PROMPT_RECEIVED["+rsource+"]"),
+                M8->nilValue
+            );
+
+        } else if (R->Value.size()>MAX_PROMPT_SIZE) {
+            return std::make_pair(
+                m8p::errorf("EXCEED_MAX_PROMPT_SIZE["+rsource+"]"),
+                M8->nilValue
+            );
+        }
+
+    } else {
+        return std::make_pair(
+            m8p::errorf("EMPTY_PROMPT["+rsource+"]"),
+            M8->nilValue
+        );        
+    }
+
+    std::map<std::string, std::string> options;
+    json tools_static = json::array();
+
+    if (psize>2) {
+        options = m8p::parseOptions(3, params);
+        if (options.count("force")>0) {
+            force = options["force"];
+        }
+        if (options.count("stream")>0) {
+            stream = options["stream"];
+        }
+        if (options.count("sysprompt")>0) {
+            std::string r_prt = options["sysprompt"];
+            m8p::__trim(r_prt);
+            m8p::M8_Obj *RXO = REG[r_prt];
+            if (RXO!=nullptr && !m8p::is_nil(M8, RXO) && RXO->Type==m8p::MP8_STRING) {
+                system_prompt = RXO->Value;
+            } else {
+                system_prompt = r_prt;
+            }
+        }
+        if (options.count("tools")>0) {
+            // REG[rdest]
+            auto tools_supp = options["tools"];
+            m8p::__trim(tools_supp);
+            if (tools_supp=="no"||tools_supp=="false"||tools_supp==""){
+            } else {
+                if(tools_supp.find("<")!=std::string::npos && tools_supp.find(">")!=std::string::npos) {
+                    auto RGEO=REG[tools_supp];
+                    if (RGEO!=nullptr && !m8p::is_nil(M8,RGEO) && RGEO->Type==m8p::MP8_STRING) {
+                        try {
+                            replaceAll2(RGEO->Value, "\n", "<<<NL>>>");
+                            tools_static = json::parse(RGEO->Value);
+                            replaceAll2(RGEO->Value, "<<<NL>>>", "\n");
+                        } catch (json::parse_error& e) {
+                            return std::make_pair(
+                                m8p::errorf("MALFORMED JSON ON REGISTER["+tools_supp+", "+RGEO->Value+"]"),
+                                M8->nilValue
+                            );
+                        }
+                    }
+                }                
+            }
+
+        }
+
+        if (options.count("n_predict")>0) {
+            int32_t number=0;
+            std::string Value = options["n_predict"];
+            try {
+                number=std::stof(Value);
+                if (number<=0) {
+                    return std::make_pair(
+                        m8p::errorf("n_predict cannot be zero or negative => "+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+                if (number>MAX_PREDICT_SIZE) {
+                    return std::make_pair(
+                        m8p::errorf("n_predict cannot exceed => "+std::to_string(MAX_PREDICT_SIZE)+"]"),
+                        M8->nilValue
+                    );                    
+                }
+
+                n_predict = number;
+            } catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_INT32[n_predict, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+
+        if (options.count("temperature")>0) {
+            std::string Value = options["temperature"];
+            try {
+                float number=0;
+                number=std::stof(Value);
+                temp=number;
+            }
+            catch (const std::invalid_argument& ia) {
+                return std::make_pair(
+                    m8p::errorf("EXPECTING_FLOAT32[temperature, "+Value+"]"),
+                    M8->nilValue
+                );
+            }
+        }
+    }
+
+    if (LLMDB.count(ins_name) > 0 && force=="false") {
+        // instance_data &Ref = LLMDB[ins_name];
+        // instance_data &Ref = LLMDB[ins_name];
+        // REG[rdest] = m8_obj(M8, (int32_t)Ref.Status);
+        return std::make_pair(
+            m8p::M8_Err_nil,
+            M8->true_
+        );
+
+    } else {
+        // replaceAll2(prompt, "<<<NL>>>", "\n");
+        std::vector<raw_buffer> files;
+        json messages = json::array({
+            {{"role", "system"}, {"content", system_prompt}},
+            {{"role", "user"},   {"content", prompt}}
+        });
+
+        // ::ALLOC::
+        json body = {
+            // {"prompt", ss_prompt.str()},
+            {"messages", messages},
+            {"temperature", temp},
+            {"max_tokens", n_predict},
+            {"model", "default"},
+            {"stream", (stream=="true")},
+            {"tool_choice", "auto"},
+            {"tools", tools_static},
+            {"repeat_last_n 64", 64},
+            {"top_k", 40},
+            {"top_p", 0.95},
+            {"frequency_penalty", 0},
+            {"repeat_penalty", 1.9},
+            // {"presence_penalty", 0},
+            // {"reasoning_format", "auto"},
+            // {"timings_per_token", false},
+            // {"frequency_penalty", 0},
+            // {"repeat_penalty", 1},
+            // {"top_k", 40},
+            // {"top_p", 0.95},
+            // {"preserved_tokens", json::array()},
+            // {"grammar_lazy", false},
+            // {"grammar_triggers", json::array()},
+            // {"thinking_forced_open", false},
+            // {"chat_format", json::array()}
+        };
+
+        // auto body = json::parse(req.body);
+        // json data = oaicompat_chat_params_parse(
+        //     body,
+        //     ctx_server->oai_parser_opt,
+        //     files
+        // );
+
+        json data = oaicompat_chat_params_parse(
+            body,
+            ctx_server->oai_parser_opt,
+            files
+        );
+
+        std::cout << "=======> llm_openai: "
+            << data.dump() 
             << "\n" << std::endl; 
 
         // // ::ALLOC::
@@ -6879,6 +7208,9 @@ public:
 
         } else if (opCode=="llm_openai") {
             return LLM_OPENAI(this->ctx_server, M8, params);
+
+        } else if (opCode=="llm_openai2") {
+            return LLM_OPENAI2(this->ctx_server, M8, params);
 
         } else if (opCode=="llm_mturn" || opCode=="llm_turn") {
             if (this->g_session!=nullptr) {

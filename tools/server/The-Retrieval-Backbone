@@ -1,0 +1,65 @@
+The Retrieval Backbone: Vector Search on Metal
+
+Topic: HNSW, AVX-512, SIMD Optimization
+
+Context: M8P Runtime Integration
+
+The Bottleneck: The Distance Function
+
+HNSW (Hierarchical Navigable Small World) is a graph algorithm. To traverse the graph and find the nearest neighbor, the algorithm performs one specific operation millions of times per second: Distance Calculation.
+
+Whether using Euclidean Distance (L2) or Inner Product (IP), the CPU must compare the Query Vector ($Q$) against a Node Vector ($N$).
+
+In a scalar (non-AVX) implementation, this looks like a loop:
+
+float dist = 0;
+for (int i = 0; i < dimension; i++) {
+    float diff = q[i] - n[i];
+    dist += diff * diff;
+}
+
+
+For a 1024-dimension vector, that is 1024 subtractions, 1024 multiplications, and 1024 additions. 3072 instructions per comparison.
+
+The AVX2 Operation (256-bit)
+
+Under AVX2, hnswlib does not process one float at a time; it processes 8 floats at a time.
+
+Load: It loads 8 floats from $Q$ and 8 from $N$ into two 256-bit registers (ymm).
+
+Compute: It executes _mm256_sub_ps (subtract packed single) and _mm256_fmadd_ps (fused multiply-add).
+
+Throughput: Instead of 1024 iterations, the loop runs 128 times.
+
+This yields a theoretical 8x speedup on the arithmetic portion of the search.
+
+The AVX-512 Advantage (512-bit)
+
+This is where M8P's architectural choice aligns perfectly with hnswlib.
+
+If compiled with -mavx512f, hnswlib utilizes the 512-bit ZMM registers.
+
+Width: It processes 16 floats per cycle.
+
+Loop Count: For a 1024-dim vector, the loop runs only 64 times.
+
+Registers: AVX-512 doubles the number of available registers (32 vs 16 in AVX2). This allows hnswlib to unroll loops more aggressively, keeping more accumulated sums in registers before writing back to memory.
+
+Does it actually benefit?
+Yes. While memory bandwidth often becomes the bottleneck before pure compute speed, AVX-512 implementations of HNSW typically see a 20-40% performance gain over AVX2 for dense vector operations, specifically because the CPU spends less time managing loop overhead and more time crunching numbers.
+
+M8P Synergy: Zero-Copy Retrieval
+
+The "secret sauce" of integrating hnswlib into the M8P runtime isn't just the speed—it's the data alignment.
+
+Because M8P enforces AVX_V_SIZE alignment for its matrix operations, the vectors stored in the HNSW index are already aligned to 64-byte boundaries.
+
+No Peeling: Standard libraries often have to handle "edge cases" (e.g., the first few floats to align memory). M8P vectors are strictly aligned by design.
+
+Native Types: The "Atomic Matrix" you defined in the previous article effectively becomes the "Node" in the HNSW graph.
+
+Unified Cache: When M8P performs inference, it warms the L1/L2 cache with vector data that HNSW can immediately read without fetching from RAM, provided the graph fits in the cache hierarchy.
+
+Conclusion
+
+hnswlib is not just "compatible" with AVX; it is dependent on it. On AVX-512 hardware (like the Xeon Scalable or modern Consumer CPUs), it transforms the heavy lifting of linear algebra into a trivial memory-bound operation, allowing the M8P runtime to focus on logic rather than math.
