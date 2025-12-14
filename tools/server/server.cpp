@@ -5712,6 +5712,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                     {{"role", "assistant"}, {"content", last_msg}},
                     {{"role", "user"}, {"content", prompt}},
                 });                
+
+                std::cout << " MESSAGES: " 
+                    << messages.dump(4) << "\n" 
+                    << std::endl;
             }
         }
 
