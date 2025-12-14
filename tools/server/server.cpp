@@ -5887,14 +5887,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
             LLMDB[ins_name].Status = 1; // success
             LLMDB[ins_name].arr = arr;
+            std::string last_msg = traverse_response_json(arr);
+            convel CONV = {
+                .question = prompt, 
+                .answer= last_msg
+            };
 
             if (conv=="true") {
-                std::string last_msg = traverse_response_json(arr);
-                convel CONV = {
-                    .question = prompt, 
-                    .answer= last_msg
-                };
-
                 if (conv_session!="no" && conv_session.size()>=5){
                     const std::lock_guard<std::mutex> lock(*g_session);
                     if (GlobalSession.count(conv_session)==0) {
