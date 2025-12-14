@@ -5810,11 +5810,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
                                 if (hasConnfall) {
                                     break;
                                 }
-                                hasConnfall=server_sent_event(*sink, res);
+                                hasConnfall=!server_sent_event(*sink, res);
                             }
 
                         } else {
-                            hasConnfall=server_sent_event(*sink, res_json);
+                            hasConnfall=!server_sent_event(*sink, res_json);
                         }
                     }
                 }
