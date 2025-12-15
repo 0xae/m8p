@@ -6518,7 +6518,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         server_context *ctx_server,
         m8p::M8System* M8, 
-        std::vector<std::string> params) 
+        std::vector<std::string> params,
+        std::mutex *g_session) 
 {
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
     if (psize < 2) {
@@ -6539,6 +6540,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
     std::string ins_name = params.at(1);// instance name
     std::string rdest = params.at(2); // register
     std::string from_conv = "no"; // register
+    std::string conv_session = "no"; // register
     m8p::__trim(ins_name);
 
     if (psize>2) {
@@ -6546,6 +6548,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         if (options.count("from_conv")>0) {
             from_conv = options.count("from_conv");
             m8p::__trim(from_conv);
+        }
+        if (options.count("conv_session")>0) {
+            conv_session = options.count("conv_session");
+            m8p::__trim(conv_session);
         }
     }
 
@@ -6563,13 +6569,29 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
             << std::endl;
 
         if (Ref.Status==1) {
-            std::string last_msg = "";
+            std::string last_msg = "[DONE]";
 
-            if (from_conv=="true") {
+            if (conv_session!="no" && conv_session.size()>=5){
+                const std::lock_guard<std::mutex> lock(*g_session);
+                if (GlobalSession.count(conv_session)>0) {
+                    if (!GlobalSession[conv_session].is_store_only) {
+                        return std::make_pair(
+                            m8p::errorf(conv_session +" SESSION IS NOT STORE ONLY!"),
+                            M8->nilValue
+                        );
+                    }
+
+                    std::cout << " DISTRIBUTED SESSION FOUND: " << conv_session << "\n" << std::endl;
+                    auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
+                    instance_data &Ref = local_lmdb[ins_name];
+                    if (!Ref.conv_messages.empty()) {
+                        last_msg = Ref.conv_messages.back().answer;
+                    }
+                }
+
+            } else  if (from_conv=="true") {
                 if (!Ref.conv_messages.empty()) {
                     last_msg = Ref.conv_messages.back().answer;
-                } else {
-                    last_msg = "[DONE]";
                 }
 
             } else {
@@ -6579,7 +6601,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
                     last_msg = traverse_response_json(Ref.arr);
                 }                
             }
-
 
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, last_msg);
 
@@ -7442,7 +7463,7 @@ public:
             }
 
         } else if (opCode=="llm_instancestatus") {
-            return LLM_INSTANCE_STATUS(this->ctx_server, M8, params);
+            return LLM_INSTANCE_STATUS(this->ctx_server, M8, params, this->g_session);
 
         } else if (opCode=="vdb_instance") {
             return VECTOR_INSTANCE(this->ctx_server, M8, params);
