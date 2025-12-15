@@ -6572,20 +6572,22 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
             std::string last_msg = "[DONE]";
 
             if (conv_session!="no" && conv_session.size()>=5){
-                const std::lock_guard<std::mutex> lock(*g_session);
-                if (GlobalSession.count(conv_session)>0) {
-                    if (!GlobalSession[conv_session].is_store_only) {
-                        return std::make_pair(
-                            m8p::errorf(conv_session +" SESSION IS NOT STORE ONLY!"),
-                            M8->nilValue
-                        );
-                    }
+                {                
+                    const std::lock_guard<std::mutex> lock(*g_session);
+                    if (GlobalSession.count(conv_session)>0) {
+                        if (!GlobalSession[conv_session].is_store_only) {
+                            return std::make_pair(
+                                m8p::errorf(conv_session +" SESSION IS NOT STORE ONLY!"),
+                                M8->nilValue
+                            );
+                        }
 
-                    std::cout << " DISTRIBUTED SESSION FOUND: " << conv_session << "\n" << std::endl;
-                    auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
-                    instance_data &Ref = local_lmdb[ins_name];
-                    if (!Ref.conv_messages.empty()) {
-                        last_msg = Ref.conv_messages.back().answer;
+                        std::cout << " DISTRIBUTED SESSION FOUND: " << conv_session << "\n" << std::endl;
+                        auto &local_lmdb = GlobalSession[conv_session].LLMInstance_DB;
+                        instance_data &Ref = local_lmdb[ins_name];
+                        if (!Ref.conv_messages.empty()) {
+                            last_msg = Ref.conv_messages.back().answer;
+                        }
                     }
                 }
 
