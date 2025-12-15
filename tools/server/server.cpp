@@ -6541,6 +6541,14 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
     std::string from_conv = "no"; // register
     m8p::__trim(ins_name);
 
+    if (psize>2) {
+        auto &options = m8p::parseOptions(3, params);
+        if (options.count("from_conv")>0) {
+            from_conv = options.count("from_conv");
+            m8p::__trim(from_conv);
+        }
+    }
+
     if (LLMDB.count(ins_name) > 0) {
         instance_data &Ref = LLMDB[ins_name];
         // LOG_VERBOSE("===============> GOT RESULT", Ref.arr);
