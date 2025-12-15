@@ -6538,6 +6538,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
 
     std::string ins_name = params.at(1);// instance name
     std::string rdest = params.at(2); // register
+    std::string from_conv = "no"; // register
     m8p::__trim(ins_name);
 
     if (LLMDB.count(ins_name) > 0) {
@@ -6556,11 +6557,21 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         if (Ref.Status==1) {
             std::string last_msg = "";
 
-            if (Ref.arr.count("content")) {
-                last_msg = Ref.arr.at("content").get<std::string>();
+            if (from_conv=="true") {
+                if (!Ref.conv_messages.empty()) {
+                    last_msg = Ref.conv_messages.back().answer;
+                } else {
+                    last_msg = "[DONE]";
+                }
+
             } else {
-                last_msg = traverse_response_json(Ref.arr);
+                if (Ref.arr.count("content")) {
+                    last_msg = Ref.arr.at("content").get<std::string>();
+                } else {
+                    last_msg = traverse_response_json(Ref.arr);
+                }                
             }
+
 
             REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, last_msg);
 
