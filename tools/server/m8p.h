@@ -2743,6 +2743,62 @@ namespace m8p {
             M8->nilValue
         );
     }
+    std::pair<M8_Error, M8_Obj*> AssertNotContains_OP(M8System* M8, std::vector<std::string> params){
+        int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
+        if (psize<2) {
+            return std::make_pair(
+                errorf("assertnotcontains requires at least 2 parameters"),
+                M8->nilValue
+            );
+        }
+
+        std::map<std::string, M8_Obj*> &REG = M8->Registers;
+        string rsource = params.at(1);// dont forget 0 is for the op_code
+        string query = params.at(2);
+        if (psize>2) {
+            for (uint32_t i=3; i<params.size(); ++i) {
+                string v = params.at(i);
+                query = query + " " + v;
+            }
+        }
+
+
+        if (REG.count(rsource)) {
+            M8_Obj *R = REG[rsource]; 
+            if (R==nullptr || is_nil(M8,R)){
+                return std::make_pair(
+                    errorf("NULL_REGISTER["+rsource+"]"),
+                    M8->nilValue
+                );
+            }
+
+            std::string haystack = m8p::to_string(M8, R);
+            if (query.rfind("<", 0)==0 && REG.count(query)>0){ // seems to be a register lets look it up
+                M8_Obj *Rx = REG[query];
+                if (Rx!=nullptr && !is_nil(M8,Rx)) {
+                    query = m8p::to_string(M8, Rx);
+                }
+            }
+
+            m8p::__trim(query);
+            if (haystack.find(query)!=std::string::npos){
+                return std::make_pair(
+                    errorf("ASSERTION_FAILED['"+ haystack + " DOES CONTAIN '" + query +"']"),
+                    M8->nilValue
+                );
+            } else {
+                return std::make_pair(
+                    M8_Err_nil,
+                    R
+                );
+            }
+        }
+
+        return std::make_pair(
+            errorf("REGISTER_NOT_FOUND["+rsource+"]"),
+            M8->nilValue
+        );
+    }
 
     std::pair<M8_Error, M8_Obj*> AssertNil_OP(M8System* M8, std::vector<std::string> params){
         int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
@@ -2999,6 +3055,9 @@ namespace m8p {
 
             } else if (opCode=="assertcontains") {
                 lastRet = AssertContains_OP(M8, instr_tokens);
+
+            } else if (opCode=="assertnotcontains") {
+                lastRet = AssertNotContains_OP(M8, instr_tokens);
 
             } else if (opCode=="assertnil") {
                 lastRet = AssertNil_OP(M8, instr_tokens);
