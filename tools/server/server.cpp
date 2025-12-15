@@ -6542,7 +6542,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
     m8p::__trim(ins_name);
 
     if (psize>2) {
-        auto &options = m8p::parseOptions(3, params);
+        std::map<std::string, std::string> options = m8p::parseOptions(3, params);
         if (options.count("from_conv")>0) {
             from_conv = options.count("from_conv");
             m8p::__trim(from_conv);
@@ -6677,8 +6677,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_INSTANCE(
     int ef_construction = 200;  // Controls index search speed/build speed tradeoff
 
     if (psize>1) {
-        std::map<std::string, std::string> options;
-        options = m8p::parseOptions(2, params);
+        std::map<std::string, std::string> options = m8p::parseOptions(2, params);
 
         if (options.count("dim")>0) {
             int32_t number=0;
@@ -7110,8 +7109,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> VECTOR_SEARCH(
     float distance = -1;
 
     if (psize > 3) {
-        std::map<std::string, std::string> options;
-        options = m8p::parseOptions(3, params);
+        std::map<std::string, std::string> options = m8p::parseOptions(3, params);
 
         if (options.count("distance")>0) {
             float number=0;
