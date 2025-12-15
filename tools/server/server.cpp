@@ -4836,6 +4836,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
     std::string stream="false";
     std::string force="false";
     std::string prompt = "what is your name";
+    std::string system_prompt = "You are an helpful assistant";
 
     m8p::M8_Obj *R = REG[rsource];
     if (R==nullptr){
@@ -4877,6 +4878,17 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         }
         if (options.count("stream")>0) {
             stream = options["stream"];
+        }
+
+        if (options.count("sysprompt")>0) {
+            std::string r_prt = options["sysprompt"];
+            m8p::__trim(r_prt);
+            m8p::M8_Obj *RXO = REG[r_prt];
+            if (RXO!=nullptr && !m8p::is_nil(M8, RXO) && RXO->Type==m8p::MP8_STRING) {
+                system_prompt = RXO->Value;
+            } else {
+                system_prompt = r_prt;
+            }
         }
 
         if (options.count("n_predict")>0) {
@@ -4932,8 +4944,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         );
 
     } else {
-        // replaceAll2(prompt, "<<<NL>>>", "\n");
+        replaceAll2(prompt, "<<<NL>>>", "\n");
 
+        // std::string formatted_prompt="";
         // ::ALLOC::
         json data = {
             {"prompt", prompt},
@@ -5505,6 +5518,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
     std::string prompt = "what is your name";
     std::string tools = "no";
     std::string conv = "false";
+    std::string stop_token = "";
     std::string conv_session = "no";
     std::string system_prompt = "You are a helpful assistant.";
 
@@ -5547,6 +5561,10 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
         if (options.count("force")>0) {
             force = options["force"];
             m8p::__trim(force);
+        }
+        if (options.count("stop")>0) {
+            stop_token = options["stop"];
+            m8p::__trim(stop_token);
         }
         if (options.count("conv")>0) {
             conv = options["conv"];
@@ -5743,6 +5761,12 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
             files
         );
 
+        if (stop_token!="") {
+            std::vector<std::string> antiprompt;
+            antiprompt.push_back(stop_token);
+            data["stop"] = antiprompt;
+        }
+
         std::cout << "=======> llm_openai2  RESULT CALL []: "
             << data.dump(4) 
             << "\n" << std::endl;
@@ -5814,10 +5838,8 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_OPENAI2(
 
         std::stringstream ss_answer;
 
-         // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
-         ctx_server->receive_cmpl_results_stream(task_ids, 
-            [&LLMDB, prompt, g_session, conv_session, conv, &ss_answer, stream, instance_exists, M8, &ins_name]
-            (server_task_result_ptr & result) -> bool {
+        // ctx_server->receive_multi_results(task_ids, [&LLMDB, stream, M8, &ins_name](std::vector<server_task_result_ptr> &results) {
+        ctx_server->receive_cmpl_results_stream(task_ids, [&LLMDB, prompt, g_session, conv_session, conv, &ss_answer, stream, instance_exists, M8, &ins_name] (server_task_result_ptr & result) -> bool {
             json res_json = result->to_json();
             bool hasRun = false;
             json arr = json::array();
