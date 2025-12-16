@@ -1,0 +1,1 @@
+g++ shell.cpp -o tshell -O3 -lreadline -march=native
