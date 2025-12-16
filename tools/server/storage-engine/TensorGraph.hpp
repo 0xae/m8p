@@ -623,7 +623,7 @@ public:
                 TensorGraph* tg = t->GetGroup(args[1]);
                 int dim = 0;
                 ColType type = parse_type(args[3]);
-                int max_elements = std::atoi(args[4]);
+                int max_elements = std::stoi(args[4]);
                 if (type == ColType::VECTOR_F32) {
                     if (args.size() >= 6) {
                         dim = std::stoi(args[5]);
