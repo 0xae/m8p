@@ -447,6 +447,7 @@ private:
 public:
     // Execute a query string against the DB and return the result (or error string)
     static std::string Execute(NativeMetaDB& db, std::string query) {
+        const int MAX_PER_COLUMN = 1000000;
         try {
             query = trim(query);
             if (query.empty()) return "";
@@ -489,7 +490,7 @@ public:
                     if (args.size() >= 5) dim = std::stoi(args[4]);
                     else throw std::runtime_error("VECTOR requires dimension");
                 }
-                tg->CreateColumn(args[2], type, 1000, dim);
+                tg->CreateColumn(args[2], type, MAX_PER_COLUMN, dim);
                 return "Column '" + args[2] + "' created.";
             }
             else if (cmd == "ADD_ROW") {
