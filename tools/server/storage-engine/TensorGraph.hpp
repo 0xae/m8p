@@ -802,18 +802,14 @@ public:
                 if (args.size()>5) {
                     limit = std::stoi(args[5]);
                 }
+
                 int count = 0;
-                int step = 0;
                 result_ss << "[";
                 for(auto id : results) {
                     if (count++ >= limit) {
                         break;
                     }
-                    result_ss << id; 
-                    if (step+1 < results.size()-1) {
-                        result_ss << ",";
-                    }
-                    step += 1;
+                    result_ss << id << ","; 
                 }
                 result_ss << "]";
                 if (count>limit) {
