@@ -848,7 +848,11 @@ public:
                     result_ss << "[";
                 }
 
-                std::cout << "pcols: " << pcols << "\n";
+                std::cout << "pcols: ";
+                for (auto &s : pcols) {
+                    std::cout << s << " ";
+                }
+                std::cout  << "\n";
 
                 for(auto id : results) {
                     if (count++ >= limit) {
