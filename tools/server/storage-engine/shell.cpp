@@ -62,7 +62,8 @@ void print_help() {
     std::cout << Colors::YELLOW << "COMMANDS:" << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "CREATE_TABLE" << Colors::RESET << "(name)\n";
     std::cout << "  " << Colors::GREEN << "CREATE_GROUP" << Colors::RESET << "(table, group, size_mb, role)\n";
-    std::cout << "  " << Colors::GREEN << "CREATE_COLUMN" << Colors::RESET << "(table, group, name, type, [dim])\n";
+    std::cout << "  " << Colors::GREEN << "CREATE_COLUMN" << Colors::RESET << "(table, group, name, type, [dim]) -- max_elements is 10,000\n";
+    std::cout << "  " << Colors::GREEN << "CREATE_COLUMN_SZ" << Colors::RESET << "(table, group, name, type, max_elements, [dim])\n";
     std::cout << "      Types: " << Colors::BOLD << "INT, FLOAT, TEXT, VECTOR" << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "ADD_ROW" << Colors::RESET << "(table, group, val1...)\n";
     std::cout << "      " << Colors::DIM << "Note: Currently reserves a row. Use UPDATE to set values." << Colors::RESET << "\n";

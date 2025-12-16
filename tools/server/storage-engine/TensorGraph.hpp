@@ -1,3 +1,77 @@
+/*
+TENSORGRAPH DB
+Ayrton Gomes 2025-12-16
+
+I think this storage engine is very interesting,it would allow me to build a storage architecture comprise of Tables and ColumnGroups
+this allows a table to have multiple TensorGraph db each one representing a set of columns for a particular requirement.
+So for example i know a Company has many officers, Cases, has its detail, this architecture allows me to quickly detect all these
+children and scatter-gatter a parralel query across its columngroup and also allows for cross relationships to form and to be queries fast
+because there's no burden of IPC and all that a sqlengine entails.
+
+What do you think.
+
+BIGTABLE COMPANY
+ ----------------> Details (ColumnGroup) Metatable
+ ----------------> Officers (ColumnGroup) Metatable
+ ----------------> Cases (ColumnGroup) Metatable
+ ----------------> ...
+
+BIGTABLE OFFICERS
+------------------> Details (ColumnGroup) Metatable
+
+SO LIKE THIS
+
+struct TableDetails {
+ std::string tablename;
+ // ...
+ std::unordered_map<std::string, *TensorGraph> ColumnGroup;
+}
+
+std::unordered_map<std::string, TableDetails> DB;
+
+* ## Define Columns const int MAX_PER_COLUMN = 10000;
+
+tg_exec <r3> CREATE_TABLE(company);
+
+tg_exec <r3> CREATE_GROUP(company, Details, 64, "metadata");
+tg_exec <r3> CREATE_COLUMN(company, Details, name, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Details, number, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Details, status, TEXT);
+
+tg_exec <r3> CREATE_GROUP(company, Officers, 64, "relations");
+tg_exec <r3> CREATE_COLUMN(company, Officers, name, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Officers, role, TEXT);
+
+tg_exec <r3> CREATE_GROUP(company, Embed, 128, "vectors");
+tg_exec <r3> CREATE_COLUMN(company, Embed, face_vec, VECTOR, 128); 
+
+
+## INDEX
+tg_exec <r3> ADD_ROW(company, Details); 
+tg_exec <r3> UPDATE(company, Details, name, 0, My Favorite Company);
+tg_exec <r3> UPDATE(company, Details, number, 0, "AC00123");
+tg_exec <r3> UPDATE(company, Details, status, 0, In Administration);
+assertcontains <r3> 
+
+tg_exec <r3> ADD_ROW(company, Details); 
+tg_exec <r3> UPDATE(company, Details, name, 1, Another Company);
+tg_exec <r3> UPDATE(company, Details, number, 1, "A9923");
+tg_exec <r3> UPDATE(company, Details, status, 1, In Liquidation);
+
+tg_exec <r3> ADD_ROW(company, Details); 
+tg_exec <r3> UPDATE(company, Details, name, 2, Third Company);
+tg_exec <r3> UPDATE(company, Details, number, 2, "A2323");
+tg_exec <r3> UPDATE(company, Details, status, 2, Active);
+
+## QUERY
+
+tg_exec <rnames> SELECT(company, Details, name, 10, 0, TEXT);
+tg_exec <rnumbers> SELECT(company, Details, number, 10, 0, TEXT);
+tg_exec <rstatus> SELECT(company, Details, status, 10, 0, TEXT);
+
+ret <rnames> <rnumbers> <rstatus>
+*/
+
 #pragma once
 
 #include <iostream>
@@ -26,6 +100,7 @@ constexpr uint32_t DELETED_FLAG = 0xFFFFFFFF;
 // --- Types ---
 using RelPtr = uint32_t;
 using RowID = uint32_t;
+const int MAX_ROWS_P_COLUMN = 1000000;
 
 enum class ColType : uint8_t {
     INT32,
@@ -490,7 +565,6 @@ public:
     // Execute a query string against the DB and return the result (or error string)
     static std::string Execute(NativeMetaDB& db, std::string query) {
         try {
-            const int MAX_ROWS_P_COLUMN = 10000;
             query = trim(query);
             if (query.empty()) return "";
             if (query.back() == ';') query.pop_back();
@@ -537,8 +611,33 @@ public:
                     }
                 }
 
-                tg->CreateColumn(args[2], type, MAX_ROWS_P_COLUMN, dim);
+                tg->CreateColumn(args[2], type, 10000, dim);
                 return "Column '" + args[2] + "' created.";
+            }
+            else if (cmd == "CREATE_COLUMN_SZ") {
+                if (args.size() < 5) {
+                    throw std::runtime_error("Req: table, group, name, type, max_elements, [dim]");
+                }
+
+                BigTable* t = db.GetTable(args[0]);
+                TensorGraph* tg = t->GetGroup(args[1]);
+                int dim = 0;
+                ColType type = parse_type(args[3]);
+                int max_elements = std::atoi(args[4]);
+                if (type == ColType::VECTOR_F32) {
+                    if (args.size() >= 6) {
+                        dim = std::stoi(args[5]);
+                    } else {
+                        throw std::runtime_error("VECTOR requires dimension");
+                    }
+                }
+
+                if (max_elements >= MAX_ROWS_P_COLUMN) {
+                    throw std::runtime_error("max_elements cannot be larger than "+std::to_string(MAX_ROWS_P_COLUMN));
+                }
+
+                tg->CreateColumn(args[2], type, max_elements, dim);
+                return "Column '" + args[2] + "' created with max_elements=." + std::to_string(max_elements);
             }
             else if (cmd == "ADD_ROW") {
                 if (args.size() < 2) throw std::runtime_error("Req: table, group");
