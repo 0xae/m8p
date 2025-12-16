@@ -888,9 +888,9 @@ public:
                 }
 
                 if (count>limit) {
-                    result_ss << " More=" << (results.size() - limit);
+                    result_ss << "More=" << (results.size() - limit);
                 }
-                result_ss << " | Found=" << std::to_string(results.size());
+                result_ss << "| Found=" << std::to_string(results.size());
 
                 // if (pjt_idx != std::string::npos) {
                 //     std::string project_cols = args_content.substr(pjt_idx);
