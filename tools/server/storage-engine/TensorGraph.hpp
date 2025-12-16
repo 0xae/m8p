@@ -874,7 +874,7 @@ public:
                                 std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+COLUMN_NAME+", "+std::to_string(id)+", "+typeL+")";
                                 std::cout << "COMMAND: " << COMMAND << "\n" << std::endl;
                                 std::string result__x = Execute(db, COMMAND);
-                                result_ss  << result__x << "\t";                     
+                                result_ss  << result__x << " | ";                     
                             }
                         }
                         result_ss  << "\n";
