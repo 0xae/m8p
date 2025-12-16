@@ -854,8 +854,8 @@ public:
 
                     if (pcols.size()>0) {
                         for (auto &COLUMN_NAME : pcols) {
-                            if (tg.column_map.count(COLUMN_NAME)) {
-                                auto &col = tg.columns[tg.column_map[COLUMN_NAME]];
+                            if (tg->column_map.count(COLUMN_NAME)) {
+                                auto &col = tg->olumns[tg->column_map[COLUMN_NAME]];
                                 std::string typeL="";
                                 if (col.type == ColType::INT32) {
                                     typeL = "INT";
