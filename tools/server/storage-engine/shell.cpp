@@ -6,6 +6,19 @@
 #include <cctype>
 #include "TensorGraph.hpp"
 
+// --- ANSI COLORS ---
+struct Colors {
+    static constexpr const char* RESET   = "\033[0m";
+    static constexpr const char* RED     = "\033[31m";
+    static constexpr const char* GREEN   = "\033[32m";
+    static constexpr const char* YELLOW  = "\033[33m";
+    static constexpr const char* BLUE    = "\033[34m";
+    static constexpr const char* MAGENTA = "\033[35m";
+    static constexpr const char* CYAN    = "\033[36m";
+    static constexpr const char* BOLD    = "\033[1m";
+    static constexpr const char* DIM     = "\033[2m";
+};
+
 // --- SHELL UTILITIES ---
 
 std::string trim(const std::string& str) {
@@ -66,27 +79,27 @@ std::vector<float> parse_vector_data(std::string val) {
 }
 
 void print_help() {
-    std::cout << "\n=== M8 Native Storage Engine Help ===\n\n";
-    std::cout << "ARCHITECTURE:\n";
+    std::cout << "\n" << Colors::BOLD << Colors::MAGENTA << "=== M8 Native Storage Engine Help ===" << Colors::RESET << "\n\n";
+    std::cout << Colors::YELLOW << "ARCHITECTURE:" << Colors::RESET << "\n";
     std::cout << "  MetaDB -> BigTable -> ColumnGroup -> TensorGraph\n";
-    std::cout << "  * BigTable: Logical collection of data (e.g., 'Users', 'Products').\n";
-    std::cout << "  * ColumnGroup: Physical storage engine separating data types (e.g., 'vectors' for AVX access, 'meta' for text).\n";
-    std::cout << "  * Column: Typed array inside the engine.\n\n";
+    std::cout << "  * " << Colors::CYAN << "BigTable" << Colors::RESET << ": Logical collection of data (e.g., 'Users', 'Products').\n";
+    std::cout << "  * " << Colors::CYAN << "ColumnGroup" << Colors::RESET << ": Physical storage engine separating data types (e.g., 'vectors' for AVX access, 'meta' for text).\n";
+    std::cout << "  * " << Colors::CYAN << "Column" << Colors::RESET << ": Typed array inside the engine.\n\n";
     
-    std::cout << "COMMANDS:\n";
-    std::cout << "  CREATE_TABLE(name)\n";
-    std::cout << "  CREATE_GROUP(table, group, size_mb, role)\n";
-    std::cout << "  CREATE_COLUMN(table, group, name, type, [dim])\n";
-    std::cout << "      Types: INT, FLOAT, TEXT, VECTOR\n";
-    std::cout << "  ADD_ROW(table, group, val1...)\n";
-    std::cout << "      Note: Currently reserves a row. Use UPDATE to set values.\n";
-    std::cout << "  UPDATE(table, group, col, row_id, val)\n";
-    std::cout << "  GET(table, group, col, row_id, type_hint)\n";
-    std::cout << "  SEARCH(table, group, col, vector, top_k)\n";
-    std::cout << "  STATS\n";
-    std::cout << "  EXIT\n\n";
+    std::cout << Colors::YELLOW << "COMMANDS:" << Colors::RESET << "\n";
+    std::cout << "  " << Colors::GREEN << "CREATE_TABLE" << Colors::RESET << "(name)\n";
+    std::cout << "  " << Colors::GREEN << "CREATE_GROUP" << Colors::RESET << "(table, group, size_mb, role)\n";
+    std::cout << "  " << Colors::GREEN << "CREATE_COLUMN" << Colors::RESET << "(table, group, name, type, [dim])\n";
+    std::cout << "      Types: " << Colors::BOLD << "INT, FLOAT, TEXT, VECTOR" << Colors::RESET << "\n";
+    std::cout << "  " << Colors::GREEN << "ADD_ROW" << Colors::RESET << "(table, group, val1...)\n";
+    std::cout << "      " << Colors::DIM << "Note: Currently reserves a row. Use UPDATE to set values." << Colors::RESET << "\n";
+    std::cout << "  " << Colors::GREEN << "UPDATE" << Colors::RESET << "(table, group, col, row_id, val)\n";
+    std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id, type_hint)\n";
+    std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k)\n";
+    std::cout << "  " << Colors::GREEN << "STATS" << Colors::RESET << "\n";
+    std::cout << "  " << Colors::GREEN << "EXIT" << Colors::RESET << "\n\n";
 
-    std::cout << "EXAMPLES:\n";
+    std::cout << Colors::YELLOW << "EXAMPLES:" << Colors::RESET << "\n";
     std::cout << "  CREATE_TABLE(\"Users\");\n";
     std::cout << "  CREATE_GROUP(\"Users\", \"Bio\", 64, \"data\");\n";
     std::cout << "  CREATE_COLUMN(\"Users\", \"Bio\", \"name\", TEXT);\n";
@@ -99,12 +112,12 @@ void print_help() {
 
 int main() {
     NativeMetaDB db;
-    std::cout << "M8 Native Storage Engine Shell\n";
-    std::cout << "Type 'HELP' for commands or 'EXIT' to quit.\n\n";
+    std::cout << Colors::BOLD << "M8 Native Storage Engine Shell" << Colors::RESET << "\n";
+    std::cout << "Type '" << Colors::CYAN << "HELP" << Colors::RESET << "' for commands or '" << Colors::RED << "EXIT" << Colors::RESET << "' to quit.\n\n";
 
     std::string line;
     while (true) {
-        std::cout << "M8> ";
+        std::cout << Colors::GREEN << "M8> " << Colors::RESET;
         if (!std::getline(std::cin, line)) break;
         if (line.empty()) continue;
         
@@ -117,7 +130,7 @@ int main() {
             if (cmd == "EXIT") break;
             if (cmd == "STATS") { db.PrintStats(); continue; }
             if (cmd == "HELP") { print_help(); continue; }
-            std::cout << "Error: Invalid syntax. Expected COMMAND(args)\n";
+            std::cout << Colors::RED << "Error: Invalid syntax. Expected COMMAND(args)" << Colors::RESET << "\n";
             continue;
         }
 
@@ -132,13 +145,13 @@ int main() {
             if (cmd == "CREATE_TABLE") {
                 if (args.empty()) throw std::runtime_error("CREATE_TABLE requires 1 arg: name");
                 db.CreateTable(args[0]);
-                std::cout << "Table '" << args[0] << "' created.\n";
+                std::cout << "Table '" << Colors::CYAN << args[0] << Colors::RESET << "' created.\n";
             }
             else if (cmd == "CREATE_GROUP") {
                 if (args.size() < 4) throw std::runtime_error("CREATE_GROUP requires 4 args: table, group, size_mb, role");
                 BigTable* t = db.GetTable(args[0]);
                 t->CreateGroup(args[1], std::stoi(args[2]), args[3]);
-                std::cout << "Group '" << args[1] << "' created in '" << args[0] << "'.\n";
+                std::cout << "Group '" << Colors::CYAN << args[1] << Colors::RESET << "' created in '" << args[0] << "'.\n";
             }
             else if (cmd == "CREATE_COLUMN") {
                 if (args.size() < 4) throw std::runtime_error("CREATE_COLUMN requires table, group, name, type");
@@ -156,7 +169,7 @@ int main() {
                 }
 
                 tg->CreateColumn(col_name, type, 1000, dim); 
-                std::cout << "Column '" << col_name << "' created.\n";
+                std::cout << "Column '" << Colors::CYAN << col_name << Colors::RESET << "' created.\n";
             }
             else if (cmd == "ADD_ROW") {
                 if (args.size() < 2) throw std::runtime_error("ADD_ROW requires table, group");
@@ -165,7 +178,7 @@ int main() {
                 TensorGraph* tg = t->GetGroup(args[1]);
                 RowID rid = tg->AddRow();
                 
-                std::cout << "Row added. ID: " << rid << "\n";
+                std::cout << "Row added. ID: " << Colors::YELLOW << rid << Colors::RESET << "\n";
             }
             else if (cmd == "UPDATE" || cmd == "SET") {
                 if (args.size() < 5) throw std::runtime_error("UPDATE requires: table, group, col, row_id, val");
@@ -185,7 +198,7 @@ int main() {
                 } else {
                     tg->SetText(col, rid, val);
                 }
-                std::cout << "Updated.\n";
+                std::cout << Colors::GREEN << "Updated." << Colors::RESET << "\n";
             }
             else if (cmd == "SEARCH") {
                 if (args.size() < 5) throw std::runtime_error("SEARCH requires: table, group, col, [vec], top_k");
@@ -194,9 +207,9 @@ int main() {
                 
                 auto results = tg->VectorSearch(args[2], parse_vector_data(args[3]), std::stoi(args[4]));
                 
-                std::cout << "Results:\n";
+                std::cout << Colors::YELLOW << "Results:" << Colors::RESET << "\n";
                 for(auto& r : results) {
-                    std::cout << " - ID: " << r.id << " Score: " << r.score << "\n";
+                    std::cout << " - ID: " << Colors::CYAN << r.id << Colors::RESET << " Score: " << Colors::GREEN << r.score << Colors::RESET << "\n";
                 }
             }
             else if (cmd == "GET") {
@@ -207,17 +220,18 @@ int main() {
                 std::string type = args[4];
                 std::transform(type.begin(), type.end(), type.begin(), ::toupper);
                 
+                std::cout << Colors::CYAN << "< " << Colors::RESET;
                 if (type == "TEXT") std::cout << tg->GetText(args[2], std::stoi(args[3])) << "\n";
                 else if (type == "INT") std::cout << tg->GetInt(args[2], std::stoi(args[3])) << "\n";
                 else if (type == "FLOAT") std::cout << tg->GetFloat(args[2], std::stoi(args[3])) << "\n";
-                else std::cout << "Unknown type hint\n";
+                else std::cout << Colors::RED << "Unknown type hint" << Colors::RESET << "\n";
             }
             else {
-                std::cout << "Unknown command: " << cmd << "\n";
+                std::cout << Colors::RED << "Unknown command: " << cmd << Colors::RESET << "\n";
             }
 
         } catch (const std::exception& ex) {
-            std::cerr << "Error: " << ex.what() << "\n";
+            std::cerr << Colors::RED << "Error: " << ex.what() << Colors::RESET << "\n";
         }
     }
 
