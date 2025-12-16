@@ -145,6 +145,8 @@ int main() {
         cg_off_details->SetText("title", off2, "CEO");
         cg_off_details->SetInt("company_row_id", off2, c1); // Linked to DeepSea (Row 1)
 
+        db.PrintStats();
+
         // ---------------------------------------------------------
         // 4. EXECUTE HYBRID QUERY
         // Request: "Find Officers working at Aerospace companies (Vector Similarity)"
