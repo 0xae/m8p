@@ -82,7 +82,14 @@ void print_help() {
     std::cout << "  ADD_ROW(\"Users\", \"Bio\");\n";
     std::cout << "  UPDATE(\"Users\", \"Bio\", \"name\", 0, \"Alice\");\n";
     std::cout << "  GET(\"Users\", \"Bio\", \"name\", 0, TEXT);\n";
-    std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0, TEXT);\n\n";
+    std::cout << "  FILTER(company, Details, name, contains, \"plc\")\n";
+    std::cout << "  FILTER(company, Details, name, =, \"hello\")\n";
+    std::cout << "  FILTER(company, Details, number, ilike, \"9283\")\n";
+    std::cout << "  FILTER(company, Details, debt, >, 9283)\n";
+    std::cout << "  FILTER(company, Details, assets, =, 0)\n";
+    std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0, TEXT);\n\n"
+
+    ;
 }
 
 
