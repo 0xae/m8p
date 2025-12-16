@@ -447,7 +447,7 @@ private:
 public:
     // Execute a query string against the DB and return the result (or error string)
     static std::string Execute(NativeMetaDB& db, std::string query) {
-        const int MAX_PER_COLUMN = 1000000;
+        const int MAX_PER_COLUMN = 10000;
         try {
             query = trim(query);
             if (query.empty()) return "";
