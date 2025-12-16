@@ -810,7 +810,7 @@ public:
                         break;
                     }
                     result_ss << id; 
-                    if (step+1 < results.size()) {
+                    if (step+1 < results.size()-1) {
                         result_ss << ",";
                     }
                     step += 1;
@@ -819,7 +819,7 @@ public:
                 if (count>limit) {
                     result_ss << " More=" << (results.size() - limit);
                 }
-                result_ss << " | Found=" << std::to_string(results.size());
+                result_ss << " | Found=" <<helph std::to_string(results.size());
                 return result_ss.str();
             }
             else if (cmd == "SEARCH") {
