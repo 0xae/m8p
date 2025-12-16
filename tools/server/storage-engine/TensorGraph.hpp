@@ -16,7 +16,6 @@
 
 // Check for AVX support via compiler flags
 #if defined(__AVX2__) || defined(__AVX512F__)
-#warning TensorGraph[storage-engine]: AV2 or AV512F are available 
 #include <immintrin.h>
 #endif
 
@@ -45,8 +44,17 @@ struct ColumnHeader {
 };
 
 // --- SIMD Helpers ---
+// Force target attributes to ensure FMA instructions are available if AVX2/AVX512 is enabled
+#if defined(__GNUC__) || defined(__clang__)
+    #if defined(__AVX512F__)
+    __attribute__((target("avx512f")))
+    #elif defined(__AVX2__)
+    __attribute__((target("avx2,fma")))
+    #endif
+#endif
 inline float l2_sq_simd(const float* a, const float* b, int dim) {
 #if defined(__AVX512F__)
+    // AVX-512 Implementation (16 floats at a time)
     __m512 sum = _mm512_setzero_ps();
     int i = 0;
     for (; i <= dim - 16; i += 16) {
@@ -70,6 +78,8 @@ inline float l2_sq_simd(const float* a, const float* b, int dim) {
         __m256 diff = _mm256_sub_ps(v1, v2);
         sum = _mm256_fmadd_ps(diff, diff, sum); 
     }
+    
+    // Horizontal sum of the 8 float lanes
     float result[8];
     _mm256_storeu_ps(result, sum);
     float total = result[0] + result[1] + result[2] + result[3] + 
@@ -132,6 +142,17 @@ public:
 
     ~TensorGraph() { delete[] memory_block; }
 
+    // --- Efficient Soft Reset ---
+    // Resets allocator head and clears metadata.
+    // Does NOT deallocate the memory_block (avoids syscall overhead).
+    // O(1) complexity.
+    void Reset() {
+        head = 0;
+        columns.clear();
+        column_map.clear();
+        // No memset required; old data will be overwritten naturally.
+    }
+
     void Save(const std::string& filepath) {
         std::ofstream out(filepath, std::ios::binary);
         if (!out) throw std::runtime_error("Cannot open file for writing: " + filepath);
@@ -181,10 +202,6 @@ public:
     }
 
     void CreateColumn(const std::string& name, ColType type, uint32_t initial_capacity, int dim = 0) {
-        if (name.size()>30) {
-         throw std::runtime_error("Name should not be longer than 30 chars.");   
-        }
-
         if (column_map.find(name) != column_map.end()) throw std::runtime_error("Column exists");
         ColumnHeader header;
         std::strncpy(header.name, name.c_str(), 31);
@@ -298,6 +315,10 @@ struct ColumnGroup {
     ColumnGroup(size_t size_mb, std::string r) : engine(std::make_unique<TensorGraph>(size_mb)), role(r) {}
     // For loading
     ColumnGroup(std::unique_ptr<TensorGraph> eng, std::string r) : engine(std::move(eng)), role(r) {}
+
+    void Reset() {
+        engine->Reset();
+    }
 };
 
 struct BigTable {
@@ -305,7 +326,9 @@ struct BigTable {
     std::unordered_map<std::string, std::unique_ptr<ColumnGroup>> groups;
 
     TensorGraph* CreateGroup(const std::string& group_name, size_t size_mb, const std::string& role) {
-        if (groups.find(group_name) != groups.end()) throw std::runtime_error("Group exists");
+        // IDEMPOTENT: If group exists, return it (it might be reset)
+        if (groups.find(group_name) != groups.end()) return groups[group_name]->engine.get();
+        
         groups[group_name] = std::make_unique<ColumnGroup>(size_mb, role);
         return groups[group_name]->engine.get();
     }
@@ -315,6 +338,12 @@ struct BigTable {
         return groups.at(group_name)->engine.get();
     }
     
+    void Reset() {
+        for (auto& pair : groups) {
+            pair.second->Reset();
+        }
+    }
+
     std::string GetStats() {
         std::stringstream ss;
         ss << " Table: " << name << "\n";
@@ -330,7 +359,9 @@ class NativeMetaDB {
     std::unordered_map<std::string, std::unique_ptr<BigTable>> tables;
 public:
     BigTable* CreateTable(const std::string& name) {
-        if (tables.find(name) != tables.end()) throw std::runtime_error("Table exists");
+        // IDEMPOTENT: If table exists, return it (so scripts can re-run after reset)
+        if (tables.find(name) != tables.end()) return tables[name].get();
+        
         auto table = std::make_unique<BigTable>();
         table->name = name;
         tables[name] = std::move(table);
@@ -342,25 +373,16 @@ public:
     }
     
     // --- Persistence ---
-    // Simple directory-based persistence
-    // Structure: ./data_dir/TableName/GroupName.tg
     void Save(const std::string& dir_path) {
-        // Assume dir exists or user creates it. 
-        // Simple iteration:
         for(const auto& t_pair : tables) {
             std::string t_name = t_pair.first;
             BigTable* t = t_pair.second.get();
-            // In a real impl, create directory `dir_path + "/" + t_name`
             for(const auto& g_pair : t->groups) {
                 std::string g_name = g_pair.first;
                 std::string filename = dir_path + "_" + t_name + "_" + g_name + ".tg"; 
-                // Saving metadata (role) along with file? Or encoded in file?
-                // Simplest: .tg file stores engine. We need a manifest for roles.
-                // For this demo: just save engine blob.
                 g_pair.second->engine->Save(filename);
             }
         }
-        // Save manifest
         std::ofstream manifest(dir_path + "_manifest.txt");
         for(const auto& t_pair : tables) {
             for(const auto& g_pair : t_pair.second->groups) {
@@ -377,12 +399,18 @@ public:
         tables.clear();
         std::string t_name, g_name, role;
         while (manifest >> t_name >> g_name >> role) {
-            if (tables.find(t_name) == tables.end()) CreateTable(t_name);
-            BigTable* t = tables[t_name].get();
+            // Because CreateTable is idempotent, this works nicely
+            BigTable* t = CreateTable(t_name); 
             
             std::string filename = dir_path + "_" + t_name + "_" + g_name + ".tg";
             auto loaded_engine = TensorGraph::Load(filename);
             t->groups[g_name] = std::make_unique<ColumnGroup>(std::move(loaded_engine), role);
+        }
+    }
+
+    void Reset() {
+        for (auto& pair : tables) {
+            pair.second->Reset();
         }
     }
 
@@ -435,20 +463,25 @@ private:
     }
 
     static std::vector<float> parse_vector_data(std::string val) {
+        if (val.empty()) return {}; 
         if (val.front() == '[') val = val.substr(1);
+        if (val.empty()) return {};
         if (val.back() == ']') val.pop_back();
         std::vector<float> vec;
         std::stringstream ss(val);
         std::string item;
-        while (std::getline(ss, item, ',')) vec.push_back(std::stof(item));
+        while (std::getline(ss, item, ',')) {
+            item = trim(item);
+            if(!item.empty()) vec.push_back(std::stof(item));
+        }
         return vec;
     }
 
 public:
     // Execute a query string against the DB and return the result (or error string)
     static std::string Execute(NativeMetaDB& db, std::string query) {
-        const int MAX_PER_COLUMN = 10000;
         try {
+            const int MAX_ROWS_P_COLUMN = 10000;
             query = trim(query);
             if (query.empty()) return "";
             if (query.back() == ';') query.pop_back();
@@ -458,6 +491,7 @@ public:
                 std::string cmd = query;
                 std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
                 if (cmd == "STATS") return db.GetStats();
+                if (cmd == "RESET") { db.Reset(); return "Database reset successfully."; }
                 return "Error: Invalid syntax. Expected COMMAND(args)";
             }
 
@@ -472,13 +506,13 @@ public:
             if (cmd == "CREATE_TABLE") {
                 if (args.empty()) throw std::runtime_error("CREATE_TABLE requires name");
                 db.CreateTable(args[0]);
-                return "Table '" + args[0] + "' created.";
+                return "Table '" + args[0] + "' created (or exists).";
             }
             else if (cmd == "CREATE_GROUP") {
                 if (args.size() < 4) throw std::runtime_error("Req: table, group, size_mb, role");
                 BigTable* t = db.GetTable(args[0]);
                 t->CreateGroup(args[1], std::stoi(args[2]), args[3]);
-                return "Group '" + args[1] + "' created.";
+                return "Group '" + args[1] + "' created (or exists).";
             }
             else if (cmd == "CREATE_COLUMN") {
                 if (args.size() < 4) throw std::runtime_error("Req: table, group, name, type, [dim]");
@@ -490,7 +524,7 @@ public:
                     if (args.size() >= 5) dim = std::stoi(args[4]);
                     else throw std::runtime_error("VECTOR requires dimension");
                 }
-                tg->CreateColumn(args[2], type, MAX_PER_COLUMN, dim);
+                tg->CreateColumn(args[2], type, MAX_ROWS_P_COLUMN, dim);
                 return "Column '" + args[2] + "' created.";
             }
             else if (cmd == "ADD_ROW") {
