@@ -790,8 +790,12 @@ public:
                 BigTable* t = db.GetTable(args[0]);
                 TensorGraph* tg = t->GetGroup(args[1]);
                 auto results = tg->Filter(args[2], args[3], args[4]);
+
+                if (results.size()==0){
+                    return "[]";
+                }
                 
-                result_ss << "Found " << results.size() << " matches:\n";
+                result_ss << "Found " << results.size() << "-matches: ";
                 int limit = 20; 
                 int count = 0;
                 for(auto id : results) {
@@ -799,7 +803,7 @@ public:
                         result_ss << "... (" << (results.size() - limit) << " more)\n";
                         break;
                     }
-                    result_ss << " [" << id << "], "; 
+                    result_ss << "[" << id << "],"; 
                 }
                 return result_ss.str();
             }
