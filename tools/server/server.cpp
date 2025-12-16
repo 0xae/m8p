@@ -4423,7 +4423,7 @@ struct M8Session {
     std::map<std::string, vectordb_index> G_Vector_DB;
     std::map<std::string, instance_data> LLMInstance_DB;
     httplib::DataSink *sink;
-    NativeMetaDB *db; // The database instance
+    NativeMetaDB db; // The database instance
 };
 
 struct vectordb_index {
@@ -6557,13 +6557,13 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
 
     std::string sessionId = M8->Name;
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
-    NativeMetaDB *db = GlobalSession[sessionId].db;
-    if (db==nullptr) {
-        return std::make_pair(
-            m8p::errorf("NO TG INSTANCE"),
-            M8->nilValue
-        );
-    }
+    auto &db = GlobalSession[sessionId].db;
+    // if (db==nullptr) {
+    //     return std::make_pair(
+    //         m8p::errorf("NO TG INSTANCE"),
+    //         M8->nilValue
+    //     );
+    // }
 
     std::string rdest = params.at(1);// output register
     std::string rsource = params.at(2);// input prompt (interpolated maybe) register
@@ -6625,6 +6625,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
     } else {
         REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, result);
     }
+
+    return std::make_pair(
+        m8p::M8_Err_nil,
+        REG[rdest]
+    );
 }
 
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
@@ -8857,7 +8862,7 @@ std::string M8_BANNER =
             GlobalSession[id_session].name = id_session;
             GlobalSession[id_session].exec_calls = 0;
             GlobalSession[id_session].m8 = m8;
-            GlobalSession[id_session].db = new NativeMetaDB;
+            // GlobalSession[id_session].db = new NativeMetaDB;
 
             LOG_INF("new persistent session %s", id_session.c_str());
             // SRV_DBG("creating infill tasks, n_prompts = %d\n", (int) tokenized_prompts.size());
@@ -8916,7 +8921,7 @@ std::string M8_BANNER =
                     GlobalSession[id_session].m8 = m8;
                     GlobalSession[id_session].sink = &sink;
                     GlobalSession[id_session].has_sink = true;
-                    GlobalSession[id_session].db = new NativeMetaDB;
+                    // GlobalSession[id_session].db = new NativeMetaDB;
 
                     m8 = m8p::M8P_Instance(id_session);
                 }
@@ -9001,9 +9006,9 @@ std::string M8_BANNER =
                 // sleep(2);
                 {
                     const std::lock_guard<std::mutex> lock(g_session);
-                    if (GlobalSession[id_session].db!=nullptr) {
-                        delete GlobalSession[id_session].db;
-                    }
+                    // if (GlobalSession[id_session].db!=nullptr) {
+                    //     delete GlobalSession[id_session].db;
+                    // }
                     GlobalSession.erase(id_session);
                 }
 
@@ -9189,7 +9194,7 @@ std::string M8_BANNER =
                 GlobalSession[id_session].name = id_session;
                 GlobalSession[id_session].exec_calls = 0;
                 GlobalSession[id_session].m8 = m8;
-                GlobalSession[id_session].db = new NativeMetaDB;
+                // GlobalSession[id_session].db = new NativeMetaDB;
                 GlobalSession[id_session].IsLock = false;
                 // LOG_VERBOSE("========> new persistent session", {{"id_session", id_session}});
             } catch (std::exception &e) {
@@ -9375,7 +9380,7 @@ std::string M8_BANNER =
             GlobalSession[id_session].name = id_session;
             GlobalSession[id_session].exec_calls = 0;
             GlobalSession[id_session].m8 = m8;
-            GlobalSession[id_session].db = new NativeMetaDB;
+            // GlobalSession[id_session].db = new NativeMetaDB;
             m8 = m8p::M8P_Instance(id_session);
         }
 
@@ -9471,9 +9476,9 @@ std::string M8_BANNER =
 
         {
             const std::lock_guard<std::mutex> lock(g_session);
-            if (GlobalSession[id_session].db!=nullptr) {
-                delete GlobalSession[id_session].db;
-            }
+            // if (GlobalSession[id_session].db!=nullptr) {
+            //     delete GlobalSession[id_session].db;
+            // }
             GlobalSession.erase(id_session);
         }
         m8p::DestroyMP8(m8);
