@@ -6,6 +6,28 @@
 #include <cctype>
 #include "TensorGraph.hpp"
 
+// --- READLINE SUPPORT ---
+// Use GNU Readline or libedit for proper input handling (arrow keys, history)
+// Compile with: g++ main.cpp -o m8shell -O3 -lreadline
+#if defined(_WIN32) || defined(_WIN64)
+    #include <string>
+    #include <iostream>
+    // Windows fallback: Simple getline (no history/arrows without external lib)
+    char* readline(const char* prompt) {
+        std::cout << prompt;
+        static std::string line;
+        if (!std::getline(std::cin, line)) return nullptr;
+        // Duplicate string for compatibility with free()
+        char* buf = (char*)malloc(line.length() + 1);
+        strcpy(buf, line.c_str());
+        return buf;
+    }
+    void add_history(const char*) {} // No-op
+#else
+    #include <readline/readline.h>
+    #include <readline/history.h>
+#endif
+
 // --- ANSI COLORS ---
 struct Colors {
     static constexpr const char* RESET   = "\033[0m";
@@ -115,10 +137,29 @@ int main() {
     std::cout << Colors::BOLD << "M8 Native Storage Engine Shell" << Colors::RESET << "\n";
     std::cout << "Type '" << Colors::CYAN << "HELP" << Colors::RESET << "' for commands or '" << Colors::RED << "EXIT" << Colors::RESET << "' to quit.\n\n";
 
-    std::string line;
+    // Setup color prompt string
+    std::string prompt_str = std::string(Colors::GREEN) + "M8> " + std::string(Colors::RESET);
+
     while (true) {
-        std::cout << Colors::GREEN << "M8> " << Colors::RESET;
-        if (!std::getline(std::cin, line)) break;
+        // Use readline for input
+        char* input_raw = readline(prompt_str.c_str());
+        
+        // Handle EOF (Ctrl+D)
+        if (!input_raw) {
+            std::cout << "\n";
+            break;
+        }
+
+        std::string line(input_raw);
+        
+        // Add non-empty lines to history
+        if (!line.empty()) {
+            add_history(input_raw);
+        }
+        
+        // Free the memory allocated by readline
+        free(input_raw);
+
         if (line.empty()) continue;
         
         if (line.back() == ';') line.pop_back();
