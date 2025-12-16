@@ -795,17 +795,22 @@ public:
                     return "[]";
                 }
                 
-                result_ss << "Found " << results.size() << "-matches: ";
+                // result_ss << "Found " << results.size() << "-matches: ";
                 int limit = 20; 
                 int count = 0;
+                int step = 0;
                 for(auto id : results) {
                     if (count++ >= limit) {
-                        result_ss << "... (" << (results.size() - limit) << " more)\n";
+                        result_ss << "More=" << (results.size() - limit);
                         break;
                     }
-                    result_ss << "[" << id << "],"; 
+                    result_ss << id; 
+                    if (step+1 < results.size()) {
+                        result_ss << ",";
+                    }
+                    step += 1;
                 }
-                return result_ss.str();
+                return  "[" + result_ss.str() + "] Found=" + std::to_string(results.size());
             }
             else if (cmd == "SEARCH") {
                 if (args.size() < 5) throw std::runtime_error("Req: table, group, col, [vec], top_k");
