@@ -843,11 +843,12 @@ public:
 
                 if (should_project) {
                     std::string project_cols = args_content.substr(pjt_idx+filter_syntax.size());
-                    // std::cout << "project_cols: " << project_cols << "\n";
                     pcols = split(project_cols, ",");
                 } else {
                     result_ss << "[";
                 }
+
+                std::cout << "pcols: " << pcols << "\n";
 
                 for(auto id : results) {
                     if (count++ >= limit) {
