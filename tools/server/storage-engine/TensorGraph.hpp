@@ -763,18 +763,30 @@ public:
                 RowID rid = std::stoi(args[3]);
                 std::string val = args[4];
 
-                if (val.find('[') != std::string::npos) {
+                if (!(tg->column_map.count(col))) {
+                    throw std::runtime_error("COLUMN["+col+"] NOT FOUND");                    
+                }
+
+                auto &colRef = tg->columns[tg->column_map[col]];
+                std::string typeL="";
+                if (colRef.type == ColType::INT32) {
+                    typeL = "INT";
+                } else if (colRef.type == ColType::FLOAT32)  {
+                    typeL = "FLOAT";
+                } else if (colRef.type == ColType::TEXT) {
+                    typeL = "TEXT";
+                } else if (colRef.type == ColType::VECTOR_F32) {
+                    typeL = "VECTOR";
+                }
+
+                if (typeL=="VECTOR") {
                     tg->SetVector(col, rid, parse_vector_data(val));
 
-                } else if (val.find_first_not_of("0123456789-") == std::string::npos) {
+                } else if (typeL=="INT") {
                     tg->SetInt(col, rid, std::stoi(val));
 
-                } else if (val.find('.') != std::string::npos) {
-                    try { 
-                        tg->SetFloat(col, rid, std::stof(val)); 
-                    } catch(...) { 
-                        tg->SetText(col, rid, val); 
-                    }
+                } else if (typeL=="FLOAT") {
+                    tg->SetFloat(col, rid, std::stoi(val));
 
                 } else {
                     tg->SetText(col, rid, val);
