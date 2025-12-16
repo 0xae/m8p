@@ -825,17 +825,34 @@ public:
                 return "Unknown type hint";
             }
             else if (cmd == "SELECT") {
-                if (args.size() < 6) throw std::runtime_error("Req: table, group, col, limit, offset, TYPE");
+                if (args.size() < 5) throw std::runtime_error("Req: table, group, col, limit, offset");
                 BigTable* t = db.GetTable(args[0]);
                 TensorGraph* tg = t->GetGroup(args[1]);
                 std::string col = args[2];
                 int limit = std::stoi(args[3]);
                 int offset = std::stoi(args[4]);
-                std::string type = args[5];
-                std::transform(type.begin(), type.end(), type.begin(), ::toupper);
+                // std::string type = args[5];
+
+                if (!(tg->column_map.count(col))) {
+                    throw std::runtime_error("COLUMN["+col+"] NOT FOUND");
+                }
+
+                auto &colRef = tg->columns[tg->column_map[col]];
+                std::string type="";
+                if (colRef.type == ColType::INT32) {
+                    type = "INT";
+                } else if (colRef.type == ColType::FLOAT32)  {
+                    type = "FLOAT";
+                } else if (colRef.type == ColType::TEXT) {
+                    type = "TEXT";
+                } else if (colRef.type == ColType::VECTOR_F32) {
+                    type = "VECTOR";
+                }
 
                 uint32_t total = tg->GetRowCount(col);
-                if ((uint32_t)offset >= total) return "Offset out of bounds";
+                if ((uint32_t)offset >= total) {
+                    return "Offset out of bounds";
+                }
                 int end = std::min((int)total, offset + limit);
                 
                 result_ss << "Rows " << offset << "-" << (end-1) << ":\n";
