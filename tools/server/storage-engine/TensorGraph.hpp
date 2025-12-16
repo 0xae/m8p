@@ -860,6 +860,7 @@ public:
                     }
 
                     if (pcols.size()>0) {
+                        result_ss  << "rowid=" << id << " | ";
                         for (auto COLUMN_NAME : pcols) {
                             if (tg->column_map.count(COLUMN_NAME)) {
                                 auto &col = tg->columns[tg->column_map[COLUMN_NAME]];
@@ -875,6 +876,7 @@ public:
                                 } else {
                                     continue;
                                 }
+
                                 // std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+args[2]+", "+std::to_string(id)+", "+typeL+")";
                                 std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+COLUMN_NAME+", "+std::to_string(id)+", "+typeL+")";
                                 std::cout << "COMMAND: " << COMMAND << "\n" << std::endl;
