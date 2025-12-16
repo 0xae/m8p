@@ -90,6 +90,7 @@ void print_help() {
     std::cout << "  FILTER(analytics, Global, sales, >, 10, 5)\n";
     std::cout << "  FILTER(analytics, Global, sales, <, 10, 20) -- default\n";
     std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) |> project(sector) -- default\n";
+    std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) |> project(sector,date) -- default\n";
     std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0, TEXT);\n\n"
 
     ;
