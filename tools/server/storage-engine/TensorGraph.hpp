@@ -842,6 +842,7 @@ public:
 
                 if (should_project) {
                     std::string project_cols = args_content.substr(pjt_idx);
+                    std::cout << "project_cols: " << project_cols << "\n";
                     pcols = split(project_cols, ",");
                 } else {
                     result_ss << "[";
