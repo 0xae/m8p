@@ -17,6 +17,12 @@
 #include <immintrin.h>
 #endif
 
+// --- ARCHITECTURE DEFINITIONS ---
+
+// A ColumnGroup is a physical storage unit (One TensorGraph Instance).
+// It holds a subset of a Table's columns (e.g., just the Vectors, or just the PII).
+
+
 // --- Configuration & Constants ---
 // Define alignment for AVX-512 (64 bytes) or AVX2 (32 bytes)
 constexpr size_t ALIGNMENT_BYTES = 64; 
