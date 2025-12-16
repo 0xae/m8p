@@ -886,12 +886,6 @@ public:
                     result_ss << "[";
                 }
 
-                std::cout << "pcols: ";
-                for (auto &s : pcols) {
-                    std::cout << s << " ";
-                }
-                std::cout << "\n";
-
                 for(auto id : results) {
                     if (count++ >= limit) {
                         break;
@@ -917,7 +911,7 @@ public:
 
                                 // std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+args[2]+", "+std::to_string(id)+", "+typeL+")";
                                 std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+COLUMN_NAME+", "+std::to_string(id)+", "+typeL+")";
-                                std::cout << "COMMAND: " << COMMAND << "\n" << std::endl;
+                                // std::cout << "COMMAND: " << COMMAND << "\n" << std::endl;
                                 std::string result__x = Execute(db, COMMAND);
                                 result_ss  << result__x << " | ";                     
                             }
