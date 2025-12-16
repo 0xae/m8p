@@ -616,8 +616,8 @@ private:
             if (token.size()>0) {                
                 res.push_back (token);
             }
-            res.push_back (token);
         }
+
         res.push_back(s.substr(pos_start));
         return res;
     }
@@ -852,7 +852,7 @@ public:
                 for (auto &s : pcols) {
                     std::cout << s << " ";
                 }
-                std::cout  << "\n";
+                std::cout << "\n";
 
                 for(auto id : results) {
                     if (count++ >= limit) {
