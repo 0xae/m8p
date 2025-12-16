@@ -6568,11 +6568,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
         }
     }
 
-    size_t c_start = rsource.find('#');
+    size_t c_start = rsource.find("#");
     if (c_start!=std::string::npos) {
         rsource = rsource.substr(0, c_start);
     }
-    c_start = rsource.find('--');
+    c_start = rsource.find("--");
     if (c_start!=std::string::npos) {
         rsource = rsource.substr(0, c_start);
     }
