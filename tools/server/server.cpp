@@ -20,6 +20,7 @@
 // auto generated files (see README.md for details)
 #include "index.html.gz.hpp"
 #include "loading.html.hpp"
+#include "storage-engine/TensorGraph.hpp"
 
 #include <atomic>
 #include <chrono>

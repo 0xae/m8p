@@ -16,6 +16,7 @@
 
 // Check for AVX support via compiler flags
 #if defined(__AVX2__) || defined(__AVX512F__)
+#warning TensorGraph[storage-engine]: AV2 or AV512F are available 
 #include <immintrin.h>
 #endif
 
@@ -180,6 +181,10 @@ public:
     }
 
     void CreateColumn(const std::string& name, ColType type, uint32_t initial_capacity, int dim = 0) {
+        if (name.size()>30) {
+         throw std::runtime_error("Name should not be longer than 30 chars.");   
+        }
+
         if (column_map.find(name) != column_map.end()) throw std::runtime_error("Column exists");
         ColumnHeader header;
         std::strncpy(header.name, name.c_str(), 31);
