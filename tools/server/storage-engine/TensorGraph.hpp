@@ -17,7 +17,7 @@
 // Check for AVX support via compiler flags
 #if defined(__AVX2__) || defined(__AVX512F__)
 #warning TensorGraph[storage-engine]: AV2 or AV512F are available 
-#include <immintrin.h>
+// #include <immintrin.h>
 #endif
 
 // --- Configuration & Constants ---
