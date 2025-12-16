@@ -817,7 +817,7 @@ public:
             }
             else if (cmd == "FILTER") {
                 if (args.size() < 5) {
-                    throw std::runtime_error("Req: table, group, col, operator, value, [limit]");
+                    throw std::runtime_error("FILTER (table, group, col, operator, value, [limit]) |> project(field,field2,...)");
                 }
                 auto &colName = args[2];
                 BigTable* t = db.GetTable(args[0]);
@@ -843,7 +843,7 @@ public:
 
                 if (should_project) {
                     std::string project_cols = args_content.substr(pjt_idx+filter_syntax.size());
-                    std::cout << "project_cols: " << project_cols << "\n";
+                    // std::cout << "project_cols: " << project_cols << "\n";
                     pcols = split(project_cols, ",");
                 } else {
                     result_ss << "[";
@@ -870,7 +870,8 @@ public:
                                 } else {
                                     continue;
                                 }
-                                std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+args[2]+", "+std::to_string(id)+", "+typeL+")";
+                                // std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+args[2]+", "+std::to_string(id)+", "+typeL+")";
+                                std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+COLUMN_NAME+", "+std::to_string(id)+", "+typeL+")";
                                 std::cout << "COMMAND: " << COMMAND << "\n" << std::endl;
                                 std::string result__x = Execute(db, COMMAND);
                                 result_ss  << result__x << "\t";                     
