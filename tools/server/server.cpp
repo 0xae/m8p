@@ -9001,12 +9001,13 @@ std::string M8_BANNER =
                 // sleep(2);
                 {
                     const std::lock_guard<std::mutex> lock(g_session);
+                    if (GlobalSession[id_session].db!=nullptr) {
+                        delete GlobalSession[id_session].db;
+                    }
                     GlobalSession.erase(id_session);
                 }
+
                 m8p::DestroyMP8(m8);
-                if (m8Session.db!=nullptr) {
-                    delete m8Session.db;
-                }
 
                 return false;
 
