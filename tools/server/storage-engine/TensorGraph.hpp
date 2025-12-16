@@ -664,6 +664,9 @@ public:
             std::string args_content = query.substr(paren_pos + 1);
             if (args_content.back() == ')') args_content.pop_back();
 
+            std::cout << "args_content: " << args_content
+                << "\n" << std::endl;
+
             std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
             std::vector<std::string> args = parse_arguments(args_content);
             std::stringstream result_ss;
@@ -745,7 +748,10 @@ public:
                 return "Updated.";
             }
             else if (cmd == "GET") {
-                if (args.size() < 5) throw std::runtime_error("Req: table, group, col, row_id, TYPE");
+                if (args.size() < 5) {
+                    throw std::runtime_error("Req: table, group, col, row_id, TYPE");
+                }
+
                 BigTable* t = db.GetTable(args[0]);
                 TensorGraph* tg = t->GetGroup(args[1]);
                 std::string type = args[4];
