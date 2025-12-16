@@ -1,0 +1,1 @@
+g++ tests.cpp -o tests -O3 -lreadline -march=native
