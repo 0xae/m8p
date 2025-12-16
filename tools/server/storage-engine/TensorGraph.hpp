@@ -786,7 +786,9 @@ public:
                 return result_ss.str();
             }
             else if (cmd == "FILTER") {
-                if (args.size() < 5) throw std::runtime_error("Req: table, group, col, operator, value");
+                if (args.size() < 5) {
+                    throw std::runtime_error("Req: table, group, col, operator, value, [limit]");
+                }
                 BigTable* t = db.GetTable(args[0]);
                 TensorGraph* tg = t->GetGroup(args[1]);
                 auto results = tg->Filter(args[2], args[3], args[4]);
@@ -797,11 +799,14 @@ public:
                 
                 // result_ss << "Found " << results.size() << "-matches: ";
                 int limit = 20; 
+                if (args.size()>5) {
+                    limit = std::stoi(args[5]);
+                }
                 int count = 0;
                 int step = 0;
+                result_ss << "[";
                 for(auto id : results) {
                     if (count++ >= limit) {
-                        result_ss << "More=" << (results.size() - limit);
                         break;
                     }
                     result_ss << id; 
@@ -810,7 +815,12 @@ public:
                     }
                     step += 1;
                 }
-                return  "[" + result_ss.str() + "] Found=" + std::to_string(results.size());
+                result_ss << "]";
+                if (count>limit) {
+                    result_ss << " More=" << (results.size() - limit);
+                }
+                result_ss << " | Found=" << std::to_string(results.size());
+                return result_ss.str();
             }
             else if (cmd == "SEARCH") {
                 if (args.size() < 5) throw std::runtime_error("Req: table, group, col, [vec], top_k");
