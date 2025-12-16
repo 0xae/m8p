@@ -914,6 +914,8 @@ public:
                                 // std::cout << "COMMAND: " << COMMAND << "\n" << std::endl;
                                 std::string result__x = Execute(db, COMMAND);
                                 result_ss  << result__x << " | ";                     
+                            } else {
+                                throw std::runtime_error("COLUMN NOT FOUND: " + COLUMN_NAME);
                             }
                         }
                         result_ss  << "\n";
