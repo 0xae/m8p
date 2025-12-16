@@ -669,6 +669,13 @@ public:
     static std::string Execute(NativeMetaDB& db, std::string query) {
         try {
             query = trim(query);
+            if (query.find("--")!=std::string::npos) {
+                query = query.substr(0, query.find("--"));
+            }
+            if (query.find("#")!=std::string::npos) {
+                query = query.substr(0, query.find("#"));
+            }
+
             if (query.empty()) return "";
             if (query.back() == ';') query.pop_back();
 

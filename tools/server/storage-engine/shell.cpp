@@ -92,7 +92,7 @@ void print_help() {
     std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) |> project(sector) -- default\n";
     std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) |> project(sector,date) -- default\n";
     std::cout << "  FILTER(company, Details, status, ILIKE, Active, 10) |> project(name,status) -- default\n";
-    std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0, TEXT);\n\n"
+    std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n\n"
 
     ;
 }
