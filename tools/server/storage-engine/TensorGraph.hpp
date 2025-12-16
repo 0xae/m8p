@@ -523,6 +523,7 @@ struct BigTable {
 
 class NativeMetaDB {
     std::unordered_map<std::string, std::unique_ptr<BigTable>> tables;
+    friend class TGQL;
 public:
     BigTable* CreateTable(const std::string& name) {
         // IDEMPOTENT: If table exists, return it (so scripts can re-run after reset)
@@ -852,8 +853,8 @@ public:
 
                     if (pcols.size()>0) {
                         for (auto &COLUMN_NAME : pcols) {
-                            if (column_map.count(COLUMN_NAME)) {
-                                auto &col = columns[column_map[COLUMN_NAME]];
+                            if (db.column_map.count(COLUMN_NAME)) {
+                                auto &col = db.columns[db.column_map[COLUMN_NAME]];
                                 std::string typeL="";
                                 if (col.type == ColType::INT32) {
                                     typeL = "INT";
