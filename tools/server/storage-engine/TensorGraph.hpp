@@ -685,8 +685,8 @@ public:
             std::string args_content = query.substr(paren_pos + 1);
             if (args_content.back() == ')') args_content.pop_back();
 
-            std::cout << "args_content: " << args_content
-                << "\n" << std::endl;
+            // std::cout << "args_content: " << args_content
+            //     << "\n" << std::endl;
 
             std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
             std::vector<std::string> args = parse_arguments(args_content);
@@ -855,7 +855,7 @@ public:
                     }
 
                     if (pcols.size()>0) {
-                        for (auto &COLUMN_NAME : pcols) {
+                        for (auto COLUMN_NAME : pcols) {
                             if (tg->column_map.count(COLUMN_NAME)) {
                                 auto &col = tg->columns[tg->column_map[COLUMN_NAME]];
                                 std::string typeL="";
