@@ -54,20 +54,35 @@ void sigint_handler(int sig) {
 void print_help() {
     std::cout << "\n" << Colors::BOLD << Colors::MAGENTA << "=== M8 Native Storage Engine Help ===" << Colors::RESET << "\n\n";
     std::cout << Colors::YELLOW << "ARCHITECTURE:" << Colors::RESET << "\n";
-    std::cout << "  MetaDB -> BigTable -> ColumnGroup -> TensorGraph\n\n";
+    std::cout << "  MetaDB -> BigTable -> ColumnGroup -> TensorGraph\n";
+    std::cout << "  * " << Colors::CYAN << "BigTable" << Colors::RESET << ": Logical collection of data (e.g., 'Users', 'Products').\n";
+    std::cout << "  * " << Colors::CYAN << "ColumnGroup" << Colors::RESET << ": Physical storage engine separating data types (e.g., 'vectors' for AVX access, 'meta' for text).\n";
+    std::cout << "  * " << Colors::CYAN << "Column" << Colors::RESET << ": Typed array inside the engine.\n\n";
     
     std::cout << Colors::YELLOW << "COMMANDS:" << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "CREATE_TABLE" << Colors::RESET << "(name)\n";
     std::cout << "  " << Colors::GREEN << "CREATE_GROUP" << Colors::RESET << "(table, group, size_mb, role)\n";
     std::cout << "  " << Colors::GREEN << "CREATE_COLUMN" << Colors::RESET << "(table, group, name, type, [dim])\n";
-    std::cout << "  " << Colors::GREEN << "ADD_ROW" << Colors::RESET << "(table, group)\n";
+    std::cout << "      Types: " << Colors::BOLD << "INT, FLOAT, TEXT, VECTOR" << Colors::RESET << "\n";
+    std::cout << "  " << Colors::GREEN << "ADD_ROW" << Colors::RESET << "(table, group, val1...)\n";
+    std::cout << "      " << Colors::DIM << "Note: Currently reserves a row. Use UPDATE to set values." << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "UPDATE" << Colors::RESET << "(table, group, col, row_id, val)\n";
     std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id, type_hint)\n";
     std::cout << "  " << Colors::GREEN << "SELECT" << Colors::RESET << "(table, group, col, limit, offset, type_hint)\n";
     std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k)\n";
     std::cout << "  " << Colors::GREEN << "STATS" << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "EXIT" << Colors::RESET << "\n\n";
+
+    std::cout << Colors::YELLOW << "EXAMPLES:" << Colors::RESET << "\n";
+    std::cout << "  CREATE_TABLE(\"Users\");\n";
+    std::cout << "  CREATE_GROUP(\"Users\", \"Bio\", 64, \"data\");\n";
+    std::cout << "  CREATE_COLUMN(\"Users\", \"Bio\", \"name\", TEXT);\n";
+    std::cout << "  ADD_ROW(\"Users\", \"Bio\");\n";
+    std::cout << "  UPDATE(\"Users\", \"Bio\", \"name\", 0, \"Alice\");\n";
+    std::cout << "  GET(\"Users\", \"Bio\", \"name\", 0, TEXT);\n";
+    std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0, TEXT);\n\n";
 }
+
 
 int main() {
     signal(SIGINT, sigint_handler);
