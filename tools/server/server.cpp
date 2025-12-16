@@ -6528,6 +6528,18 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
 }
 
+struct SQL_Colors {
+    static constexpr const char* RESET   = "\033[0m";
+    static constexpr const char* RED     = "\033[31m";
+    static constexpr const char* GREEN   = "\033[32m";
+    static constexpr const char* YELLOW  = "\033[33m";
+    static constexpr const char* BLUE    = "\033[34m";
+    static constexpr const char* MAGENTA = "\033[35m";
+    static constexpr const char* CYAN    = "\033[36m";
+    static constexpr const char* BOLD    = "\033[1m";
+    static constexpr const char* DIM     = "\033[2m";
+};
+
 std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
         server_context *ctx_server,
         m8p::M8System* M8, 
@@ -6536,9 +6548,9 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
 {
 
     int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
-    if (psize < 1) {
+    if (psize < 2) {
         return std::make_pair(
-            m8p::errorf("tg_exec requires at least 1 parameter (sql query or register)"),
+            m8p::errorf("tg_exec <rout> sqlquery #requires at least 2 parameter (output-register and sql query)"),
             M8->nilValue
         );
     }
@@ -6546,10 +6558,11 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
     std::string sessionId = M8->Name;
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
     auto &db = GlobalSession[sessionId].db;
-    std::string rsource = params.at(1);// prompt register
+    std::string rdest = params.at(1);// output register
+    std::string rsource = params.at(2);// input prompt (interpolated maybe) register
 
-    if (psize>1) {
-        for (uint32_t i=2; i<params.size(); ++i) {
+    if (psize>2) {
+        for (uint32_t i=3; i<params.size(); ++i) {
             std::string v = params.at(i);
             rsource = rsource + " " + v;
         }
