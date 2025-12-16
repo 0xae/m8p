@@ -11,6 +11,11 @@
 #include <iomanip>
 #include <unordered_map>
 
+// Check for AVX2 support via compiler flags
+#if defined(__AVX2__)
+#include <immintrin.h>
+#endif
+
 // --- Configuration & Constants ---
 // Define alignment for AVX-512 (64 bytes) or AVX2 (32 bytes)
 constexpr size_t ALIGNMENT_BYTES = 64; 
@@ -36,16 +41,48 @@ struct ColumnHeader {
     RelPtr data_offset;  // Points to the data array start
 };
 
-// --- SIMD Helpers (Placeholder for actual intrinsics) ---
+// --- SIMD Helpers ---
+// Uses AVX2 if available, falls back to standard loop otherwise.
 inline float l2_sq_simd(const float* a, const float* b, int dim) {
+#if defined(__AVX2__)
+#warning AVX2 IS AVAILABLE
+    // AVX2 Implementation (8 floats at a time)
+    __m256 sum = _mm256_setzero_ps();
+    int i = 0;
+    // Process 8 floats per step
+    for (; i <= dim - 8; i += 8) {
+        // We can use aligned load (_mm256_load_ps) because our arena allocator
+        // ensures 64-byte alignment for vector columns. 
+        // Using loadu (unaligned) just to be safe if 'a' comes from outside.
+        __m256 v1 = _mm256_loadu_ps(a + i);
+        __m256 v2 = _mm256_loadu_ps(b + i);
+        __m256 diff = _mm256_sub_ps(v1, v2);
+        // fmadd requires FMA3 support, essentially free on modern CPUs
+        // If FMA not present, use: sum = _mm256_add_ps(sum, _mm256_mul_ps(diff, diff));
+        sum = _mm256_fmadd_ps(diff, diff, sum); 
+    }
+    
+    // Horizontal sum of the 8 float lanes
+    float result[8];
+    _mm256_storeu_ps(result, sum);
+    float total = result[0] + result[1] + result[2] + result[3] + 
+                  result[4] + result[5] + result[6] + result[7];
+
+    // Clean up remaining elements (if dim is not multiple of 8)
+    for (; i < dim; ++i) {
+        float diff = a[i] - b[i];
+        total += diff * diff;
+    }
+    return total;
+#else
+    // Fallback Implementation
     float sum = 0.0f;
-    // Auto-vectorization friendly loop
-    // In production, replace with _mm256_fmadd_ps etc.
     for(int i=0; i<dim; ++i) {
         float diff = a[i] - b[i];
         sum += diff * diff;
     }
     return sum;
+#endif
 }
 
 // --- TensorGraph Engine ---

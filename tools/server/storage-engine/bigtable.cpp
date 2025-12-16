@@ -52,8 +52,7 @@ public:
 };
 
 // --- MAIN EXECUTION ---
-// g++ main.cpp -o tensorgraph -O3 -march=native
-// ./tensorgraph
+// g++ main.cpp -o tensorgraph -O3 -march=native ./tensorgraph
 
 int main() {
     try {
