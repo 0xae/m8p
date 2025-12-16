@@ -799,7 +799,7 @@ public:
                         result_ss << "... (" << (results.size() - limit) << " more)\n";
                         break;
                     }
-                    result_ss << " [" << id << "]\n"; 
+                    result_ss << " [" << id << "], "; 
                 }
                 return result_ss.str();
             }
