@@ -763,27 +763,53 @@ public:
                 RowID rid = std::stoi(args[3]);
                 std::string val = args[4];
 
-                if (val.find('[') != std::string::npos) tg->SetVector(col, rid, parse_vector_data(val));
-                else if (val.find_first_not_of("0123456789-") == std::string::npos) tg->SetInt(col, rid, std::stoi(val));
-                else if (val.find('.') != std::string::npos) {
-                    try { tg->SetFloat(col, rid, std::stof(val)); } 
-                    catch(...) { tg->SetText(col, rid, val); }
-                } else tg->SetText(col, rid, val);
+                if (val.find('[') != std::string::npos) {
+                    tg->SetVector(col, rid, parse_vector_data(val));
+
+                } else if (val.find_first_not_of("0123456789-") == std::string::npos) {
+                    tg->SetInt(col, rid, std::stoi(val));
+
+                } else if (val.find('.') != std::string::npos) {
+                    try { 
+                        tg->SetFloat(col, rid, std::stof(val)); 
+                    } catch(...) { 
+                        tg->SetText(col, rid, val); 
+                    }
+
+                } else {
+                    tg->SetText(col, rid, val);
+                }
+
                 return "Updated.";
             }
             else if (cmd == "GET") {
-                if (args.size() < 5) {
+                if (args.size()<4) {
                     throw std::runtime_error("Req: table, group, col, row_id, TYPE");
                 }
 
                 BigTable* t = db.GetTable(args[0]);
                 TensorGraph* tg = t->GetGroup(args[1]);
-                std::string type = args[4];
-                std::transform(type.begin(), type.end(), type.begin(), ::toupper);
-                
-                if (type == "TEXT") return tg->GetText(args[2], std::stoi(args[3]));
-                else if (type == "INT") return std::to_string(tg->GetInt(args[2], std::stoi(args[3])));
-                else if (type == "FLOAT") return std::to_string(tg->GetFloat(args[2], std::stoi(args[3])));
+                std::string colName = args[2];
+                if (!(tg->column_map.count(colName))) {
+                    throw std::runtime_error("COLUMN["+colName+"] NOT FOUND");                    
+                }
+
+                // std::transform(type.begin(), type.end(), type.begin(), ::toupper);
+                auto &col = tg->columns[tg->column_map[colName]];
+                std::string typeL="";
+                if (col.type == ColType::INT32) {
+                    typeL = "INT";
+                } else if (col.type == ColType::FLOAT32)  {
+                    typeL = "FLOAT";
+                } else if (col.type == ColType::TEXT) {
+                    typeL = "TEXT";
+                } else if (col.type == ColType::VECTOR_F32) {
+                    typeL = "VECTOR";
+                }
+
+                if (typeL == "TEXT") return tg->GetText(colName, std::stoi(args[3]));
+                else if (typeL == "INT") return std::to_string(tg->GetInt(colName, std::stoi(args[3])));
+                else if (typeL == "FLOAT") return std::to_string(tg->GetFloat(colName, std::stoi(args[3])));
                 return "Unknown type hint";
             }
             else if (cmd == "SELECT") {
