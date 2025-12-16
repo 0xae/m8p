@@ -842,7 +842,7 @@ public:
                 std::vector<std::string> pcols;
 
                 if (should_project) {
-                    std::string project_cols = args_content.substr(filter_syntax.size());
+                    std::string project_cols = args_content.substr(pjt_idx+filter_syntax.size());
                     std::cout << "project_cols: " << project_cols << "\n";
                     pcols = split(project_cols, ",");
                 } else {
