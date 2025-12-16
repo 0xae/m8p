@@ -906,7 +906,7 @@ public:
                                 } else if (col.type == ColType::VECTOR_F32) {
                                     typeL = "VECTOR";
                                 } else {
-                                    continue;
+                                    throw std::runtime_error("COLUMN TYPE NOT FOUND: " + COLUMN_NAME);
                                 }
 
                                 // std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+args[2]+", "+std::to_string(id)+", "+typeL+")";
