@@ -836,12 +836,13 @@ public:
 
                 int count = 0;
                 std::vector<std::string> rows;
-                auto pjt_idx=args_content.find("|> project(");
+                const std::string filter_syntax = "|> project(";
+                auto pjt_idx=args_content.find(filter_syntax);
                 auto should_project = (pjt_idx!=std::string::npos);
                 std::vector<std::string> pcols;
 
                 if (should_project) {
-                    std::string project_cols = args_content.substr(pjt_idx);
+                    std::string project_cols = args_content.substr(filter_syntax.size());
                     std::cout << "project_cols: " << project_cols << "\n";
                     pcols = split(project_cols, ",");
                 } else {
