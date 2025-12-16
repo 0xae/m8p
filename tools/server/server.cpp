@@ -6615,7 +6615,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
         rsource = interpolated;
     }
 
-    std::string result = TGQL::Execute(db, rsource);
+    std::string result = TGQL::Execute(*db, rsource);
     if (result.rfind("Error:", 0) == 0) {
         return std::make_pair(
             m8p::errorf("tg_exec: "+result),
@@ -9375,6 +9375,7 @@ std::string M8_BANNER =
             GlobalSession[id_session].name = id_session;
             GlobalSession[id_session].exec_calls = 0;
             GlobalSession[id_session].m8 = m8;
+            GlobalSession[id_session].db = new NativeMetaDB;
             m8 = m8p::M8P_Instance(id_session);
         }
 
@@ -9470,6 +9471,9 @@ std::string M8_BANNER =
 
         {
             const std::lock_guard<std::mutex> lock(g_session);
+            if (GlobalSession[id_session].db!=nullptr) {
+                delete GlobalSession[id_session].db;
+            }
             GlobalSession.erase(id_session);
         }
         m8p::DestroyMP8(m8);
