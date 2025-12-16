@@ -592,6 +592,7 @@ public:
 
 // --- TGQL (TensorGraph Query Language) ENGINE ---
 
+
 class TGQL {
 private:
     static std::string trim(const std::string& str) {
@@ -599,6 +600,24 @@ private:
         if (std::string::npos == first) return str;
         size_t last = str.find_last_not_of(' ');
         return str.substr(first, (last - first + 1));
+    }
+
+    static std::vector<std::string> split(std::string &s, std::string &delimiter) {
+        size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+        std::string token;
+        std::vector<std::string> res;
+
+        while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+            token = s.substr (pos_start, pos_end - pos_start);
+            pos_start = pos_end + delim_len;
+            trim(token);
+            if (token.size()>0) {                
+                res.push_back (token);
+            }
+            res.push_back (token);
+        }
+        res.push_back(s.substr(pos_start));
+        return res;
     }
 
     static std::vector<std::string> parse_arguments(const std::string& args_str) {
@@ -683,7 +702,10 @@ public:
                 return "Group '" + args[1] + "' created (or exists).";
             }
             else if (cmd == "CREATE_COLUMN") {
-                if (args.size() < 4) throw std::runtime_error("Req: table, group, name, type, [dim]");
+                if (args.size() < 4) {
+                    throw std::runtime_error("Req: table, group, name, type, [dim]");
+                }
+
                 BigTable* t = db.GetTable(args[0]);
                 TensorGraph* tg = t->GetGroup(args[1]);
                 int dim = 0;
@@ -795,9 +817,10 @@ public:
                 if (args.size() < 5) {
                     throw std::runtime_error("Req: table, group, col, operator, value, [limit]");
                 }
+                auto &colName = args[2];
                 BigTable* t = db.GetTable(args[0]);
                 TensorGraph* tg = t->GetGroup(args[1]);
-                auto results = tg->Filter(args[2], args[3], args[4]);
+                auto results = tg->Filter(colName, args[3], args[4]);
 
                 if (results.size()==0){
                     return "[]";
@@ -810,18 +833,69 @@ public:
                 }
 
                 int count = 0;
-                result_ss << "[";
+                std::vector<std::string> rows;
+                auto pjt_idx=args_content.find("|> project(");
+                auto should_project = (pjt_idx!=std::string::npos);
+                std::vector<std::string> pcols;
+
+                if (should_project) {
+                    std::string project_cols = args_content.substr(pjt_idx);
+                    pcols = split(project_cols, ",");
+                } else {
+                    result_ss << "[";
+                }
+
                 for(auto id : results) {
                     if (count++ >= limit) {
                         break;
                     }
-                    result_ss << id << ","; 
+
+                    if (pcols.size()>0) {
+                        for (auto &COLUMN_NAME : pcols) {
+                            if (column_map.count(COLUMN_NAME)) {
+                                auto &col = columns[column_map[COLUMN_NAME]];
+                                std::string typeL="";
+                                if (col.type == ColType::INT32) {
+                                    typeL = "INT";
+                                } else if (col.type == ColType::FLOAT32)  {
+                                    typeL = "FLOAT";
+                                } else if (col.type == ColType::TEXT) {
+                                    typeL = "TEXT";
+                                } else if (col.type == ColType::VECTOR_F32) {
+                                    typeL = "VECTOR";
+                                } else {
+                                    continue;
+                                }
+                                std::string COMMAND =  "GET("+
+                                    args[0]+", "+
+                                    args[1]+", "+
+                                    args[2]+", "+
+                                    id+", "+
+                                    typeL+
+                                ")";
+                                std::string result__x = Execute(db, COMMAND);
+                                result_ss  << result__x << "\t";                     
+                            }
+                        }
+                        result_ss  << "\n";
+                    } else {
+                        result_ss << id << ","; 
+                    }
                 }
-                result_ss << "]";
+
+                if (pcols.size()==0) {
+                    result_ss << "]";
+                }
+
                 if (count>limit) {
                     result_ss << " More=" << (results.size() - limit);
                 }
                 result_ss << " | Found=" << std::to_string(results.size());
+
+                // if (pjt_idx != std::string::npos) {
+                //     std::string project_cols = args_content.substr(pjt_idx);
+                // }
+
                 return result_ss.str();
             }
             else if (cmd == "SEARCH") {
