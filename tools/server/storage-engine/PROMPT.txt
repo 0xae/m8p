@@ -1,0 +1,94 @@
+So the idea is that i'be been building rags atop relation and 
+non-relational database and i just think its hard making this mapping 
+and optimizing the fields, optimizing and verifying the generated 
+queries to never include more than LIMIT. Also avoiding JOINS like the 
+plague.
+
+Okey great. So now what i want to do is a research project for a Native AI Database, built from the group up to serve solve these problems and better handle AI Workloads and goes beyond vector database.
+
+Codebase: C++, single header no dependency beyond stdlib
+
+Some ideas i have, is that this would be columnar database with native support for f16 vectors, somekind of relationships like graph,  support for TEXT (std::string), ARRAY[FLOAT],ARRAY[INT], ARRAY[TEXT], FLOAT, INT, VECTOR(dim,ef_construct,M). Native support for Vector acceleration has it was done by the M8P implementation.
+
+Secondary indexes and Primary Indexes to avoid table scans.
+
+Also think about how this could be a modern database, in which i have a multi-value column in the form of ARRAY[TEXT] or i have a VECTOR(dim,ef_construct,M), full text search operators,
+
+We have tons of memory and the avx,vnni,hwnslib libraries, the idea here is to come up with something that gives me the performance of clickhouse but the ability to handle analytics workloads and easy filtering.
+
+
+Single allocation or static allocation on the stack.
+
+Lets start brainstorming ideas.
+
+==============================================================
+==============================================================
+
+This is a fascinating challenge. You are essentially describing a Dataframe-Database Hybrid—something that sits between the raw speed of a game engine’s Entity Component System (ECS) and the durability of a database, specifically tuned for the access patterns of LLMs and RAG.
+
+To achieve "ClickHouse performance" with "Graph capabilities" in a single-header C++ library with no dependencies, we need to be radical. We must abandon standard OOP overhead, standard allocators, and standard SQL parsing.
+
+Here is a brainstorming blueprint for "TensorGraph" (working title).
+1. Core Philosophy: The "Monolith" Memory Model
+
+To satisfy the "single allocation" requirement and maximize cache locality, the database should effectively be one giant struct.
+
+    Zero-Copy Serialization: The on-disk format is identical to the in-memory format. You mmap the file, and you are live.
+
+    The Arena: We allocate a massive contiguous block (e.g., 64GB). All data structures (Vectors, Strings, Arrays) live inside this block using Relative Pointers (integer offsets relative to the arena base) rather than absolute 64-bit pointers.
+
+        Benefit: The entire DB is position-independent. You can save it to disk and load it at a different address instantly.
+
+    Columnar Strides: Data is stored column-wise. To read the FLOAT embedding of row 5, you calculate BaseAddress + ColumnOffset + (5 * sizeof(float)).
+
+2. The Type System: "Everything is a Tensor"
+
+In modern AI, even text is just a sequence of tokens (ints).
+
+    f16 Support: Since the C++ stdlib doesn't fully standardize f16 math everywhere yet, we store them as uint16_t bits but use AVX-512 FP16 (or VNNI intrinsics) to cast and compute during the query hot-path.
+
+    Multi-Value Columns (ARRAY): Implemented as a "List of Lists".
+
+        Column A (Offsets): [0, 2, 5, ...]
+
+        Column B (Data): [Val1, Val2, Val3, Val4, Val5, ...]
+
+        Row 0 has values from index 0 to 2. Row 1 has values from 2 to 5.
+
+    The Graph Link: Instead of a Foreign Key, we use a Direct Index Pointer.
+
+        Column parent_doc_id doesn't store a UUID. It stores the literal uint32_t Row Index of the parent in the Documents table.
+
+        Join Cost: Zero. It is just a memory dereference.
+
+3. Indexing Strategy: "Filter-First, Search-Second"
+
+RAG workloads usually look like: "Find me vectors near X, BUT only for User Y and created after Date Z."
+
+    Primary Index: A dense, sorted array of 64-bit hashes of IDs. Binary search is cache-friendly and fast enough for lookups.
+
+    Secondary Index (Bitmaps): For low-cardinality fields (Tags, Categories), use Roaring-style bitmaps.
+
+    Secondary Index (Inverted): For Full Text Search. A simple Token -> List<RowID> map.
+
+    Vector Index (HNSW-Flat):
+
+        Standard HNSW uses too many pointers. We implement a implicit heap HNSW.
+
+        Store the graph edges in a struct-of-arrays layout. Edges[Level][NodeID] returns a contiguous list of neighbors.
+
+        We do not store the vector data inside the HNSW node. The HNSW node only holds the RowID. It reads the vector data from the main Columnar store during distance calculation.
+
+4. The Query Execution Model: SIMD-Native
+
+We don't parse SQL strings. We expose a C++ fluent builder pattern that constructs a "Query Plan" struct, which executes via function pointers optimized for AVX.
+
+The "Fused" Filter: Instead of Filter -> Materialize -> VectorSearch, we do Pre-filtering.
+
+    Execute Scalar Filters (User ID, Date) -> Generate a BitSet of valid Row IDs.
+
+    Execute Vector Search -> During graph traversal, when looking at neighbors, check the BitSet. If the bit is 0, logically "delete" that node from the traversal (or penalize distance).
+
+5. Architectural Sketch (Code Concepts)
+
+Here is how a Single-Header, Arena-based architecture might look in C++:

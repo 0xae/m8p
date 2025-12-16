@@ -1,0 +1,41 @@
+## Define Columns const int MAX_PER_COLUMN = 10000;
+
+tg_exec <r3> CREATE_TABLE(company);
+
+tg_exec <r3> CREATE_GROUP(company, Details, 64, "metadata");
+tg_exec <r3> CREATE_COLUMN(company, Details, name, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Details, number, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Details, status, TEXT);
+
+tg_exec <r3> CREATE_GROUP(company, Officers, 64, "relations");
+tg_exec <r3> CREATE_COLUMN(company, Officers, name, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Officers, role, TEXT);
+
+tg_exec <r3> CREATE_GROUP(company, Embed, 128, "vectors");
+tg_exec <r3> CREATE_COLUMN(company, Embed, face_vec, VECTOR, 128); 
+
+
+## INDEX
+tg_exec <r3> ADD_ROW(company, Details); 
+tg_exec <r3> UPDATE(company, Details, name, 0, My Favorite Company);
+tg_exec <r3> UPDATE(company, Details, number, 0, "AC00123");
+tg_exec <r3> UPDATE(company, Details, status, 0, In Administration);
+assertcontains <r3> 
+
+tg_exec <r3> ADD_ROW(company, Details); 
+tg_exec <r3> UPDATE(company, Details, name, 1, Another Company);
+tg_exec <r3> UPDATE(company, Details, number, 1, "A9923");
+tg_exec <r3> UPDATE(company, Details, status, 1, In Liquidation);
+
+tg_exec <r3> ADD_ROW(company, Details); 
+tg_exec <r3> UPDATE(company, Details, name, 2, Third Company);
+tg_exec <r3> UPDATE(company, Details, number, 2, "A2323");
+tg_exec <r3> UPDATE(company, Details, status, 2, Active);
+
+## QUERY
+
+tg_exec <rnames> SELECT(company, Details, name, 10, 0, TEXT);
+tg_exec <rnumbers> SELECT(company, Details, number, 10, 0, TEXT);
+tg_exec <rstatus> SELECT(company, Details, status, 10, 0, TEXT);
+
+ret <rnames> <rnumbers> <rstatus>
