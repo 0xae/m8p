@@ -227,6 +227,7 @@ private:
         if (str.length() < suffix.length()) return false;
         return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
     }
+    friend class TGQL;
 
 public:
     TensorGraph(size_t size_mb) {
@@ -853,8 +854,8 @@ public:
 
                     if (pcols.size()>0) {
                         for (auto &COLUMN_NAME : pcols) {
-                            if (db.column_map.count(COLUMN_NAME)) {
-                                auto &col = db.columns[db.column_map[COLUMN_NAME]];
+                            if (tg.column_map.count(COLUMN_NAME)) {
+                                auto &col = tg.columns[tg.column_map[COLUMN_NAME]];
                                 std::string typeL="";
                                 if (col.type == ColType::INT32) {
                                     typeL = "INT";
