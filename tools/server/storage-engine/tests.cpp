@@ -287,7 +287,7 @@ bool Test_EmptyQuery() {
 
 int main() {
     std::cout << "Running TensorGraphDB Test Suite...\n";
-    const PASSES_COUNT = 5;
+    const int PASSES_COUNT = 5;
     int passed = 0;
     int total = 0;
 
