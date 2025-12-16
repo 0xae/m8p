@@ -1,34 +1,3 @@
-/**
- *  
- * 
- * A storage architecture comprised of Tables and ColumnGroups
-this allows a table to distinguish Group of columns for a particular requirement.
-So for example i know a Company has many officers, Cases, has its detail, this architecture allows me to quickly detect all these
-children and scatter-gatter a parralel query across its columngroup and also allows for cross relationships to form and to be queries fast
-because there's no burden of IPC and all that a sqlengine entails.
-
-What do you think.
-
-BIGTABLE COMPANY
-    ----------------> Details (ColumnGroup) Metatable
-    ----------------> Officers (ColumnGroup) Metatable
-    ----------------> Cases (ColumnGroup) Metatable
-    ----------------> ...
-
-BIGTABLE OFFICERS
-   ------------------> Details (ColumnGroup) Metatable
-
-SO LIKE THIS
-
-struct TableDetails {
-    std::string tablename;
-    // ...
-    std::unordered_map<std::string, *TensorGraph> ColumnGroup;
-}
-
-std::unordered_map<std::string, TableDetails> DB;
- *  Ayrton Gomes 2025-12-16
-*/
 #pragma once
 
 #include <iostream>
@@ -41,6 +10,7 @@ std::unordered_map<std::string, TableDetails> DB;
 #include <stdexcept>
 #include <iomanip>
 #include <unordered_map>
+#include <memory>
 
 // Check for AVX support via compiler flags
 #if defined(__AVX2__) || defined(__AVX512F__)
@@ -76,7 +46,6 @@ struct ColumnHeader {
 // Uses AVX-512 or AVX2 if available, falls back to standard loop otherwise.
 inline float l2_sq_simd(const float* a, const float* b, int dim) {
 #if defined(__AVX512F__)
-#warning AVX512F IS AVAILABLE
     // AVX-512 Implementation (16 floats at a time)
     __m512 sum = _mm512_setzero_ps();
     int i = 0;
@@ -98,7 +67,6 @@ inline float l2_sq_simd(const float* a, const float* b, int dim) {
     return total;
 
 #elif defined(__AVX2__)
-#warning AVX2 IS AVAILABLE
     // AVX2 Implementation (8 floats at a time)
     __m256 sum = _mm256_setzero_ps();
     int i = 0;
@@ -229,12 +197,7 @@ public:
     }
 
     // --- API: Add Row (Simplified: Adds to ALL columns) ---
-    // Note: In a real DB, you'd insert dicts or tuples. 
-    // Here we assume user calls specific typed setters after "reserving" a row.
     RowID AddRow() {
-        // Naive: assumes all columns grow together. 
-        // Real columnar stores might compress/grow independently.
-        // Check capacity of first column (assuming sync)
         if (columns.empty()) return 0;
         
         uint32_t current_count = columns[0].count;
@@ -267,24 +230,18 @@ public:
         if(col.type != ColType::VECTOR_F32) throw std::runtime_error("Type mismatch");
         if(vec.size() != col.vector_dim) throw std::runtime_error("Dimension mismatch");
 
-        // Calculate pointer to start of vector in flat array
-        // data_offset + (row * dim * sizeof(float))
         float* dest = get_ptr<float>(col.data_offset) + (row * col.vector_dim);
         std::memcpy(dest, vec.data(), vec.size() * sizeof(float));
     }
 
-    // Text is tricky. For simple "Arena", we append string to end of allocations and store offset.
     void SetText(const std::string& col_name, RowID row, const std::string& text) {
         int idx = column_map.at(col_name);
         if(columns[idx].type != ColType::TEXT) throw std::runtime_error("Type mismatch");
         
-        // 1. Allocate string bytes (length + null terminator)
-        // Note: This is append-only. Updating text leaks old memory in this naive impl.
         RelPtr str_offset = allocate(text.size() + 1, 1);
         char* str_dest = get_ptr<char>(str_offset);
         std::memcpy(str_dest, text.c_str(), text.size() + 1);
 
-        // 2. Store offset in column
         *get_cell_ptr<RelPtr>(idx, row) = str_offset;
     }
 
@@ -310,23 +267,15 @@ public:
         return std::vector<float>(src, src + col.vector_dim);
     }
 
-    // --- API: Delete (Soft Delete) ---
-    // In columnar store, hard delete requires shifting data. Soft delete usually uses a mask.
-    // Here we simulate by zeroing or flagging.
     void DeleteRow(RowID row) {
-        // Mark text pointers as deleted? 
-        // Real impl: Use a separate BITMAP column for validity.
-        // For simplicity: We don't shift, just assume logic handles "gaps".
         std::cout << "[DB] Row " << row << " marked deleted (Logic not fully impl)\n";
     }
 
-    // --- API: Vector Search (Brute Force Scan) ---
     struct SearchResult {
         RowID id;
         float score;
     };
 
-    // Simple Linear Scan (Flat Index)
     std::vector<SearchResult> VectorSearch(const std::string& col_name, const std::vector<float>& query, int top_k) {
         int idx = column_map.at(col_name);
         ColumnHeader& col = columns[idx];
@@ -345,8 +294,6 @@ public:
             results.push_back({i, dist});
         }
 
-        // Sort (Partial sort is faster)
-        // For L2 distance, smaller is better.
         std::partial_sort(results.begin(), results.begin() + std::min((size_t)top_k, results.size()), results.end(), 
             [](const SearchResult& a, const SearchResult& b) {
                 return a.score < b.score; 
@@ -357,12 +304,71 @@ public:
     }
 
     void PrintStats() {
-        std::cout << "\n=== TensorGraph Stats ===\n";
-        std::cout << "Arena Used: " << head << " / " << capacity_bytes << " bytes\n";
-        std::cout << "Columns: " << columns.size() << "\n";
+        std::cout << "   Arena Used: " << head << " / " << capacity_bytes << " bytes\n";
+        std::cout << "   Columns: " << columns.size() << "\n";
         for(const auto& col : columns) {
-            std::cout << " - " << col.name << " (Rows: " << col.count << ")\n";
+            std::cout << "    - " << col.name << " (Rows: " << col.count << ", Cap: " << col.capacity << ")\n";
         }
-        std::cout << "=========================\n";
+    }
+};
+
+// --- ARCHITECTURE DEFINITIONS ---
+
+struct ColumnGroup {
+    std::unique_ptr<TensorGraph> engine;
+    std::string role; // "vectors", "analytics", "graph_links"
+
+    ColumnGroup(size_t size_mb, std::string r) 
+        : engine(std::make_unique<TensorGraph>(size_mb)), role(r) {}
+};
+
+struct BigTable {
+    std::string name;
+    std::unordered_map<std::string, std::unique_ptr<ColumnGroup>> groups;
+
+    TensorGraph* CreateGroup(const std::string& group_name, size_t size_mb, const std::string& role) {
+        if (groups.find(group_name) != groups.end()) throw std::runtime_error("Group already exists");
+        groups[group_name] = std::make_unique<ColumnGroup>(size_mb, role);
+        return groups[group_name]->engine.get();
+    }
+
+    TensorGraph* GetGroup(const std::string& group_name) {
+        if (groups.find(group_name) == groups.end()) throw std::runtime_error("Group not found: " + group_name);
+        return groups.at(group_name)->engine.get();
+    }
+    
+    void PrintStats() {
+        std::cout << " Table: " << name << "\n";
+        for (const auto& pair : groups) {
+            std::cout << "  Group: " << pair.first << " (Role: " << pair.second->role << ")\n";
+            pair.second->engine->PrintStats();
+        }
+    }
+};
+
+class NativeMetaDB {
+    std::unordered_map<std::string, std::unique_ptr<BigTable>> tables;
+
+public:
+    BigTable* CreateTable(const std::string& name) {
+        if (tables.find(name) != tables.end()) throw std::runtime_error("Table already exists");
+        auto table = std::make_unique<BigTable>();
+        table->name = name;
+        tables[name] = std::move(table);
+        return tables[name].get();
+    }
+
+    BigTable* GetTable(const std::string& name) {
+        if (tables.find(name) == tables.end()) throw std::runtime_error("Table not found: " + name);
+        return tables.at(name).get();
+    }
+    
+    void PrintStats() {
+        std::cout << "\n=== NativeMetaDB Statistics ===\n";
+        std::cout << "Total Tables: " << tables.size() << "\n";
+        for (const auto& pair : tables) {
+            pair.second->PrintStats();
+        }
+        std::cout << "===============================\n";
     }
 };
