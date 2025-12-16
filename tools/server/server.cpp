@@ -4423,6 +4423,7 @@ struct M8Session {
     std::map<std::string, vectordb_index> G_Vector_DB;
     std::map<std::string, instance_data> LLMInstance_DB;
     httplib::DataSink *sink;
+    NativeMetaDB db; // The database instance
 };
 
 struct vectordb_index {
@@ -4492,10 +4493,21 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE(
         m8p::M8System* M8, 
         std::vector<std::string> params);
 
+// ;
+
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         server_context *ctx_server,
         m8p::M8System* M8, 
-        std::vector<std::string> params);
+        std::vector<std::string> params,
+        std::mutex *g_session
+);
+
+std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params,
+        std::mutex *g_session
+);
 
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_DETOKENIZE(
         server_context *server,
@@ -6516,6 +6528,85 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_MULTI_TURN(
 
 }
 
+std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
+        server_context *ctx_server,
+        m8p::M8System* M8, 
+        std::vector<std::string> params,
+        std::mutex *g_session) 
+{
+
+    int psize = m8p::__abs(params.size()-1); // -1 accounts for the opcode itself
+    if (psize < 1) {
+        return std::make_pair(
+            m8p::errorf("tg_exec requires at least 1 parameter (sql query or register)"),
+            M8->nilValue
+        );
+    }
+
+    std::string sessionId = M8->Name;
+    std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
+    auto &db = GlobalSession[sessionId].db;
+    std::string rsource = params.at(1);// prompt register
+
+    if (psize>1) {
+        for (uint32_t i=2; i<params.size(); ++i) {
+            std::string v = params.at(i);
+            rsource = rsource + " " + v;
+        }
+    }
+
+    size_t c_start = rsource.find('#');
+    if (c_start!=std::string::npos) {
+        rsource = rsource.substr(0, c_start);
+    }
+    c_start = rsource.find('--');
+    if (c_start!=std::string::npos) {
+        rsource = rsource.substr(0, c_start);
+    }
+
+    m8p::__trim(rsource);
+
+    { 
+        std::string interpolated;
+        interpolated.reserve(rsource.size());
+        for (size_t i = 0; i < rsource.size();) {
+            if (rsource[i] == '<') {
+                size_t end = rsource.find('>', i + 1);
+                if (end != std::string::npos) {
+                    std::string varname = rsource.substr(i + 1, end - i - 1);
+                    auto it = REG.find("<"+varname+">");
+                    // std::cout << "==> LOOKING [" << varname << "] ";
+                    if (it != REG.end() && it->second && !m8p::is_nil(M8, it->second)) {
+                        // std::cout << "FOUND VAR\n";
+                        interpolated += to_string(M8, it->second);
+                    } else {
+                        // std::cout << "NOT FOUND\n";
+                        // if not found, keep literal form
+                        interpolated += "<" + varname + ">";
+                    }
+                    i = end + 1;
+                    continue;
+                }
+            }
+
+            interpolated.push_back(rsource[i]);
+            ++i;
+        }
+        rsource = interpolated;
+    }
+
+    std::string result = TGQL::Execute(db, rsource);
+    if (result.rfind("Error:", 0) == 0) {
+        return std::make_pair(
+            m8p::errorf("tg_exec: "+result),
+            M8->nilValue
+        );
+
+    } else {
+        REG[rdest] = m8p::m8_obj(M8, m8p::MP8_STRING, result);
+    }
+}
+
 std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
         server_context *ctx_server,
         m8p::M8System* M8, 
@@ -6535,7 +6626,6 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> LLM_INSTANCE_STATUS(
     // r2 => <text>
     std::string sessionId = M8->Name;
     std::map<std::string, instance_data> &LLMDB = GlobalSession[sessionId].LLMInstance_DB;
-
     std::map<std::string, m8p::M8_Obj*> &REG = M8->Registers;
 
     std::string ins_name = params.at(1);// instance name
@@ -7464,6 +7554,9 @@ public:
                     M8->nilValue
                 );
             }
+
+        } else if (opCode=="tg_exec") {
+            return TG_EXECUTE(this->ctx_server, M8, params, this->g_session);
 
         } else if (opCode=="llm_instancestatus") {
             return LLM_INSTANCE_STATUS(this->ctx_server, M8, params, this->g_session);
