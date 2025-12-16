@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <memory>
 #include <sstream>
+#include <fstream>
 
 // Check for AVX support via compiler flags
 #if defined(__AVX2__) || defined(__AVX512F__)
@@ -130,6 +131,54 @@ public:
 
     ~TensorGraph() { delete[] memory_block; }
 
+    void Save(const std::string& filepath) {
+        std::ofstream out(filepath, std::ios::binary);
+        if (!out) throw std::runtime_error("Cannot open file for writing: " + filepath);
+
+        // 1. Write Capacity and Head
+        out.write(reinterpret_cast<const char*>(&capacity_bytes), sizeof(size_t));
+        out.write(reinterpret_cast<const char*>(&head), sizeof(size_t));
+
+        // 2. Write Columns Metadata
+        size_t num_cols = columns.size();
+        out.write(reinterpret_cast<const char*>(&num_cols), sizeof(size_t));
+        if (num_cols > 0) {
+            out.write(reinterpret_cast<const char*>(columns.data()), num_cols * sizeof(ColumnHeader));
+        }
+
+        // 3. Write Memory Block (Only used portion)
+        out.write(reinterpret_cast<const char*>(memory_block), head);
+        out.close();
+    }
+
+    static std::unique_ptr<TensorGraph> Load(const std::string& filepath) {
+        std::ifstream in(filepath, std::ios::binary);
+        if (!in) throw std::runtime_error("Cannot open file for reading: " + filepath);
+
+        size_t cap, hd;
+        in.read(reinterpret_cast<char*>(&cap), sizeof(size_t));
+        in.read(reinterpret_cast<char*>(&hd), sizeof(size_t));
+
+        auto db = std::make_unique<TensorGraph>(cap / (1024 * 1024)); // Reconstruct with MB size
+        db->head = hd;
+
+        size_t num_cols;
+        in.read(reinterpret_cast<char*>(&num_cols), sizeof(size_t));
+        db->columns.resize(num_cols);
+        if (num_cols > 0) {
+            in.read(reinterpret_cast<char*>(db->columns.data()), num_cols * sizeof(ColumnHeader));
+        }
+
+        // Rebuild map
+        for (int i = 0; i < num_cols; ++i) {
+            db->column_map[db->columns[i].name] = i;
+        }
+
+        in.read(reinterpret_cast<char*>(db->memory_block), hd);
+        in.close();
+        return db;
+    }
+
     void CreateColumn(const std::string& name, ColType type, uint32_t initial_capacity, int dim = 0) {
         if (column_map.find(name) != column_map.end()) throw std::runtime_error("Column exists");
         ColumnHeader header;
@@ -240,7 +289,10 @@ public:
 struct ColumnGroup {
     std::unique_ptr<TensorGraph> engine;
     std::string role; 
+    
     ColumnGroup(size_t size_mb, std::string r) : engine(std::make_unique<TensorGraph>(size_mb)), role(r) {}
+    // For loading
+    ColumnGroup(std::unique_ptr<TensorGraph> eng, std::string r) : engine(std::move(eng)), role(r) {}
 };
 
 struct BigTable {
@@ -283,6 +335,52 @@ public:
         if (tables.find(name) == tables.end()) throw std::runtime_error("Table not found");
         return tables.at(name).get();
     }
+    
+    // --- Persistence ---
+    // Simple directory-based persistence
+    // Structure: ./data_dir/TableName/GroupName.tg
+    void Save(const std::string& dir_path) {
+        // Assume dir exists or user creates it. 
+        // Simple iteration:
+        for(const auto& t_pair : tables) {
+            std::string t_name = t_pair.first;
+            BigTable* t = t_pair.second.get();
+            // In a real impl, create directory `dir_path + "/" + t_name`
+            for(const auto& g_pair : t->groups) {
+                std::string g_name = g_pair.first;
+                std::string filename = dir_path + "_" + t_name + "_" + g_name + ".tg"; 
+                // Saving metadata (role) along with file? Or encoded in file?
+                // Simplest: .tg file stores engine. We need a manifest for roles.
+                // For this demo: just save engine blob.
+                g_pair.second->engine->Save(filename);
+            }
+        }
+        // Save manifest
+        std::ofstream manifest(dir_path + "_manifest.txt");
+        for(const auto& t_pair : tables) {
+            for(const auto& g_pair : t_pair.second->groups) {
+                manifest << t_pair.first << " " << g_pair.first << " " << g_pair.second->role << "\n";
+            }
+        }
+        manifest.close();
+    }
+
+    void Load(const std::string& dir_path) {
+        std::ifstream manifest(dir_path + "_manifest.txt");
+        if (!manifest) throw std::runtime_error("Manifest not found");
+        
+        tables.clear();
+        std::string t_name, g_name, role;
+        while (manifest >> t_name >> g_name >> role) {
+            if (tables.find(t_name) == tables.end()) CreateTable(t_name);
+            BigTable* t = tables[t_name].get();
+            
+            std::string filename = dir_path + "_" + t_name + "_" + g_name + ".tg";
+            auto loaded_engine = TensorGraph::Load(filename);
+            t->groups[g_name] = std::make_unique<ColumnGroup>(std::move(loaded_engine), role);
+        }
+    }
+
     std::string GetStats() {
         std::stringstream ss;
         ss << "\n=== NativeMetaDB Statistics ===\n";
@@ -461,6 +559,17 @@ public:
                 result_ss << "Results:\n";
                 for(auto& r : results) result_ss << " - ID: " << r.id << " Score: " << r.score << "\n";
                 return result_ss.str();
+            }
+            // Add Persistence Commands
+            else if (cmd == "SAVE") {
+                if (args.size() < 1) throw std::runtime_error("SAVE requires directory path prefix");
+                db.Save(args[0]);
+                return "Database saved to prefix: " + args[0];
+            }
+            else if (cmd == "LOAD") {
+                if (args.size() < 1) throw std::runtime_error("LOAD requires directory path prefix");
+                db.Load(args[0]);
+                return "Database loaded from prefix: " + args[0];
             }
             
             return "Unknown command: " + cmd;

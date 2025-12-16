@@ -3,6 +3,7 @@
 #include <vector>
 #include <cassert>
 #include <sstream>
+#include <fstream>
 #include "TensorGraph.hpp"
 
 // Simple Test Framework
@@ -285,9 +286,32 @@ bool Test_EmptyQuery() {
     return true;
 }
 
+// 21. Persistence Test
+bool Test_Persistence() {
+    {
+        NativeMetaDB db;
+        TGQL::Execute(db, "CREATE_TABLE(\"P\")");
+        TGQL::Execute(db, "CREATE_GROUP(\"P\", \"G\", 64, \"d\")");
+        TGQL::Execute(db, "CREATE_COLUMN(\"P\", \"G\", \"val\", INT)");
+        TGQL::Execute(db, "ADD_ROW(\"P\", \"G\")");
+        TGQL::Execute(db, "UPDATE(\"P\", \"G\", \"val\", 0, 99)");
+        TGQL::Execute(db, "SAVE(\"./testdb\")");
+    }
+    
+    // Reload in new instance
+    {
+        NativeMetaDB db;
+        std::string res = TGQL::Execute(db, "LOAD(\"./testdb\")");
+        ASSERT_CONTAINS(res, "loaded from prefix");
+        
+        std::string val = TGQL::Execute(db, "GET(\"P\", \"G\", \"val\", 0, INT)");
+        ASSERT_EQ(val, "99");
+    }
+    return true;
+}
+
 int main() {
     std::cout << "Running TensorGraphDB Test Suite...\n";
-    const int PASSES_COUNT = 5;
     int passed = 0;
     int total = 0;
 
@@ -301,29 +325,27 @@ int main() {
         }
     };
 
-    for (int i = 0; i<PASSES_COUNT; ++i) {
-        run(Test_CreateTable, "Test_CreateTable");
-        run(Test_DuplicateTable, "Test_DuplicateTable");
-        run(Test_CreateGroup, "Test_CreateGroup");
-        run(Test_CreateColumns, "Test_CreateColumns");
-        run(Test_AddRow, "Test_AddRow");
-        run(Test_IntOps, "Test_IntOps");
-        run(Test_FloatOps, "Test_FloatOps");
-        run(Test_TextOps, "Test_TextOps");
-        run(Test_Select, "Test_Select");
-        run(Test_SelectOOB, "Test_SelectOOB");
-        run(Test_CreateVector, "Test_CreateVector");
-        run(Test_SetVector, "Test_SetVector");
-        run(Test_GetVector, "Test_GetVector");
-        run(Test_VectorSearch, "Test_VectorSearch");
-        run(Test_VectorNearest, "Test_VectorNearest");
-        run(Test_InvalidType, "Test_InvalidType");
-        run(Test_InvalidTable, "Test_InvalidTable");
-        run(Test_InvalidGroup, "Test_InvalidGroup");
-        run(Test_VectorDimMismatch, "Test_VectorDimMismatch");
-        run(Test_EmptyQuery, "Test_EmptyQuery");
-    }
-
+    run(Test_CreateTable, "Test_CreateTable");
+    run(Test_DuplicateTable, "Test_DuplicateTable");
+    run(Test_CreateGroup, "Test_CreateGroup");
+    run(Test_CreateColumns, "Test_CreateColumns");
+    run(Test_AddRow, "Test_AddRow");
+    run(Test_IntOps, "Test_IntOps");
+    run(Test_FloatOps, "Test_FloatOps");
+    run(Test_TextOps, "Test_TextOps");
+    run(Test_Select, "Test_Select");
+    run(Test_SelectOOB, "Test_SelectOOB");
+    run(Test_CreateVector, "Test_CreateVector");
+    run(Test_SetVector, "Test_SetVector");
+    run(Test_GetVector, "Test_GetVector");
+    run(Test_VectorSearch, "Test_VectorSearch");
+    run(Test_VectorNearest, "Test_VectorNearest");
+    run(Test_InvalidType, "Test_InvalidType");
+    run(Test_InvalidTable, "Test_InvalidTable");
+    run(Test_InvalidGroup, "Test_InvalidGroup");
+    run(Test_VectorDimMismatch, "Test_VectorDimMismatch");
+    run(Test_EmptyQuery, "Test_EmptyQuery");
+    run(Test_Persistence, "Test_Persistence");
 
     std::cout << "\nResults: " << passed << "/" << total << " tests passed.\n";
     return (passed == total) ? 0 : 1;
