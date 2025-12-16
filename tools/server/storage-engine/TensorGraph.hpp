@@ -11,8 +11,8 @@
 #include <iomanip>
 #include <unordered_map>
 
-// Check for AVX2 support via compiler flags
-#if defined(__AVX2__)
+// Check for AVX support via compiler flags
+#if defined(__AVX2__) || defined(__AVX512F__)
 #include <immintrin.h>
 #endif
 
@@ -42,23 +42,40 @@ struct ColumnHeader {
 };
 
 // --- SIMD Helpers ---
-// Uses AVX2 if available, falls back to standard loop otherwise.
+// Uses AVX-512 or AVX2 if available, falls back to standard loop otherwise.
 inline float l2_sq_simd(const float* a, const float* b, int dim) {
-#if defined(__AVX2__)
+#if defined(__AVX512F__)
+#warning AVX512F IS AVAILABLE
+    // AVX-512 Implementation (16 floats at a time)
+    __m512 sum = _mm512_setzero_ps();
+    int i = 0;
+    for (; i <= dim - 16; i += 16) {
+        // Use unaligned loads because rows are packed tightly and might not start on 64-byte boundaries
+        __m512 v1 = _mm512_loadu_ps(a + i);
+        __m512 v2 = _mm512_loadu_ps(b + i);
+        __m512 diff = _mm512_sub_ps(v1, v2);
+        sum = _mm512_fmadd_ps(diff, diff, sum);
+    }
+    // Horizontal sum of 16 float lanes
+    float total = _mm512_reduce_add_ps(sum);
+
+    // Clean up remaining elements
+    for (; i < dim; ++i) {
+        float diff = a[i] - b[i];
+        total += diff * diff;
+    }
+    return total;
+
+#elif defined(__AVX2__)
 #warning AVX2 IS AVAILABLE
     // AVX2 Implementation (8 floats at a time)
     __m256 sum = _mm256_setzero_ps();
     int i = 0;
     // Process 8 floats per step
     for (; i <= dim - 8; i += 8) {
-        // We can use aligned load (_mm256_load_ps) because our arena allocator
-        // ensures 64-byte alignment for vector columns. 
-        // Using loadu (unaligned) just to be safe if 'a' comes from outside.
         __m256 v1 = _mm256_loadu_ps(a + i);
         __m256 v2 = _mm256_loadu_ps(b + i);
         __m256 diff = _mm256_sub_ps(v1, v2);
-        // fmadd requires FMA3 support, essentially free on modern CPUs
-        // If FMA not present, use: sum = _mm256_add_ps(sum, _mm256_mul_ps(diff, diff));
         sum = _mm256_fmadd_ps(diff, diff, sum); 
     }
     
@@ -68,7 +85,7 @@ inline float l2_sq_simd(const float* a, const float* b, int dim) {
     float total = result[0] + result[1] + result[2] + result[3] + 
                   result[4] + result[5] + result[6] + result[7];
 
-    // Clean up remaining elements (if dim is not multiple of 8)
+    // Clean up remaining elements
     for (; i < dim; ++i) {
         float diff = a[i] - b[i];
         total += diff * diff;
