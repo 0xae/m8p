@@ -6615,7 +6615,7 @@ std::pair<m8p::M8_Error, m8p::M8_Obj*> TG_EXECUTE(
         rsource = interpolated;
     }
 
-    std::string result = TGQL::Execute(*db, rsource);
+    std::string result = TGQL::Execute(db, rsource);
     if (result.rfind("Error:", 0) == 0) {
         return std::make_pair(
             m8p::errorf("tg_exec: "+result),
@@ -9341,9 +9341,6 @@ std::string M8_BANNER =
             }
 
             m8Session.m8=nullptr;
-            if (m8Session.db!=nullptr) {
-                delete m8Session.db;
-            }
             GlobalSession.erase(id_session);
 
             json Resp;
