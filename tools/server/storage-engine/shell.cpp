@@ -135,6 +135,7 @@ void print_help() {
     std::cout << "      " << Colors::DIM << "Note: Currently reserves a row. Use UPDATE to set values." << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "UPDATE" << Colors::RESET << "(table, group, col, row_id, val)\n";
     std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id, type_hint)\n";
+    std::cout << "  " << Colors::GREEN << "SELECT" << Colors::RESET << "(table, group, col, limit, offset, type_hint)\n";
     std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k)\n";
     std::cout << "  " << Colors::GREEN << "STATS" << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "EXIT" << Colors::RESET << "\n\n";
@@ -145,7 +146,8 @@ void print_help() {
     std::cout << "  CREATE_COLUMN(\"Users\", \"Bio\", \"name\", TEXT);\n";
     std::cout << "  ADD_ROW(\"Users\", \"Bio\");\n";
     std::cout << "  UPDATE(\"Users\", \"Bio\", \"name\", 0, \"Alice\");\n";
-    std::cout << "  GET(\"Users\", \"Bio\", \"name\", 0, TEXT);\n\n";
+    std::cout << "  GET(\"Users\", \"Bio\", \"name\", 0, TEXT);\n";
+    std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0, TEXT);\n\n";
 }
 
 // --- MAIN SHELL ---
@@ -287,6 +289,44 @@ int main() {
                 else if (type == "INT") std::cout << tg->GetInt(args[2], std::stoi(args[3])) << "\n";
                 else if (type == "FLOAT") std::cout << tg->GetFloat(args[2], std::stoi(args[3])) << "\n";
                 else std::cout << Colors::RED << "Unknown type hint" << Colors::RESET << "\n";
+            }
+            else if (cmd == "SELECT") {
+                // SELECT(table, group, col, limit, offset, TYPE)
+                if (args.size() < 6) throw std::runtime_error("SELECT requires: table, group, col, limit, offset, TYPE");
+                
+                BigTable* t = db.GetTable(args[0]);
+                TensorGraph* tg = t->GetGroup(args[1]);
+                std::string col = args[2];
+                int limit = std::stoi(args[3]);
+                int offset = std::stoi(args[4]);
+                
+                std::string type = args[5];
+                std::transform(type.begin(), type.end(), type.begin(), ::toupper);
+
+                uint32_t total_rows = tg->GetRowCount(col);
+                if ((uint32_t)offset >= total_rows) {
+                    std::cout << Colors::YELLOW << "Offset out of bounds (Rows: " << total_rows << ")" << Colors::RESET << "\n";
+                } else {
+                    int end = std::min((int)total_rows, offset + limit);
+                    
+                    std::cout << Colors::CYAN << "Rows " << offset << " to " << (end-1) << " of " << total_rows << ":" << Colors::RESET << "\n";
+                    
+                    for (int i = offset; i < end; ++i) {
+                        std::cout << Colors::DIM << "[" << i << "] " << Colors::RESET;
+                        if (type == "TEXT") std::cout << tg->GetText(col, i) << "\n";
+                        else if (type == "INT") std::cout << tg->GetInt(col, i) << "\n";
+                        else if (type == "FLOAT") std::cout << tg->GetFloat(col, i) << "\n";
+                        else if (type == "VECTOR") {
+                            auto vec = tg->GetVector(col, i);
+                            std::cout << "[";
+                            for(size_t v=0; v<vec.size(); ++v) {
+                                std::cout << vec[v] << (v < vec.size()-1 ? ", " : "");
+                            }
+                            std::cout << "]\n";
+                        }
+                        else std::cout << Colors::RED << "Unknown type hint" << Colors::RESET << "\n";
+                    }
+                }
             }
             else {
                 std::cout << Colors::RED << "Unknown command: " << cmd << Colors::RESET << "\n";

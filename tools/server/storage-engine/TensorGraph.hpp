@@ -17,12 +17,6 @@
 #include <immintrin.h>
 #endif
 
-// --- ARCHITECTURE DEFINITIONS ---
-
-// A ColumnGroup is a physical storage unit (One TensorGraph Instance).
-// It holds a subset of a Table's columns (e.g., just the Vectors, or just the PII).
-
-
 // --- Configuration & Constants ---
 // Define alignment for AVX-512 (64 bytes) or AVX2 (32 bytes)
 constexpr size_t ALIGNMENT_BYTES = 64; 
@@ -271,6 +265,12 @@ public:
         ColumnHeader& col = columns[idx];
         float* src = get_ptr<float>(col.data_offset) + (row * col.vector_dim);
         return std::vector<float>(src, src + col.vector_dim);
+    }
+
+    // --- API: Info ---
+    uint32_t GetRowCount(const std::string& col_name) {
+        if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
+        return columns[column_map.at(col_name)].count;
     }
 
     void DeleteRow(RowID row) {
