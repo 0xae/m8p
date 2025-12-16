@@ -4,6 +4,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <csignal>
 #include "TensorGraph.hpp"
 
 // --- READLINE SUPPORT ---
@@ -40,6 +41,23 @@ struct Colors {
     static constexpr const char* BOLD    = "\033[1m";
     static constexpr const char* DIM     = "\033[2m";
 };
+
+// --- SIGNAL HANDLER ---
+void sigint_handler(int sig) {
+    // Reset colors just in case
+    std::cout << Colors::RESET;
+    
+    #if !defined(_WIN32) && !defined(_WIN64)
+        // GNU Readline specific: Clear line and redraw prompt
+        std::cout << "\n";
+        rl_on_new_line();
+        rl_replace_line("", 0);
+        rl_redisplay();
+    #else
+        // Fallback for Windows or simple cin
+        std::cout << "\n" << Colors::DIM << "(Interrupt) Use 'EXIT' or Ctrl+D to quit." << Colors::RESET << "\nM8> " << std::flush;
+    #endif
+}
 
 // --- SHELL UTILITIES ---
 
@@ -133,6 +151,9 @@ void print_help() {
 // --- MAIN SHELL ---
 
 int main() {
+    // Trap Ctrl+C (SIGINT) to prevent accidental exit
+    signal(SIGINT, sigint_handler);
+
     NativeMetaDB db;
     std::cout << Colors::BOLD << "M8 Native Storage Engine Shell" << Colors::RESET << "\n";
     std::cout << "Type '" << Colors::CYAN << "HELP" << Colors::RESET << "' for commands or '" << Colors::RED << "EXIT" << Colors::RESET << "' to quit.\n\n";
