@@ -32,6 +32,16 @@ struct BigTable {
     TensorGraph* GetGroup(const std::string& group_name) {
         return groups.at(group_name)->engine.get();
     }
+
+    // Helper to print stats for all groups in this table
+    void PrintStats() {
+        std::cout << " Table: " << name << "\n";
+        for (const auto& pair : groups) {
+            std::cout << "  Group: " << pair.first << " (Role: " << pair.second->role << ")\n";
+            // Call the underlying engine's PrintStats (but indented)
+            pair.second->engine->PrintStats();
+        }
+    }
 };
 
 // The Meta-Database holding all Tables
@@ -48,6 +58,15 @@ public:
 
     BigTable* GetTable(const std::string& name) {
         return tables.at(name).get();
+    }
+
+    void PrintStats() {
+        std::cout << "\n=== NativeMetaDB Statistics ===\n";
+        std::cout << "Total Tables: " << tables.size() << "\n";
+        for (const auto& pair : tables) {
+            pair.second->PrintStats();
+        }
+        std::cout << "===============================\n";
     }
 };
 
