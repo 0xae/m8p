@@ -207,6 +207,27 @@ private:
         return get_ptr<T>(col.data_offset) + row;
     }
 
+    static std::string str_to_upper(const std::string& s) {
+        std::string data = s;
+        std::transform(data.begin(), data.end(), data.begin(), ::toupper);
+        return data;
+    }
+    static std::string str_to_lower(const std::string& s) {
+        std::string data = s;
+        std::transform(data.begin(), data.end(), data.begin(), ::tolower);
+        return data;
+    }
+    static bool str_contains(const std::string& haystack, const std::string& needle) {
+        return haystack.find(needle) != std::string::npos;
+    }
+    static bool str_starts_with(const std::string& str, const std::string& prefix) {
+        return str.rfind(prefix, 0) == 0;
+    }
+    static bool str_ends_with(const std::string& str, const std::string& suffix) {
+        if (str.length() < suffix.length()) return false;
+        return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+    }
+
 public:
     TensorGraph(size_t size_mb) {
         capacity_bytes = size_mb * 1024 * 1024;
@@ -377,6 +398,67 @@ public:
             [](const SearchResult& a, const SearchResult& b) { return a.score < b.score; });
         if (results.size() > top_k) results.resize(top_k);
         return results;
+    }
+
+    std::vector<RowID> Filter(const std::string& col_name, const std::string& op_raw, const std::string& val_str) {
+        if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
+        int col_idx = column_map[col_name];
+        ColumnHeader& col = columns[col_idx];
+        
+        std::string op = str_to_upper(op_raw);
+        std::vector<RowID> matches;
+        matches.reserve(col.count > 128 ? 128 : col.count); 
+
+        if (col.type == ColType::INT32) {
+            int32_t target = std::stoi(val_str);
+            int32_t* data = get_ptr<int32_t>(col.data_offset);
+            for (uint32_t i = 0; i < col.count; ++i) {
+                bool match = false;
+                if (op == "EQ" || op == "=") match = (data[i] == target);
+                else if (op == "NEQ" || op == "!=") match = (data[i] != target);
+                else if (op == "GTE" || op == ">=") match = (data[i] >= target);
+                else if (op == "LTE" || op == "<=") match = (data[i] <= target);
+                else if (op == "GT" || op == ">") match = (data[i] > target);
+                else if (op == "LT" || op == "<") match = (data[i] < target);
+                if (match) matches.push_back(i);
+            }
+        }
+        else if (col.type == ColType::FLOAT32) {
+            float target = std::stof(val_str);
+            float* data = get_ptr<float>(col.data_offset);
+            for (uint32_t i = 0; i < col.count; ++i) {
+                bool match = false;
+                // Using 1e-6 epsilon for float equality
+                if (op == "EQ" || op == "=") match = (std::abs(data[i] - target) < 1e-6); 
+                else if (op == "NEQ" || op == "!=") match = (std::abs(data[i] - target) > 1e-6);
+                else if (op == "GTE" || op == ">=") match = (data[i] >= target);
+                else if (op == "LTE" || op == "<=") match = (data[i] <= target);
+                else if (op == "GT" || op == ">") match = (data[i] > target);
+                else if (op == "LT" || op == "<") match = (data[i] < target);
+                if (match) matches.push_back(i);
+            }
+        }
+        else if (col.type == ColType::TEXT) {
+            RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
+            for (uint32_t i = 0; i < col.count; ++i) {
+                if (offsets[i] == DELETED_FLAG) continue;
+                std::string val = std::string(get_ptr<char>(offsets[i]));
+                bool match = false;
+                
+                if (op == "EQ" || op == "=") match = (val == val_str);
+                else if (op == "NEQ" || op == "!=") match = (val != val_str);
+                else if (op == "CONTAINS") match = str_contains(val, val_str);
+                else if (op == "ILIKE") match = str_contains(str_to_lower(val), str_to_lower(val_str));
+                else if (op == "STARTS_WITH") match = str_starts_with(val, val_str);
+                else if (op == "ENDS_WITH") match = str_ends_with(val, val_str);
+                
+                if (match) matches.push_back(i);
+            }
+        }
+        else {
+            throw std::runtime_error("Filtering not supported for this column type");
+        }
+        return matches;
     }
 
     std::string GetStats() {
@@ -700,6 +782,24 @@ public:
                         for(size_t v=0; v<vec.size(); ++v) result_ss << vec[v] << (v < vec.size()-1 ? ", " : "");
                         result_ss << "]\n";
                     }
+                }
+                return result_ss.str();
+            }
+            else if (cmd == "FILTER") {
+                if (args.size() < 5) throw std::runtime_error("Req: table, group, col, operator, value");
+                BigTable* t = db.GetTable(args[0]);
+                TensorGraph* tg = t->GetGroup(args[1]);
+                auto results = tg->Filter(args[2], args[3], args[4]);
+                
+                result_ss << "Found " << results.size() << " matches:\n";
+                int limit = 20; 
+                int count = 0;
+                for(auto id : results) {
+                    if (count++ >= limit) {
+                        result_ss << "... (" << (results.size() - limit) << " more)\n";
+                        break;
+                    }
+                    result_ss << " [" << id << "]\n"; 
                 }
                 return result_ss.str();
             }
