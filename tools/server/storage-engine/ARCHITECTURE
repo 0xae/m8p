@@ -1,0 +1,26 @@
+I think this storage engine is very interesting,it would allow me to build a storage architecture comprise of Tables and ColumnGroups
+this allows a table to have multiple TensorGraph db each one representing a set of columns for a particular requirement.
+So for example i know a Company has many officers, Cases, has its detail, this architecture allows me to quickly detect all these
+children and scatter-gatter a parralel query across its columngroup and also allows for cross relationships to form and to be queries fast
+because there's no burden of IPC and all that a sqlengine entails.
+
+What do you think.
+
+BIGTABLE COMPANY
+    ----------------> Details (ColumnGroup) Metatable
+    ----------------> Officers (ColumnGroup) Metatable
+    ----------------> Cases (ColumnGroup) Metatable
+    ----------------> ...
+
+BIGTABLE OFFICERS
+   ------------------> Details (ColumnGroup) Metatable
+
+SO LIKE THIS
+
+struct TableDetails {
+    std::string tablename;
+    // ...
+    std::unordered_map<std::string, *TensorGraph> ColumnGroup;
+}
+
+std::unordered_map<std::string, TableDetails> DB;
