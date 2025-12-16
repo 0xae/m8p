@@ -202,7 +202,16 @@ public:
     }
 
     void CreateColumn(const std::string& name, ColType type, uint32_t initial_capacity, int dim = 0) {
-        if (column_map.find(name) != column_map.end()) throw std::runtime_error("Column exists");
+        if (name.size()>30) {
+            throw std::runtime_error("COLUMN SIZE CANNOT 30 CHARS");   
+        }
+
+        if (column_map.find(name) != column_map.end()) {
+            // throw std::runtime_error("Column exists");
+            // column already created
+            return;
+        }
+
         ColumnHeader header;
         std::strncpy(header.name, name.c_str(), 31);
         header.name[31] = '\0';
@@ -521,9 +530,13 @@ public:
                 int dim = 0;
                 ColType type = parse_type(args[3]);
                 if (type == ColType::VECTOR_F32) {
-                    if (args.size() >= 5) dim = std::stoi(args[4]);
-                    else throw std::runtime_error("VECTOR requires dimension");
+                    if (args.size() >= 5) {
+                        dim = std::stoi(args[4]);
+                    } else {
+                        throw std::runtime_error("VECTOR requires dimension");
+                    }
                 }
+
                 tg->CreateColumn(args[2], type, MAX_ROWS_P_COLUMN, dim);
                 return "Column '" + args[2] + "' created.";
             }
