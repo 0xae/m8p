@@ -1688,14 +1688,14 @@ namespace m8p {
             int psize = __abs(params.size()-1);
             if (params.size()<3) {
                 return std::make_pair(
-                    errorf(params[0] + " requires 3 parameters"),
+                    errorf(op + " requires 3 parameters"),
                     M8->nilValue
                 );
             }
 
-            const std::string rA = params[1];
-            const std::string rB = params[2];
-            const std::string rOut = params[3];
+            const std::string rA = params.at(1);
+            const std::string rB = params.at(2);
+            const std::string rOut = params.at(3);
 
             auto& REG = M8->Registers;
             M8_Obj* A = REG[rA];

@@ -1,0 +1,182 @@
+tg_exec <r3> CREATE_TABLE(company);
+tg_exec <r3> CREATE_GROUP(company, Details, 64, "metadata");
+tg_exec <r3> CREATE_GROUP(company, Officers, 64, "relations");
+tg_exec <r3> CREATE_GROUP(company, Embed, 128, "vectors");
+
+## Define Columns
+tg_exec <r3> CREATE_COLUMN(company, Details, name, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Details, number, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Details, status, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Officers, name, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Officers, role, TEXT);
+tg_exec <r3> CREATE_COLUMN(company, Embed, face_vec, VECTOR, 128); 
+
+
+## INDEX
+tg_exec <r3> ADD_ROW(company, Details); 
+tg_exec <r3> UPDATE(company, Details, name, 0, My Favorite Company);
+tg_exec <r3> UPDATE(company, Details, number, 0, "AC00123");
+tg_exec <r3> UPDATE(company, Details, status, 0, In Administration);
+
+tg_exec <r3> ADD_ROW(company, Details); 
+tg_exec <r3> UPDATE(company, Details, name, 1, Another Company);
+tg_exec <r3> UPDATE(company, Details, number, 1, "A9923");
+tg_exec <r3> UPDATE(company, Details, status, 1, In Liquidation);
+
+tg_exec <r3> ADD_ROW(company, Details); 
+tg_exec <r3> UPDATE(company, Details, name, 2, Third Company);
+tg_exec <r3> UPDATE(company, Details, number, 2, "A2323");
+tg_exec <r3> UPDATE(company, Details, status, 2, Active);
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 3, "BP p.l.c.");
+tg_exec <r3> UPDATE(company, Details, number, 3, "C_00102498");
+tg_exec <r3> UPDATE(company, Details, status, 3, "Active");
+
+# Row 1: HSBC
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 4, "HSBC Holdings plc");
+tg_exec <r3> UPDATE(company, Details, number, 4, "C_00617987");
+tg_exec <r3> UPDATE(company, Details, status, 4, "Active");
+
+# Row 2: Tesco
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 5, "Tesco PLC");
+tg_exec <r3> UPDATE(company, Details, number, 5, "C_00445790");
+tg_exec <r3> UPDATE(company, Details, status, 5, "Active");
+
+# Row 3: AstraZeneca
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 6, "AstraZeneca PLC");
+tg_exec <r3> UPDATE(company, Details, number, 6, "C_02723534");
+tg_exec <r3> UPDATE(company, Details, status, 6, "Active");
+
+# Row 4: Unilever
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 7, "Unilever PLC");
+tg_exec <r3> UPDATE(company, Details, number, 7, "C_00041424");
+tg_exec <r3> UPDATE(company, Details, status, 7, "Active");
+
+# Row 5: Vodafone
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 8, "Vodafone Group Plc");
+tg_exec <r3> UPDATE(company, Details, number, 8, "C_01833679");
+tg_exec <r3> UPDATE(company, Details, status, 8, "Active");
+
+# Row 6: Barclays
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 9, "Barclays PLC");
+tg_exec <r3> UPDATE(company, Details, number, 9, "C_00048839");
+tg_exec <r3> UPDATE(company, Details, status, 9, "Active");
+
+# Row 7: GSK
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 10, "GSK plc");
+tg_exec <r3> UPDATE(company, Details, number, 10, "C_03888792");
+tg_exec <r3> UPDATE(company, Details, status, 10, "Active");
+
+# Row 8: Rio Tinto
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 11, "Rio Tinto plc");
+tg_exec <r3> UPDATE(company, Details, number, 11, "C_00719885");
+tg_exec <r3> UPDATE(company, Details, status, 11, "Active");
+
+# Row 9: Diageo
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 12, "Diageo plc");
+tg_exec <r3> UPDATE(company, Details, number, 12, "C_00023307");
+tg_exec <r3> UPDATE(company, Details, status, 12, "Active");
+
+# Row 10: British American Tobacco
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 13, "British American Tobacco p.l.c.");
+tg_exec <r3> UPDATE(company, Details, number, 13, "C_03407696");
+tg_exec <r3> UPDATE(company, Details, status, 13, "Active");
+
+# Row 11: Glencore
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 14, "Glencore plc");
+tg_exec <r3> UPDATE(company, Details, number, 14, "107789");
+tg_exec <r3> UPDATE(company, Details, status, 14, "Active");
+
+# Row 12: Lloyds Banking Group
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 15, "Lloyds Banking Group plc");
+tg_exec <r3> UPDATE(company, Details, number, 15, "SC095000");
+tg_exec <r3> UPDATE(company, Details, status, 15, "Active");
+
+# Row 13: Rolls-Royce
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 16, "Rolls-Royce Holdings plc");
+tg_exec <r3> UPDATE(company, Details, number, 16, "C_07524813");
+tg_exec <r3> UPDATE(company, Details, status, 16, "Active");
+
+
+# Row 15: National Grid
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 17, "National Grid plc");
+tg_exec <r3> UPDATE(company, Details, number, 17, "C_04031152");
+tg_exec <r3> UPDATE(company, Details, status, 17, "Active");
+
+# Row 16: Prudential
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 18, "Prudential plc");
+tg_exec <r3> UPDATE(company, Details, number, 18, "C_01397169");
+tg_exec <r3> UPDATE(company, Details, status, 18, "Active");
+
+# Row 17: Reckitt Benckiser
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 19, "Reckitt Benckiser Group plc");
+tg_exec <r3> UPDATE(company, Details, number, 19, "C_06270876");
+tg_exec <r3> UPDATE(company, Details, status, 19, "Active");
+
+# Row 18: Compass Group
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 20, "Compass Group PLC");
+tg_exec <r3> UPDATE(company, Details, number, 20, "C_04083914");
+tg_exec <r3> UPDATE(company, Details, status, 20, "Active");
+
+# Row 19: BT Group
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 21, "BT Group plc");
+tg_exec <r3> UPDATE(company, Details, number, 21, "C_04190816");
+tg_exec <r3> UPDATE(company, Details, status, 21, "Active");
+
+# Row 0: BP
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 22, "BP p.l.c.");
+tg_exec <r3> UPDATE(company, Details, number, 22, "C_00102498");
+tg_exec <r3> UPDATE(company, Details, status, 22, "Active");
+
+# Row 1: HSBC
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 23, "HSBC Holdings plc");
+tg_exec <r3> UPDATE(company, Details, number, 23, "C_00617987");
+tg_exec <r3> UPDATE(company, Details, status, 23, "Active");
+
+# Row 14: BAE Systems
+
+tg_exec <r3> ADD_ROW(company, Details);
+tg_exec <r3> UPDATE(company, Details, name, 24, "BAE Systems plc");
+tg_exec <r3> UPDATE(company, Details, number, 24, "C_01470151");
+tg_exec <r3> UPDATE(company, Details, status, 24, "Active");

@@ -10,14 +10,31 @@ because there's no burden of IPC and all that a sqlengine entails.
 
 What do you think.
 
-BIGTABLE COMPANY
- ----------------> Details (ColumnGroup) Metatable
- ----------------> Officers (ColumnGroup) Metatable
- ----------------> Cases (ColumnGroup) Metatable
- ----------------> ...
+=======================================================================
+                            BIGTABLE COMPANY
+=======================================================================
+Metatable: Details  | id:int32  | name:TEXT | status:TEXT | sales:FLOAT
+-----------------------------------------------------------------------
+Metatable: Officers | name:TEXT | role:TEXT
+-----------------------------------------------------------------------
+Metatable: Cases    | date:DATE | case_descr:VECTOR[453]
+-----------------------------------------------------------------------
+=======================================================================
 
-BIGTABLE OFFICERS
-------------------> Details (ColumnGroup) Metatable
+CREATE_TABLE(company);
+
+CREATE_GROUP(company, Details, 64, "metadata");
+CREATE_COLUMN(company, Details, name, TEXT);
+CREATE_COLUMN(company, Details, number, TEXT);
+CREATE_COLUMN(company, Details, status, TEXT);
+
+CREATE_GROUP(company, Officers, 64, "relations");
+CREATE_COLUMN(company, Officers, name, TEXT);
+CREATE_COLUMN(company, Officers, role, TEXT);
+
+CREATE_GROUP(company, Cases, 64, "cases-at-court");
+CREATE_COLUMN(company, Cases, date, DATE);
+CREATE_COLUMN(company, Cases, case_descr, VECTOR[453]);
 
 SO LIKE THIS
 

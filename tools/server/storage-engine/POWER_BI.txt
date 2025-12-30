@@ -1,0 +1,496 @@
+CREATE_TABLE(analytics);
+
+CREATE_GROUP(analytics, Global, 64, "sales data");
+CREATE_COLUMN(analytics, Global, sector, TEXT);
+CREATE_COLUMN(analytics, Global, date, TEXT);
+CREATE_COLUMN(analytics, Global, sales, INT);
+
+ADD_ROW(analytics, Global); 
+UPDATE(analytics, Global, sector, 0, DIRECT_TO_CUSTOMER);
+UPDATE(analytics, Global, date, 0, 2025-12-16);
+UPDATE(analytics, Global, sales, 0, 18232);
+
+ADD_ROW(analytics, Global); 
+UPDATE(analytics, Global, sector, 1, ECOMMERCE);
+UPDATE(analytics, Global, date, 1, 2025-12-14);
+UPDATE(analytics, Global, sales, 1, 8232);
+
+ADD_ROW(analytics, Global); 
+UPDATE(analytics, Global, sector, 2, RETAIL);
+UPDATE(analytics, Global, date, 2, 2025-12-14);
+UPDATE(analytics, Global, sales, 2, 88232);
+
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 3, TECHNOLOGY);
+UPDATE(analytics, Global, date, 3, 2025-12-15);
+UPDATE(analytics, Global, sales, 3, 145000);
+
+#-- Row4: ENERGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 4, ENERGY);
+UPDATE(analytics, Global, date, 4, 2025-12-15);
+UPDATE(analytics, Global, sales, 4, 98200);
+
+#-- Row5: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 5, FINANCE);
+UPDATE(analytics, Global, date, 5, 2025-12-16);
+UPDATE(analytics, Global, sales, 5, 210500);
+
+#-- Row6: HEALTHCARE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 6, HEALTHCARE);
+UPDATE(analytics, Global, date, 6, 2025-12-16);
+UPDATE(analytics, Global, sales, 6, 87400);
+
+#-- Row7: RETAIL
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 7, RETAIL);
+UPDATE(analytics, Global, date, 7, 2025-12-17);
+UPDATE(analytics, Global, sales, 7, 92100);
+
+#-- Row8: AUTOMOTIVE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 8, AUTOMOTIVE);
+UPDATE(analytics, Global, date, 8, 2025-12-17);
+UPDATE(analytics, Global, sales, 8, 115300);
+
+#-- Row9: TELECOM
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 9, TELECOM);
+UPDATE(analytics, Global, date, 9, 2025-12-18);
+UPDATE(analytics, Global, sales, 9, 64200);
+
+#-- Row10: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 10, TECHNOLOGY);
+UPDATE(analytics, Global, date, 10, 2025-12-18);
+UPDATE(analytics, Global, sales, 10, 156000);
+
+#-- Row11: MANUFACTURING
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 11, MANUFACTURING);
+UPDATE(analytics, Global, date, 11, 2025-12-19);
+UPDATE(analytics, Global, sales, 11, 78900);
+
+#-- Row12: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 12, FINANCE);
+UPDATE(analytics, Global, date, 12, 2025-12-19);
+UPDATE(analytics, Global, sales, 12, 198000);
+
+#-- Row13: RETAIL
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 13, RETAIL);
+UPDATE(analytics, Global, date, 13, 2025-12-20);
+UPDATE(analytics, Global, sales, 13, 105400);
+
+#-- Row14: ENERGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 14, ENERGY);
+UPDATE(analytics, Global, date, 14, 2025-12-20);
+UPDATE(analytics, Global, sales, 14, 91000);
+
+#-- Row15: LOGISTICS
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 15, LOGISTICS);
+UPDATE(analytics, Global, date, 15, 2025-12-21);
+UPDATE(analytics, Global, sales, 15, 54300);
+
+#-- Row16: HEALTHCARE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 16, HEALTHCARE);
+UPDATE(analytics, Global, date, 16, 2025-12-21);
+UPDATE(analytics, Global, sales, 16, 82100);
+
+#-- Row17: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 17, TECHNOLOGY);
+UPDATE(analytics, Global, date, 17, 2025-12-22);
+UPDATE(analytics, Global, sales, 17, 134500);
+
+#-- Row18: AUTOMOTIVE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 18, AUTOMOTIVE);
+UPDATE(analytics, Global, date, 18, 2025-12-22);
+UPDATE(analytics, Global, sales, 18, 108900);
+
+#-- Row19: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 19, FINANCE);
+UPDATE(analytics, Global, date, 19, 2025-12-23);
+UPDATE(analytics, Global, sales, 19, 225000);
+
+#-- Row20: RETAIL
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 20, RETAIL);
+UPDATE(analytics, Global, date, 20, 2025-12-23);
+UPDATE(analytics, Global, sales, 20, 99800);
+
+-- Row21: MANUFACTURING
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 21, MANUFACTURING);
+UPDATE(analytics, Global, date, 21, 2025-12-24);
+UPDATE(analytics, Global, sales, 21, 81200);
+
+-- Row22: ENERGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 22, ENERGY);
+UPDATE(analytics, Global, date, 22, 2025-12-24);
+UPDATE(analytics, Global, sales, 22, 95600);
+
+-- Row23: TELECOM
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 23, TELECOM);
+UPDATE(analytics, Global, date, 23, 2025-12-24);
+UPDATE(analytics, Global, sales, 23, 67800);
+
+-- Row24: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 24, TECHNOLOGY);
+UPDATE(analytics, Global, date, 24, 2025-12-25);
+UPDATE(analytics, Global, sales, 24, 162000);
+
+-- Row25: RETAIL
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 25, RETAIL);
+UPDATE(analytics, Global, date, 25, 2025-12-25);
+UPDATE(analytics, Global, sales, 25, 112300);
+
+-- Row26: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 26, FINANCE);
+UPDATE(analytics, Global, date, 26, 2025-12-26);
+UPDATE(analytics, Global, sales, 26, 205400);
+
+-- Row27: HEALTHCARE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 27, HEALTHCARE);
+UPDATE(analytics, Global, date, 27, 2025-12-26);
+UPDATE(analytics, Global, sales, 27, 89100);
+
+-- Row28: LOGISTICS
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 28, LOGISTICS);
+UPDATE(analytics, Global, date, 28, 2025-12-27);
+UPDATE(analytics, Global, sales, 28, 58200);
+
+-- Row29: AUTOMOTIVE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 29, AUTOMOTIVE);
+UPDATE(analytics, Global, date, 29, 2025-12-27);
+UPDATE(analytics, Global, sales, 29, 121000);
+
+-- Row30: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 30, TECHNOLOGY);
+UPDATE(analytics, Global, date, 30, 2025-12-28);
+UPDATE(analytics, Global, sales, 30, 149500);
+
+-- Row31: ENERGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 31, ENERGY);
+UPDATE(analytics, Global, date, 31, 2025-12-28);
+UPDATE(analytics, Global, sales, 31, 93400);
+
+-- Row32: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 32, FINANCE);
+UPDATE(analytics, Global, date, 32, 2025-12-29);
+UPDATE(analytics, Global, sales, 32, 230100);
+
+-- Row33: RETAIL
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 33, RETAIL);
+UPDATE(analytics, Global, date, 33, 2025-12-29);
+UPDATE(analytics, Global, sales, 33, 97600);
+
+-- Row34: MANUFACTURING
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 34, MANUFACTURING);
+UPDATE(analytics, Global, date, 34, 2025-12-30);
+UPDATE(analytics, Global, sales, 34, 76500);
+
+-- Row35: TELECOM
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 35, TELECOM);
+UPDATE(analytics, Global, date, 35, 2025-12-30);
+UPDATE(analytics, Global, sales, 35, 69100);
+
+-- Row36: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 36, TECHNOLOGY);
+UPDATE(analytics, Global, date, 36, 2025-12-31);
+UPDATE(analytics, Global, sales, 36, 175000);
+
+-- Row37: HEALTHCARE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 37, HEALTHCARE);
+UPDATE(analytics, Global, date, 37, 2025-12-31);
+UPDATE(analytics, Global, sales, 37, 91200);
+
+-- Row38: LOGISTICS
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 38, LOGISTICS);
+UPDATE(analytics, Global, date, 38, 2026-01-01);
+UPDATE(analytics, Global, sales, 38, 52100);
+
+-- Row39: AUTOMOTIVE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 39, AUTOMOTIVE);
+UPDATE(analytics, Global, date, 39, 2026-01-01);
+UPDATE(analytics, Global, sales, 39, 118700);
+
+-- Row40: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 40, FINANCE);
+UPDATE(analytics, Global, date, 40, 2026-01-02);
+UPDATE(analytics, Global, sales, 40, 215600);
+
+-- Row41: ENERGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 41, ENERGY);
+UPDATE(analytics, Global, date, 41, 2026-01-02);
+UPDATE(analytics, Global, sales, 41, 96500);
+
+-- Row42: RETAIL
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 42, RETAIL);
+UPDATE(analytics, Global, date, 42, 2026-01-03);
+UPDATE(analytics, Global, sales, 42, 102300);
+
+-- Row43: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 43, TECHNOLOGY);
+UPDATE(analytics, Global, date, 43, 2026-01-03);
+UPDATE(analytics, Global, sales, 43, 158900);
+
+-- Row44: MANUFACTURING
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 44, MANUFACTURING);
+UPDATE(analytics, Global, date, 44, 2026-01-04);
+UPDATE(analytics, Global, sales, 44, 79400);
+
+-- Row45: HEALTHCARE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 45, HEALTHCARE);
+UPDATE(analytics, Global, date, 45, 2026-01-04);
+UPDATE(analytics, Global, sales, 45, 86300);
+
+-- Row46: TELECOM
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 46, TELECOM);
+UPDATE(analytics, Global, date, 46, 2026-01-05);
+UPDATE(analytics, Global, sales, 46, 65900);
+
+-- Row47: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 47, FINANCE);
+UPDATE(analytics, Global, date, 47, 2026-01-05);
+UPDATE(analytics, Global, sales, 47, 240500);
+
+-- Row48: AUTOMOTIVE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 48, AUTOMOTIVE);
+UPDATE(analytics, Global, date, 48, 2026-01-06);
+UPDATE(analytics, Global, sales, 48, 125600);
+
+-- Row49: LOGISTICS
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 49, LOGISTICS);
+UPDATE(analytics, Global, date, 49, 2026-01-06);
+UPDATE(analytics, Global, sales, 49, 56700);
+
+-- Row50: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 50, TECHNOLOGY);
+UPDATE(analytics, Global, date, 50, 2026-01-07);
+UPDATE(analytics, Global, sales, 50, 168200);
+
+-- Row51: RETAIL
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 51, RETAIL);
+UPDATE(analytics, Global, date, 51, 2026-01-07);
+UPDATE(analytics, Global, sales, 51, 108500);
+
+-- Row52: ENERGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 52, ENERGY);
+UPDATE(analytics, Global, date, 52, 2026-01-08);
+UPDATE(analytics, Global, sales, 52, 94100);
+
+-- Row53: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 53, FINANCE);
+UPDATE(analytics, Global, date, 53, 2026-01-08);
+UPDATE(analytics, Global, sales, 53, 218700);
+
+-- Row54: HEALTHCARE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 54, HEALTHCARE);
+UPDATE(analytics, Global, date, 54, 2026-01-09);
+UPDATE(analytics, Global, sales, 54, 90500);
+
+-- Row55: MANUFACTURING
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 55, MANUFACTURING);
+UPDATE(analytics, Global, date, 55, 2026-01-09);
+UPDATE(analytics, Global, sales, 55, 77300);
+
+-- Row56: TELECOM
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 56, TELECOM);
+UPDATE(analytics, Global, date, 56, 2026-01-10);
+UPDATE(analytics, Global, sales, 56, 68400);
+
+-- Row57: AUTOMOTIVE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 57, AUTOMOTIVE);
+UPDATE(analytics, Global, date, 57, 2026-01-10);
+UPDATE(analytics, Global, sales, 57, 128900);
+
+-- Row58: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 58, TECHNOLOGY);
+UPDATE(analytics, Global, date, 58, 2026-01-11);
+UPDATE(analytics, Global, sales, 58, 172600);
+
+-- Row59: RETAIL
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 59, RETAIL);
+UPDATE(analytics, Global, date, 59, 2026-01-11);
+UPDATE(analytics, Global, sales, 59, 114200);
+
+-- Row60: LOGISTICS
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 60, LOGISTICS);
+UPDATE(analytics, Global, date, 60, 2026-01-12);
+UPDATE(analytics, Global, sales, 60, 59800);
+
+-- Row61: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 61, FINANCE);
+UPDATE(analytics, Global, date, 61, 2026-01-12);
+UPDATE(analytics, Global, sales, 61, 235000);
+
+-- Row62: ENERGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 62, ENERGY);
+UPDATE(analytics, Global, date, 62, 2026-01-13);
+UPDATE(analytics, Global, sales, 62, 92700);
+
+-- Row63: HEALTHCARE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 63, HEALTHCARE);
+UPDATE(analytics, Global, date, 63, 2026-01-13);
+UPDATE(analytics, Global, sales, 63, 88600);
+
+-- Row64: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 64, TECHNOLOGY);
+UPDATE(analytics, Global, date, 64, 2026-01-14);
+UPDATE(analytics, Global, sales, 64, 165400);
+
+-- Row65: MANUFACTURING
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 65, MANUFACTURING);
+UPDATE(analytics, Global, date, 65, 2026-01-14);
+UPDATE(analytics, Global, sales, 65, 80100);
+
+-- Row66: TELECOM
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 66, TELECOM);
+UPDATE(analytics, Global, date, 66, 2026-01-15);
+UPDATE(analytics, Global, sales, 66, 66500);
+
+-- Row67: AUTOMOTIVE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 67, AUTOMOTIVE);
+UPDATE(analytics, Global, date, 67, 2026-01-15);
+UPDATE(analytics, Global, sales, 67, 123400);
+
+-- Row68: RETAIL
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 68, RETAIL);
+UPDATE(analytics, Global, date, 68, 2026-01-16);
+UPDATE(analytics, Global, sales, 68, 110900);
+
+-- Row69: FINANCE
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 69, FINANCE);
+UPDATE(analytics, Global, date, 69, 2026-01-16);
+UPDATE(analytics, Global, sales, 69, 228300);
+
+-- Row70: TECHNOLOGY
+
+ADD_ROW(analytics, Global);
+UPDATE(analytics, Global, sector, 70, TECHNOLOGY);
+UPDATE(analytics, Global, date, 70, 2026-01-17);
+UPDATE(analytics, Global, sales, 70, 159800);
