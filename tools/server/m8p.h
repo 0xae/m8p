@@ -1686,9 +1686,9 @@ namespace m8p {
 
         std::pair<M8_Error, M8_Obj*> MatFlex_OP(std::string op, M8System* M8, std::vector<std::string> params) {
             int psize = __abs(params.size()-1);
-            if (params.size()<3) {
+            if (psize<3) {
                 return std::make_pair(
-                    errorf(op + " requires 3 parameters"),
+                    errorf("mat"+op + " requires 3 parameters"),
                     M8->nilValue
                 );
             }
@@ -2193,7 +2193,7 @@ namespace m8p {
 
         std::pair<M8_Error, M8_Obj*> MatNorm_OP(M8System* M8, std::vector<std::string> params) {
             int psize = __abs(params.size()-1); // -1 accounts for the opcode itself
-            if (params.size() < 2) {
+            if (psize < 2) {
                 return std::make_pair(errorf("matnorm requires input and output register"), M8->nilValue);
             }
 
