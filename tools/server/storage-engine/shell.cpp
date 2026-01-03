@@ -70,6 +70,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "UPDATE" << Colors::RESET << "(table, group, col, row_id, val)\n";
     std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id)\n";
     std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) -- operator: =, !=, contains, ilike, starts_with, ends_with\n";
+    std::cout << "  " << Colors::GREEN << "COUNT" << Colors::RESET << "(table, group, col)\n";
     std::cout << "  " << Colors::GREEN << "SELECT" << Colors::RESET << "(table, group, col, limit, offset)\n";
     std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k)\n";
     std::cout << "  " << Colors::GREEN << "STATS" << Colors::RESET << "\n";
@@ -94,6 +95,7 @@ void print_help() {
     std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) |> project(sector,date) -- default\n";
     std::cout << "  FILTER(company, Details, status, ILIKE, Active, 10) |> project(name,status) -- default\n";
     std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n\n"
+    std::cout << "  COUNT(\"company_man\", \"Company\", \"name\");\n\n"
 
     ;
 }
