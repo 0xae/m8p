@@ -208,7 +208,9 @@ private:
     RelPtr allocate(size_t size_bytes, size_t manual_align = 0) {
         size_t align = (manual_align > 0) ? manual_align : ALIGNMENT_BYTES;
         size_t aligned_offset = align_forward(head, align);
-        if (aligned_offset + size_bytes > capacity_bytes) throw std::runtime_error("OOM");
+        if (aligned_offset + size_bytes > capacity_bytes) {
+            throw std::runtime_error("OOM");
+        }
         head = aligned_offset + size_bytes;
         return (RelPtr)aligned_offset;
     }
@@ -218,9 +220,13 @@ private:
     }
 
     template <typename T> T* get_cell_ptr(int col_idx, RowID row) {
-        if (col_idx < 0 || col_idx >= columns.size()) throw std::runtime_error("Invalid column");
-        ColumnHeader& col = columns[col_idx];
-        if (row >= col.capacity) throw std::runtime_error("Row index out of bounds");
+        if (col_idx < 0 || col_idx >= columns.size()) {
+            throw std::runtime_error("Invalid column");
+        }
+        ColumnHeader &col = columns[col_idx];
+        if (row >= col.capacity) {
+            throw std::runtime_error("Row index out of bounds");
+        }
         return get_ptr<T>(col.data_offset) + row;
     }
 
@@ -980,7 +986,23 @@ public:
 
                 return result_ss.str();
             }
-            else if (cmd == "SEARCH") {
+            else if (cmd == "COUNT") {
+                if (args.size() < 3) {
+                    throw std::runtime_error("Req: table, group, col");
+                }
+
+                std::string table = args[0];
+                std::string group = args[1];
+                std::string col = args[2];
+
+                BigTable* t = db.GetTable(table);
+                TensorGraph* tg = t->GetGroup(group);
+
+                uint32_t total = tg->GetRowCount(col);
+                // result_ss << col << ": " << total;
+                result_ss << total;
+
+            } else if (cmd == "SEARCH") {
                 if (args.size() < 5) throw std::runtime_error("Req: table, group, col, [vec], top_k");
                 BigTable* t = db.GetTable(args[0]);
                 TensorGraph* tg = t->GetGroup(args[1]);
