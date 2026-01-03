@@ -986,16 +986,17 @@ public:
 
                 return result_ss.str();
             }
+
             // else if (cmd == "COUNT_GROUPS") {
             //     if (args.size() < 1) {
             //         throw std::runtime_error("Req: table");
             //     }
             //     std::string table = args[0];
             //     BigTable* t = db.GetTable(table);
-
             //     tg->column_map
+            // } 
 
-            } else if (cmd == "COUNT") {
+            else if (cmd == "COUNT") {
                 if (args.size() < 3) {
                     throw std::runtime_error("Req: table, group, col");
                 }
