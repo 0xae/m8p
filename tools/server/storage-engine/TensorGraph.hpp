@@ -117,7 +117,7 @@ constexpr uint32_t DELETED_FLAG = 0xFFFFFFFF;
 // --- Types ---
 using RelPtr = uint32_t;
 using RowID = uint32_t;
-const int MAX_ROWS_P_COLUMN = 1000000;
+const int MAX_ROWS_P_COLUMN = 100000000; // 100M
 
 enum class ColType : uint8_t {
     INT32,

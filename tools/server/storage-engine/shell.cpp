@@ -58,15 +58,15 @@ void print_help() {
     std::cout << "  * " << Colors::CYAN << "BigTable" << Colors::RESET << ": Logical collection of data (e.g., 'Users', 'Products').\n";
     std::cout << "  * " << Colors::CYAN << "ColumnGroup" << Colors::RESET << ": Physical storage engine separating data types (e.g., 'vectors' for AVX access, 'meta' for text).\n";
     std::cout << "  * " << Colors::CYAN << "Column" << Colors::RESET << ": Typed array inside the engine.\n\n";
+    std::cout << "      Types: " << Colors::BOLD << "INT, FLOAT, TEXT, VECTOR" << Colors::RESET << "\n";
+    std::cout << "      " << Colors::DIM << "Note: Currently reserves a row. Use UPDATE to set values." << Colors::RESET << "\n";
     
     std::cout << Colors::YELLOW << "COMMANDS:" << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "CREATE_TABLE" << Colors::RESET << "(name)\n";
     std::cout << "  " << Colors::GREEN << "CREATE_GROUP" << Colors::RESET << "(table, group, size_mb, role)\n";
     std::cout << "  " << Colors::GREEN << "CREATE_COLUMN" << Colors::RESET << "(table, group, name, type, [dim]) -- max_elements is 10,000\n";
     std::cout << "  " << Colors::GREEN << "CREATE_COLUMN_SZ" << Colors::RESET << "(table, group, name, type, max_elements, [dim])\n";
-    std::cout << "      Types: " << Colors::BOLD << "INT, FLOAT, TEXT, VECTOR" << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "ADD_ROW" << Colors::RESET << "(table, group, val1...)\n";
-    std::cout << "      " << Colors::DIM << "Note: Currently reserves a row. Use UPDATE to set values." << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "UPDATE" << Colors::RESET << "(table, group, col, row_id, val)\n";
     std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id)\n";
     std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) -- operator: =, !=, contains, ilike, starts_with, ends_with\n";
@@ -79,6 +79,7 @@ void print_help() {
     std::cout << "  CREATE_TABLE(\"Users\");\n";
     std::cout << "  CREATE_GROUP(\"Users\", \"Bio\", 64, \"data\");\n";
     std::cout << "  CREATE_COLUMN(\"Users\", \"Bio\", \"name\", TEXT);\n";
+    std::cout << "  CREATE_COLUMN_SZ(\"Users\", \"Bio\", \"name\", TEXT, 100000); -- will store up to 100K\n";
     std::cout << "  ADD_ROW(\"Users\", \"Bio\");\n";
     std::cout << "  UPDATE(\"Users\", \"Bio\", \"name\", 0, \"Alice\");\n";
     std::cout << "  GET(\"Users\", \"Bio\", \"name\", 0);\n";
