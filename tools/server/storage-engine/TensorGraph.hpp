@@ -986,6 +986,28 @@ public:
 
                 return result_ss.str();
             }
+            else if (cmd == "COUNT_FILTER") {
+                if (args.size() < 5) {
+                    throw std::runtime_error("COUNT_FILTER(table, group, col, operator, value, limit)");
+                }
+                auto &colName = args[2];
+                BigTable* t = db.GetTable(args[0]);
+                TensorGraph* tg = t->GetGroup(args[1]);
+                auto results = tg->Filter(colName, args[3], args[4]);
+
+                if (results.size()==0){
+                    return "0";
+                }
+                
+                int limit = 100; 
+                if (args.size()>5) {
+                    limit = std::stoi(args[5]);
+                }
+
+                int count = results.size();
+                result_ss << count;
+                return result_ss.str();
+            }
 
             // else if (cmd == "COUNT_GROUPS") {
             //     if (args.size() < 1) {
@@ -1010,6 +1032,7 @@ public:
                 uint32_t total = tg->GetRowCount(col);
                 // result_ss << col << ": " << total;
                 result_ss << total;
+                return result_ss.str();
 
             } else if (cmd == "SEARCH") {
                 if (args.size() < 5) throw std::runtime_error("Req: table, group, col, [vec], top_k");
