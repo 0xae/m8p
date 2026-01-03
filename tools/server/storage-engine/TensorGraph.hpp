@@ -988,7 +988,7 @@ public:
             }
             else if (cmd == "COUNT_FILTER") {
                 if (args.size() < 5) {
-                    throw std::runtime_error("COUNT_FILTER(table, group, col, operator, value, limit)");
+                    throw std::runtime_error("COUNT_FILTER(table, group, col, operator, value)");
                 }
                 auto &colName = args[2];
                 BigTable* t = db.GetTable(args[0]);
@@ -999,11 +999,6 @@ public:
                     return "0";
                 }
                 
-                int limit = 100; 
-                if (args.size()>5) {
-                    limit = std::stoi(args[5]);
-                }
-
                 int count = results.size();
                 result_ss << count;
                 return result_ss.str();
@@ -1016,7 +1011,7 @@ public:
             //     std::string table = args[0];
             //     BigTable* t = db.GetTable(table);
             //     tg->column_map
-            // } 
+            // }
 
             else if (cmd == "COUNT") {
                 if (args.size() < 3) {
