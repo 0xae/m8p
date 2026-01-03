@@ -986,7 +986,7 @@ public:
 
                 return result_ss.str();
             }
-            else if (cmd == "COUNT_FILTER") {
+            else if (cmd == "COUNT_FILTER"||cmd=="COUNT_IF") {
                 if (args.size() < 5) {
                     throw std::runtime_error("COUNT_FILTER(table, group, col, operator, value)");
                 }

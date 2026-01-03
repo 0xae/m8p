@@ -72,6 +72,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) -- operator: =, !=, contains, ilike, starts_with, ends_with\n";
     std::cout << "  " << Colors::GREEN << "COUNT" << Colors::RESET << "(table, group, col)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_FILTER" << Colors::RESET << "(table, group, col, operator, val)\n";
+    std::cout << "  " << Colors::GREEN << "COUNT_IF" << Colors::RESET << "(table, group, col, operator, val)\n";
     std::cout << "  " << Colors::GREEN << "SELECT" << Colors::RESET << "(table, group, col, limit, offset)\n";
     std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k)\n";
     std::cout << "  " << Colors::GREEN << "STATS" << Colors::RESET << "\n";
@@ -98,6 +99,7 @@ void print_help() {
     std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n\n";
     std::cout << "  COUNT(\"company_man\", \"Company\", \"name\");\n\n";
     std::cout << "  COUNT_FILTER(\"company_man\", \"Company\", \"name\", operator, value);\n\n";
+    std::cout << "  COUNT_IF(\"company_man\", \"Company\", \"name\", operator, value);\n\n";
 
     ;
 }
