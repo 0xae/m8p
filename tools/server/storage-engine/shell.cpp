@@ -103,9 +103,11 @@ void print_help() {
     std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) |> project(sector,date) -- default\n";
     std::cout << "  SEARCH(analytics, Global, vector, <vec>, 3) |> project(sector,date) -- default\n";
     std::cout << "  FILTER(company, Details, status, ILIKE, Active, 10) |> project(name,status) -- default\n";
-    std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n\n";
-    std::cout << "  COUNT(\"company_man\", \"Company\", \"name\");\n\n";
-    std::cout << "  COUNT_IF(\"company_man\", \"Company\", \"name\", operator, value);\n\n";
+    std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n";
+    std::cout << "  SELECT_FROM_ROWS(company_man, Company, name, [3999,5664,7160,9237,10308]);\n";
+    std::cout << "  COUNT(\"company_man\", \"Company\", \"name\");\n";
+    std::cout << "  COUNT_IF(\"company_man\", \"Company\", \"name\", operator, value);\n";
+    std::cout << "  JOIN(company_man, Company, company_id, Officers, company_id, eq, 1601)\n";
 
     ;
 }
