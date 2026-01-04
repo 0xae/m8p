@@ -919,6 +919,19 @@ class TGQL {
             res.context_engine = tg;
             res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
         }
+        else if (cmd == "COUNT") {
+            if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            res.msg = std::to_string(tg->Count(args[2]));
+        }
+        else if (cmd == "COUNT_IF" || cmd == "COUNT_FILTER") {
+            if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            auto rows = tg->Filter(args[2], args[3], args[4]);
+            res.msg = std::to_string(rows.size());
+        }
         else if (cmd == "SEARCH") {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, vec, top_k");
             BigTable* t = db.GetTable(args[0]);
