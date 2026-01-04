@@ -253,9 +253,9 @@ public:
         if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
         int col_idx = column_map[col_name];
         ColumnHeader& col = columns[col_idx];
-        
+
         if (col.type != ColType::TEXT) throw std::runtime_error("Index only supported on TEXT columns currently");
-        
+
         // Rebuild index
         std::unordered_map<std::string, std::vector<RowID>> idx;
         RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
@@ -388,7 +388,7 @@ public:
         matches.reserve(limit > 0 ? limit : 128); 
         
         // Use Index if available for EQ
-        if ((op == "EQ" || op == "=") && HasIndex(col_name)) {
+        if ((op == "EQ" || op == "=" || op=="contains" || op=="not_contains") && HasIndex(col_name)) {
              std::vector<RowID> candidates = LookupIndex(col_name, val_str);
              if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
              return candidates;
