@@ -933,6 +933,7 @@ namespace m8p {
         std::map<std::string, M8_Obj*> &REG = M8->Registers;
         string rdest = params.at(1);// dont forget 0 is for the op_code
         string Value = params.at(2);
+        __trim(Value);
         int32_t number;
 
         if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
@@ -943,6 +944,7 @@ namespace m8p {
                         errorf("i32add: EXPECTING_INT32_REGISTER["+Value+"]"),
                         M8->nilValue
                     );
+
                 } else if (R->Type==MP8_I32) {
                     number = R->I32;
 
@@ -981,33 +983,18 @@ namespace m8p {
             }
         }
 
-        // auto [ptr, ec] = std::from_chars(Value.data(), Value.data()+Value.size(), number);
-        // if(ec == std::errc{}){
-        // } else {
-        //     return std::make_pair(
-        //         errorf("EXPECTING_INT32["+Value+"]"),
-        //         M8->nilValue
-        //     );
-        // }
-
         if (REG.count(rdest)) {
             M8_Obj *R = REG[rdest];
-            if (R==nullptr){
+            if (R==nullptr || is_nil(M8, R)){
                 return std::make_pair(
-                    errorf("NULL_REGISTER["+Value+"]"),
-                    M8->nilValue
-                );
-            }
-            if (is_nil(M8, R)){
-                return std::make_pair(
-                    errorf("NIL_REGISTER["+Value+"]"),
+                    errorf("i32add: NIL_REGISTER["+Value+"]"),
                     M8->nilValue
                 );
             }
 
             if (R->Type!=MP8_I32) {
                 return std::make_pair(
-                    errorf("EXPECTING_INT32_REGISTER["+rdest+"]"),
+                    errorf("i32add: EXPECTING_INT32_REGISTER["+rdest+"]"),
                     M8->nilValue
                 );
             }

@@ -242,7 +242,11 @@ public:
     }
 
     void CreateColumn(const std::string& name, ColType type, uint32_t initial_capacity, int dim = 0) {
-        if (column_map.find(name) != column_map.end()) throw std::runtime_error("Column exists");
+        if (column_map.find(name) != column_map.end()) {
+            // throw std::runtime_error("Column exists");
+            return;
+        }
+
         ColumnHeader header;
         std::strncpy(header.name, name.c_str(), 31);
         header.name[31] = '\0';
@@ -278,11 +282,19 @@ public:
 
     // --- Index Management ---
     void CreateIndex(const std::string& col_name) {
-        if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
+        }
+        if (HasIndex(col_name)) {
+            return;            
+        }
+
         int col_idx = column_map[col_name];
         ColumnHeader& col = columns[col_idx];
 
-        if (col.type != ColType::TEXT) throw std::runtime_error("Index only supported on TEXT columns currently");
+        if (col.type != ColType::TEXT) {
+            throw std::runtime_error("Index only supported on TEXT columns currently");
+        }
 
         // Rebuild index
         std::unordered_map<std::string, std::vector<RowID>> idx;
