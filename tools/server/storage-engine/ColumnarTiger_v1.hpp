@@ -386,21 +386,40 @@ public:
         std::string op = str_to_upper(op_raw);
         std::vector<RowID> matches;
         matches.reserve(limit > 0 ? limit : 128); 
+
+        // Handle IN operator setup
+        bool is_in_op = (op == "IN");
+        std::unordered_set<int32_t> int_set;
+        std::vector<float> float_list;
+        std::unordered_set<std::string> text_set;
+
+        if (is_in_op) {
+             std::vector<std::string> raw_list = parse_in_list(val_str);
+             if (col.type == ColType::INT32) {
+                 for(const auto& s : raw_list) { try { int_set.insert(std::stoi(s)); } catch(...) {} }
+             } else if (col.type == ColType::FLOAT32) {
+                 for(const auto& s : raw_list) { try { float_list.push_back(std::stof(s)); } catch(...) {} }
+             } else if (col.type == ColType::TEXT) {
+                 for(const auto& s : raw_list) text_set.insert(s);
+             }
+        }
         
         // Use Index if available for EQ
-        if ((op == "EQ" || op == "=" || op=="contains" || op=="not_contains") && HasIndex(col_name)) {
+        if (!is_in_op && (op == "EQ" || op == "=") && HasIndex(col_name)) {
              std::vector<RowID> candidates = LookupIndex(col_name, val_str);
              if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
              return candidates;
         }
 
         if (col.type == ColType::INT32) {
-            int32_t target = std::stoi(val_str);
+            int32_t target = 0;
+            if (!is_in_op) target = std::stoi(val_str);
             int32_t* data = get_ptr<int32_t>(col.data_offset);
             for (uint32_t i = 0; i < col.count; ++i) {
                 if (limit > 0 && matches.size() >= (size_t)limit) break;
                 bool match = false;
-                if (op == "EQ" || op == "=") match = (data[i] == target);
+                if (is_in_op) match = (int_set.find(data[i]) != int_set.end());
+                else if (op == "EQ" || op == "=") match = (data[i] == target);
                 else if (op == "NEQ" || op == "!=") match = (data[i] != target);
                 else if (op == "GTE" || op == ">=") match = (data[i] >= target);
                 else if (op == "LTE" || op == "<=") match = (data[i] <= target);
@@ -410,12 +429,18 @@ public:
             }
         }
         else if (col.type == ColType::FLOAT32) {
-            float target = std::stof(val_str);
+            float target = 0.0f;
+            if (!is_in_op) target = std::stof(val_str);
             float* data = get_ptr<float>(col.data_offset);
             for (uint32_t i = 0; i < col.count; ++i) {
                 if (limit > 0 && matches.size() >= (size_t)limit) break;
                 bool match = false;
-                if (op == "EQ" || op == "=") match = (std::abs(data[i] - target) < 1e-6); 
+                if (is_in_op) {
+                     for(float f : float_list) { 
+                         if (std::abs(data[i] - f) < 1e-6) { match = true; break; } 
+                     }
+                }
+                else if (op == "EQ" || op == "=") match = (std::abs(data[i] - target) < 1e-6); 
                 else if (op == "NEQ" || op == "!=") match = (std::abs(data[i] - target) > 1e-6);
                 else if (op == "GTE" || op == ">=") match = (data[i] >= target);
                 else if (op == "LTE" || op == "<=") match = (data[i] <= target);
@@ -432,7 +457,8 @@ public:
                 std::string val = std::string(get_ptr<char>(offsets[i]));
                 bool match = false;
                 
-                if (op == "EQ" || op == "=") match = (val == val_str);
+                if (is_in_op) match = (text_set.find(val) != text_set.end());
+                else if (op == "EQ" || op == "=") match = (val == val_str);
                 else if (op == "NEQ" || op == "!=") match = (val != val_str);
                 else if (op == "CONTAINS") match = str_contains(val, val_str);
                 else if (op == "NOT_CONTAINS") match = !str_contains(val, val_str);
@@ -445,6 +471,74 @@ public:
         }
         return matches;
     }
+
+    // std::vector<RowID> Filter(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit = -1) {
+    //     if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
+    //     int col_idx = column_map[col_name];
+    //     ColumnHeader& col = columns[col_idx];
+        
+    //     std::string op = str_to_upper(op_raw);
+    //     std::vector<RowID> matches;
+    //     matches.reserve(limit > 0 ? limit : 128); 
+        
+    //     // Use Index if available for EQ
+    //     if ((op == "EQ" || op == "=" || op=="contains" || op=="not_contains") && HasIndex(col_name)) {
+    //          std::vector<RowID> candidates = LookupIndex(col_name, val_str);
+    //          if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
+    //          return candidates;
+    //     }
+
+    //     if (col.type == ColType::INT32) {
+    //         int32_t target = std::stoi(val_str);
+    //         int32_t* data = get_ptr<int32_t>(col.data_offset);
+    //         for (uint32_t i = 0; i < col.count; ++i) {
+    //             if (limit > 0 && matches.size() >= (size_t)limit) break;
+    //             bool match = false;
+    //             if (op == "EQ" || op == "=") match = (data[i] == target);
+    //             else if (op == "NEQ" || op == "!=") match = (data[i] != target);
+    //             else if (op == "GTE" || op == ">=") match = (data[i] >= target);
+    //             else if (op == "LTE" || op == "<=") match = (data[i] <= target);
+    //             else if (op == "GT" || op == ">") match = (data[i] > target);
+    //             else if (op == "LT" || op == "<") match = (data[i] < target);
+    //             if (match) matches.push_back(i);
+    //         }
+    //     }
+    //     else if (col.type == ColType::FLOAT32) {
+    //         float target = std::stof(val_str);
+    //         float* data = get_ptr<float>(col.data_offset);
+    //         for (uint32_t i = 0; i < col.count; ++i) {
+    //             if (limit > 0 && matches.size() >= (size_t)limit) break;
+    //             bool match = false;
+    //             if (op == "EQ" || op == "=") match = (std::abs(data[i] - target) < 1e-6); 
+    //             else if (op == "NEQ" || op == "!=") match = (std::abs(data[i] - target) > 1e-6);
+    //             else if (op == "GTE" || op == ">=") match = (data[i] >= target);
+    //             else if (op == "LTE" || op == "<=") match = (data[i] <= target);
+    //             else if (op == "GT" || op == ">") match = (data[i] > target);
+    //             else if (op == "LT" || op == "<") match = (data[i] < target);
+    //             if (match) matches.push_back(i);
+    //         }
+    //     }
+    //     else if (col.type == ColType::TEXT) {
+    //         RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
+    //         for (uint32_t i = 0; i < col.count; ++i) {
+    //             if (limit > 0 && matches.size() >= (size_t)limit) break;
+    //             if (offsets[i] == DELETED_FLAG) continue;
+    //             std::string val = std::string(get_ptr<char>(offsets[i]));
+    //             bool match = false;
+                
+    //             if (op == "EQ" || op == "=") match = (val == val_str);
+    //             else if (op == "NEQ" || op == "!=") match = (val != val_str);
+    //             else if (op == "CONTAINS") match = str_contains(val, val_str);
+    //             else if (op == "NOT_CONTAINS") match = !str_contains(val, val_str);
+    //             else if (op == "ILIKE") match = str_contains(str_to_lower(val), str_to_lower(val_str));
+    //             else if (op == "STARTS_WITH") match = str_starts_with(val, val_str);
+    //             else if (op == "ENDS_WITH") match = str_ends_with(val, val_str);
+                
+    //             if (match) matches.push_back(i);
+    //         }
+    //     }
+    //     return matches;
+    // }
 
     uint32_t Count(const std::string& col_name) {
         if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
