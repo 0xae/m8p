@@ -1,0 +1,1 @@
+g++ tests_tg.cpp -o tiger-tests -O3 -lreadline -march=native && ./tiger-tests
