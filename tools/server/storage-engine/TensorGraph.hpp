@@ -472,6 +472,7 @@ public:
                 if (op == "EQ" || op == "=") match = (val == val_str);
                 else if (op == "NEQ" || op == "!=") match = (val != val_str);
                 else if (op == "CONTAINS") match = str_contains(val, val_str);
+                else if (op == "NOT_CONTAINS") match = !str_contains(val, val_str);
                 else if (op == "ILIKE") match = str_contains(str_to_lower(val), str_to_lower(val_str));
                 else if (op == "STARTS_WITH") match = str_starts_with(val, val_str);
                 else if (op == "ENDS_WITH") match = str_ends_with(val, val_str);
@@ -986,7 +987,7 @@ public:
 
                 return result_ss.str();
             }
-            else if (cmd == "COUNT_FILTER"||cmd=="COUNT_IF") {
+            else if (cmd == "COUNT_FILTER" || cmd=="COUNT_IF") {
                 if (args.size() < 5) {
                     throw std::runtime_error("COUNT_FILTER(table, group, col, operator, value)");
                 }
@@ -1034,8 +1035,54 @@ public:
                 BigTable* t = db.GetTable(args[0]);
                 TensorGraph* tg = t->GetGroup(args[1]);
                 auto results = tg->VectorSearch(args[2], parse_vector_data(args[3]), std::stoi(args[4]));
-                result_ss << "Results:\n";
-                for(auto& r : results) result_ss << " - ID: " << r.id << " Score: " << r.score << "\n";
+
+                std::vector<std::string> pcols;
+                const std::string filter_syntax = "|> project(";
+                const auto pjt_idx=args_content.find(filter_syntax);
+                const auto should_project = (pjt_idx!=std::string::npos);
+
+                if (should_project) {
+                    std::string project_cols = args_content.substr(pjt_idx+filter_syntax.size());
+                    pcols = split(project_cols, ",");
+                } else {
+                    result_ss << "[";
+                }
+
+                for(auto& r : results) {
+                    if (should_project) {
+                        for (auto COLUMN_NAME : pcols) {
+                            if (tg->column_map.count(COLUMN_NAME)) {
+                                auto &col = tg->columns[tg->column_map[COLUMN_NAME]];
+                                std::string typeL="";
+                                if (col.type == ColType::INT32) {
+                                    typeL = "INT";
+                                } else if (col.type == ColType::FLOAT32)  {
+                                    typeL = "FLOAT";
+                                } else if (col.type == ColType::TEXT) {
+                                    typeL = "TEXT";
+                                } else if (col.type == ColType::VECTOR_F32) {
+                                    typeL = "VECTOR";
+                                } else {
+                                    throw std::runtime_error("COLUMN TYPE NOT FOUND: " + COLUMN_NAME);
+                                }
+
+                                std::string COMMAND =  "GET("+args[0]+", "+args[1]+", "+COLUMN_NAME+", "+std::to_string(r.id)+", "+typeL+")";
+                                std::string result__x = Execute(db, COMMAND);
+                                result_ss  << result__x << " | ";                     
+                            } else {
+                                throw std::runtime_error("COLUMN NOT FOUND: " + COLUMN_NAME);
+                            }
+                        }
+                    } else {
+                        result_ss << r.id << ":" << r.score << ",";
+                    }
+                }
+
+                if (should_project){
+                } else {
+                    result_ss << "]";
+                }
+
                 return result_ss.str();
             }
             // Add Persistence Commands

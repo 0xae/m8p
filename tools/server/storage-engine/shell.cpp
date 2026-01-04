@@ -58,6 +58,7 @@ void print_help() {
     std::cout << "  * " << Colors::CYAN << "BigTable" << Colors::RESET << ": Logical collection of data (e.g., 'Users', 'Products').\n";
     std::cout << "  * " << Colors::CYAN << "ColumnGroup" << Colors::RESET << ": Physical storage engine separating data types (e.g., 'vectors' for AVX access, 'meta' for text).\n";
     std::cout << "  * " << Colors::CYAN << "Column" << Colors::RESET << ": Typed array inside the engine.\n\n";
+    std::cout << "      Operators: " << Colors::BOLD << "=,  !=,  contains, not_contains, ilike, starts_with, ends_with" << Colors::RESET << "\n";
     std::cout << "      Types: " << Colors::BOLD << "INT, FLOAT, TEXT, VECTOR" << Colors::RESET << "\n";
     std::cout << "      " << Colors::DIM << "Note: Currently reserves a row. Use UPDATE to set values." << Colors::RESET << "\n";
     
@@ -69,7 +70,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "ADD_ROW" << Colors::RESET << "(table, group, val1...)\n";
     std::cout << "  " << Colors::GREEN << "UPDATE" << Colors::RESET << "(table, group, col, row_id, val)\n";
     std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id)\n";
-    std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) -- operator: =, !=, contains, ilike, starts_with, ends_with\n";
+    std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20])\n";
     std::cout << "  " << Colors::GREEN << "COUNT" << Colors::RESET << "(table, group, col)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_FILTER" << Colors::RESET << "(table, group, col, operator, val)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_IF" << Colors::RESET << "(table, group, col, operator, val)\n";
@@ -82,7 +83,7 @@ void print_help() {
     std::cout << "  CREATE_TABLE(\"Users\");\n";
     std::cout << "  CREATE_GROUP(\"Users\", \"Bio\", 64, \"data\");\n";
     std::cout << "  CREATE_COLUMN(\"Users\", \"Bio\", \"name\", TEXT);\n";
-    std::cout << "  CREATE_COLUMN_SZ(\"Users\", \"Bio\", \"name\", TEXT, 100000); -- will store up to 100K\n";
+    std::cout << "  CREATE_COLUMN_SZ(\"Users\", \"Bio\", \"name\", TEXT, 100000); -- will store up to 100K elementd\n";
     std::cout << "  ADD_ROW(\"Users\", \"Bio\");\n";
     std::cout << "  UPDATE(\"Users\", \"Bio\", \"name\", 0, \"Alice\");\n";
     std::cout << "  GET(\"Users\", \"Bio\", \"name\", 0);\n";
@@ -98,7 +99,6 @@ void print_help() {
     std::cout << "  FILTER(company, Details, status, ILIKE, Active, 10) |> project(name,status) -- default\n";
     std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n\n";
     std::cout << "  COUNT(\"company_man\", \"Company\", \"name\");\n\n";
-    std::cout << "  COUNT_FILTER(\"company_man\", \"Company\", \"name\", operator, value);\n\n";
     std::cout << "  COUNT_IF(\"company_man\", \"Company\", \"name\", operator, value);\n\n";
 
     ;
