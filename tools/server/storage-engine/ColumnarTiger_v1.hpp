@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <iomanip>
 #include <unordered_map>
+#include <unordered_set>
 #include <memory>
 #include <sstream>
 #include <fstream>
@@ -157,6 +158,30 @@ private:
     static bool str_ends_with(const std::string& str, const std::string& suffix) {
         if (str.length() < suffix.length()) return false;
         return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+    }
+    std::vector<std::string> parse_in_list(std::string val) {
+        if (val.empty()) return {};
+        // Strip brackets if present
+        if (val.front() == '[') val = val.substr(1);
+        if (!val.empty() && val.back() == ']') val.pop_back();
+        
+        std::vector<std::string> res;
+        std::stringstream ss(val);
+        std::string item;
+        while (std::getline(ss, item, ',')) {
+            // trim whitespace
+            size_t first = item.find_first_not_of(" ");
+            if (first == std::string::npos) continue;
+            size_t last = item.find_last_not_of(" ");
+            std::string clean = item.substr(first, last - first + 1);
+            
+            // Remove quotes if present
+            if (clean.size() >= 2 && clean.front() == '"' && clean.back() == '"') {
+                clean = clean.substr(1, clean.size() - 2);
+            }
+            res.push_back(clean);
+        }
+        return res;
     }
 
 public:
