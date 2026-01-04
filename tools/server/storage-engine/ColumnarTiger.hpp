@@ -633,6 +633,10 @@ private:
             std::string col = args[2];
             int limit = std::stoi(args[3]);
             int offset = std::stoi(args[4]);
+
+            if (limit<=0) {
+                throw std::runtime_error("LIMIT MUST BE POSITIVE");
+            }
             
             ColType type = tg->GetColumnType(col);
             uint32_t total = tg->GetRowCount(col);
@@ -653,6 +657,10 @@ private:
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
             int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
+
+            if (limit<=0) {
+                throw std::runtime_error("LIMIT MUST BE POSITIVE");
+            }
             
             res.rows = tg->Filter(args[2], args[3], args[4], limit);
             res.has_rows = true;
