@@ -1073,6 +1073,8 @@ public:
                                 throw std::runtime_error("COLUMN NOT FOUND: " + COLUMN_NAME);
                             }
                         }
+
+                        result_ss << "\n"
                     } else {
                         result_ss << r.id << ":" << r.score << ",";
                     }
@@ -1083,6 +1085,10 @@ public:
                     result_ss << "]";
                 }
 
+                // if (count>limit) {
+                //     result_ss << "More=" << (results.size() - limit);
+                // }
+                result_ss << "| Found=" << std::to_string(results.size());
                 return result_ss.str();
             }
             // Add Persistence Commands
