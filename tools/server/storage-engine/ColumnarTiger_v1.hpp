@@ -99,8 +99,8 @@ inline float l2_sq_simd(const float* a, const float* b, int dim) {
 #endif
 }
 
-// --- TensorGraph Engine ---
-class TensorGraph {
+// --- ColumnarTiger Engine ---
+class ColumnarTiger {
 private:
     uint8_t* memory_block;
     size_t capacity_bytes;
@@ -160,14 +160,14 @@ private:
     }
 
 public:
-    TensorGraph(size_t size_mb) {
+    ColumnarTiger(size_t size_mb) {
         capacity_bytes = size_mb * 1024 * 1024;
         memory_block = new uint8_t[capacity_bytes]; 
         std::memset(memory_block, 0, capacity_bytes);
         head = 0; 
     }
 
-    ~TensorGraph() { delete[] memory_block; }
+    ~ColumnarTiger() { delete[] memory_block; }
 
     void Reset() {
         head = 0;
@@ -191,13 +191,13 @@ public:
         out.close();
     }
 
-    static std::unique_ptr<TensorGraph> Load(const std::string& filepath) {
+    static std::unique_ptr<ColumnarTiger> Load(const std::string& filepath) {
         std::ifstream in(filepath, std::ios::binary);
         if (!in) throw std::runtime_error("Cannot open file for reading: " + filepath);
         size_t cap, hd;
         in.read(reinterpret_cast<char*>(&cap), sizeof(size_t));
         in.read(reinterpret_cast<char*>(&hd), sizeof(size_t));
-        auto db = std::make_unique<TensorGraph>(cap / (1024 * 1024)); 
+        auto db = std::make_unique<ColumnarTiger>(cap / (1024 * 1024)); 
         db->head = hd;
         size_t num_cols;
         in.read(reinterpret_cast<char*>(&num_cols), sizeof(size_t));
