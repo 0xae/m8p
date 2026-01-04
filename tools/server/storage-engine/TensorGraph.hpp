@@ -1051,7 +1051,7 @@ public:
 
                 for(auto& r : results) {
                     if (should_project) {
-                        result_ss  << "rowid=" << r.id << "| score=" << r.score << " | ";
+                        result_ss  << "rowid=" << r.id << " | score=" << r.score << " | ";
                         for (auto COLUMN_NAME : pcols) {
                             TGQL::trim(COLUMN_NAME);
                             if (tg->column_map.count(COLUMN_NAME)) {
