@@ -853,27 +853,6 @@ class TGQL {
                 throw std::runtime_error("Unexecpted Type on col "+col);
             }
 
-            // if (typeL=="VECTOR") {
-
-            // } else if (typeL=="INT") {
-
-            // } else if (typeL=="FLOAT") {
-
-            // } else {
-            //     tg->SetText(col, rid, val);
-            // }
-
-            // LEGACY - ERROR PRONE
-            // if (val.find('[') != std::string::npos) {
-            //     tg->SetVector(col, rid, parse_vector_data(val));
-            // }
-            // else if (val.find_first_not_of("0123456789-") == std::string::npos) {
-            //     tg->SetInt(col, rid, std::stoi(val));
-            // }
-            // else if (val.find('.') != std::string::npos) {
-            //     try { tg->SetFloat(col, rid, std::stof(val)); } 
-            //     catch(...) { tg->SetText(col, rid, val); }
-            // } else tg->SetText(col, rid, val);
             res.msg = "Updated.";
         }
         else if (cmd == "GET") {
