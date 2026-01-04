@@ -835,23 +835,18 @@ class TGQL {
             std::string col = args[2];
             RowID rid = std::stoi(args[3]);
             std::string val = args[4];
-
             auto &colRef = tg->columns[tg->column_map[col]];
-            std::string typeL="";
+
             if (colRef.type == ColType::INT32) {
-                typeL = "INT";
                 tg->SetInt(col, rid, std::stoi(val));
 
             } else if (colRef.type == ColType::FLOAT32)  {
-                typeL = "FLOAT";
                 tg->SetFloat(col, rid, std::stoi(val));
 
             } else if (colRef.type == ColType::TEXT) {
-                typeL = "TEXT";
                 tg->SetText(col, rid, val);
 
             } else if (colRef.type == ColType::VECTOR_F32) {
-                typeL = "VECTOR";
                 tg->SetVector(col, rid, parse_vector_data(val));
             } else {
                 throw std::runtime_error("Unexecpted Type on col "+col);
