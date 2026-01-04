@@ -755,7 +755,6 @@ class TGQL {
             // JOIN(table, g_a, c_a, g_b, c_b, op, val)
             if (args.size() < 7) throw std::runtime_error("Req: table, g_a, c_a, g_b, c_b, op, val");
             std::vector<RowID> rows = db.JoinFilter(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
-            
             res.rows = rows;
             res.has_rows = true;
             res.msg = "Join Result: " + std::to_string(rows.size()) + " rows.";
