@@ -244,6 +244,10 @@ public:
         return current_count; 
     }
 
+        // Check if column exists and get type
+    bool HasColumn(const std::string& name) { return column_map.find(name) != column_map.end(); }
+    ColType GetColumnType(const std::string& name) { return columns[column_map.at(name)].type; }
+
     // --- Index Management ---
     void CreateIndex(const std::string& col_name) {
         if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
