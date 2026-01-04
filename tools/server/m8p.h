@@ -1236,13 +1236,35 @@ namespace m8p {
         if (Value.rfind("<", 0)==0){ // seems to be a register lets look it up
             if (REG.count(Value)>0) {
                 M8_Obj *R = REG[Value];
-                if (R==nullptr || is_nil(M8,R) || R->Type!=MP8_F32) {
+                if (R==nullptr || is_nil(M8,R)) {
                     return std::make_pair(
-                        errorf("EXPECTING_FLOAT32_REGISTER["+Value+"]"),
+                        errorf("EXPECTING_REGISTER["+Value+"]"),
+                        // errorf("EXPECTING_FLOAT32_REGISTER["+Value+"]"),
                         M8->nilValue
                     );
                 }
-                number = R->F32;
+
+                if (R->Type==MP8_F32) {
+                    number = R->F32;
+                } else if (R->Type==MP8_I32) {
+                    number = (float)R->I32;
+
+                } else if (R->Type==MP8_STRING) {
+                    try {number=std::stof(R->Value);}
+                    catch (const std::invalid_argument& ia) {
+                        return std::make_pair(
+                            errorf("EXPECTING_FLOAT32["+Value+"]"),
+                            M8->nilValue
+                        );
+                    }
+
+                } else {
+                    return std::make_pair(
+                        errorf("EXPECTING_INT_STRING_REGISTER["+Value+"]"),
+                        M8->nilValue
+                    );
+                }
+
             } else {
                 return std::make_pair(
                     errorf("NIL_REGISTER["+Value+"]"),
