@@ -590,7 +590,15 @@ public:
         ss << "   Arena Used: " << head << " / " << capacity_bytes << " bytes\n";
         ss << "   Columns: " << columns.size() << "\n";
         for(const auto& col : columns) {
-            ss << "    - " << col.name << " (Rows: " << col.count << ", Cap: " << col.capacity << ")\n";
+            auto type = col.type;
+            std::string typeL = "";
+            switch(type) {
+                case ColType::INT32: typeL="INT32"; break;
+                case ColType::FLOAT32: typeL="FLOAT"; break;
+                case ColType::TEXT: typeL="TEXT"; break;
+                case ColType::VECTOR_F32: typeL="VECTOR["+ std::to_string(col.vector_dim) + "]"; break;
+            }
+            ss << "    - " << col.name << " Type:" << typeL << " (Rows: " << col.count << ", Cap: " << col.capacity << ")\n";
         }
         return ss.str();
     }
@@ -861,7 +869,7 @@ class TGQL {
             } else if (colRef.type == ColType::VECTOR_F32) {
                 tg->SetVector(col, rid, parse_vector_data(val));
             } else {
-                throw std::runtime_error("Unexecpted Type on col "+col);
+                throw std::runtime_error("Unexpected Type on col "+col);
             }
 
             res.msg = "Updated.";
