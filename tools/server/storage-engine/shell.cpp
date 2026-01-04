@@ -5,7 +5,8 @@
 #include <algorithm>
 #include <cctype>
 #include <csignal>
-#include "TensorGraph.hpp"
+// #include "TensorGraph.hpp"
+#include "ColumnarTiger.hpp"
 
 // --- READLINE SUPPORT ---
 #if defined(_WIN32) || defined(_WIN64)
@@ -54,7 +55,7 @@ void sigint_handler(int sig) {
 void print_help() {
     std::cout << "\n" << Colors::BOLD << Colors::MAGENTA << "=== M8 Native Storage Engine Help ===" << Colors::RESET << "\n\n";
     std::cout << Colors::YELLOW << "ARCHITECTURE:" << Colors::RESET << "\n";
-    std::cout << "  MetaDB -> BigTable -> ColumnGroup -> TensorGraph\n";
+    std::cout << "  MetaDB -> BigTable -> ColumnGroup -> Block-Storage\n";
     std::cout << "  * " << Colors::CYAN << "BigTable" << Colors::RESET << ": Logical collection of data (e.g., 'Users', 'Products').\n";
     std::cout << "  * " << Colors::CYAN << "ColumnGroup" << Colors::RESET << ": Physical storage engine separating data types (e.g., 'vectors' for AVX access, 'meta' for text).\n";
     std::cout << "  * " << Colors::CYAN << "Column" << Colors::RESET << ": Typed array inside the engine.\n\n";
@@ -70,12 +71,12 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "ADD_ROW" << Colors::RESET << "(table, group, val1...)\n";
     std::cout << "  " << Colors::GREEN << "UPDATE" << Colors::RESET << "(table, group, col, row_id, val)\n";
     std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id)\n";
-    std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20])\n";
+    std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) |> project(col1,col2)\n";
     std::cout << "  " << Colors::GREEN << "COUNT" << Colors::RESET << "(table, group, col)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_FILTER" << Colors::RESET << "(table, group, col, operator, val)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_IF" << Colors::RESET << "(table, group, col, operator, val)\n";
     std::cout << "  " << Colors::GREEN << "SELECT" << Colors::RESET << "(table, group, col, limit, offset)\n";
-    std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k)\n";
+    std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k) |> project(col1,col2)\n";
     std::cout << "  " << Colors::GREEN << "STATS" << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "EXIT" << Colors::RESET << "\n\n";
 
