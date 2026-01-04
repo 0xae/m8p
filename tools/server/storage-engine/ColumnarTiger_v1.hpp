@@ -28,6 +28,8 @@ constexpr uint32_t DELETED_FLAG = 0xFFFFFFFF;
 using RelPtr = uint32_t;
 using RowID = uint32_t;
 
+class TGQL;
+
 enum class ColType : uint8_t {
     INT32,
     FLOAT32,
@@ -103,6 +105,7 @@ inline float l2_sq_simd(const float* a, const float* b, int dim) {
 // --- ColumnarTiger Engine ---
 class ColumnarTiger {
 private:
+    friend class TGQL;
     uint8_t* memory_block;
     size_t capacity_bytes;
     size_t head; 
@@ -624,6 +627,7 @@ struct BigTable {
 
 class NativeMetaDB {
     std::unordered_map<std::string, std::unique_ptr<BigTable>> tables;
+    friend class TGQL;
 public:
     BigTable* CreateTable(const std::string& name) {
         if (tables.find(name) != tables.end()) return tables[name].get();
