@@ -846,7 +846,7 @@ class TGQL {
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
             RowID rid = tg->AddRow();
-            res.msg = "Row added. ID: " + std::to_string(rid);
+            res.msg = std::to_string(rid);
         }
         else if (cmd == "UPDATE" || cmd == "SET") {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, row_id, val");
