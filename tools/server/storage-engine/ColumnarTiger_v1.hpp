@@ -836,26 +836,32 @@ class TGQL {
             std::string typeL="";
             if (colRef.type == ColType::INT32) {
                 typeL = "INT";
-            } else if (colRef.type == ColType::FLOAT32)  {
-                typeL = "FLOAT";
-            } else if (colRef.type == ColType::TEXT) {
-                typeL = "TEXT";
-            } else if (colRef.type == ColType::VECTOR_F32) {
-                typeL = "VECTOR";
-            }
-
-            if (typeL=="VECTOR") {
-                tg->SetVector(col, rid, parse_vector_data(val));
-
-            } else if (typeL=="INT") {
                 tg->SetInt(col, rid, std::stoi(val));
 
-            } else if (typeL=="FLOAT") {
+            } else if (colRef.type == ColType::FLOAT32)  {
+                typeL = "FLOAT";
                 tg->SetFloat(col, rid, std::stoi(val));
 
-            } else {
+            } else if (colRef.type == ColType::TEXT) {
+                typeL = "TEXT";
                 tg->SetText(col, rid, val);
+
+            } else if (colRef.type == ColType::VECTOR_F32) {
+                typeL = "VECTOR";
+                tg->SetVector(col, rid, parse_vector_data(val));
+            } else {
+                throw std::runtime_error("Unexecpted Type on col "+col);
             }
+
+            // if (typeL=="VECTOR") {
+
+            // } else if (typeL=="INT") {
+
+            // } else if (typeL=="FLOAT") {
+
+            // } else {
+            //     tg->SetText(col, rid, val);
+            // }
 
             // LEGACY - ERROR PRONE
             // if (val.find('[') != std::string::npos) {
