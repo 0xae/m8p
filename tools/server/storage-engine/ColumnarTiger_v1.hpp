@@ -575,8 +575,12 @@ public:
         manifest.close();
     }
     void Load(const std::string& dir_path) {
-        std::ifstream manifest(dir_path + "_manifest.txt");
-        if (!manifest) throw std::runtime_error("Manifest not found");
+        const std::string ffl = dir_path + "_manifest.txt";
+        std::ifstream manifest(ffl);
+        if (!manifest) {
+            throw std::runtime_error("Manifest("+ffl+") not found");
+        }
+
         tables.clear();
         std::string t_name, g_name, role;
         while (manifest >> t_name >> g_name >> role) {
