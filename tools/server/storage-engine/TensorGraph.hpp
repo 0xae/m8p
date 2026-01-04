@@ -1051,7 +1051,7 @@ public:
 
                 for(auto& r : results) {
                     if (should_project) {
-                        result_ss  << "rowid=" << r.id << " | ";
+                        result_ss  << "rowid=" << r.id << "| score=" << r.score << " | ";
                         for (auto COLUMN_NAME : pcols) {
                             TGQL::trim(COLUMN_NAME);
                             if (tg->column_map.count(COLUMN_NAME)) {
@@ -1076,8 +1076,7 @@ public:
                                 throw std::runtime_error("COLUMN NOT FOUND: " + COLUMN_NAME);
                             }
                         }
-
-                        result_ss << "\n"
+                        result_ss << "\n";
                     } else {
                         result_ss << r.id << ":" << r.score << ",";
                     }
