@@ -921,7 +921,7 @@ public:
                 }
 
                 int count = 0;
-                std::vector<std::string> rows;
+                // std::vector<std::string> rows;
                 const std::string filter_syntax = "|> project(";
                 auto pjt_idx=args_content.find(filter_syntax);
                 auto should_project = (pjt_idx!=std::string::npos);
@@ -1051,6 +1051,7 @@ public:
 
                 for(auto& r : results) {
                     if (should_project) {
+                        result_ss  << "rowid=" << r.id << " | ";
                         for (auto COLUMN_NAME : pcols) {
                             TGQL::trim(COLUMN_NAME);
                             if (tg->column_map.count(COLUMN_NAME)) {
