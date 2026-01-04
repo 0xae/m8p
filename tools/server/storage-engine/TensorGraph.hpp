@@ -942,6 +942,7 @@ public:
                     if (pcols.size()>0) {
                         result_ss  << "rowid=" << id << " | ";
                         for (auto COLUMN_NAME : pcols) {
+                            TGQL::trim(COLUMN_NAME);
                             if (tg->column_map.count(COLUMN_NAME)) {
                                 auto &col = tg->columns[tg->column_map[COLUMN_NAME]];
                                 std::string typeL="";
@@ -1051,6 +1052,7 @@ public:
                 for(auto& r : results) {
                     if (should_project) {
                         for (auto COLUMN_NAME : pcols) {
+                            TGQL::trim(COLUMN_NAME);
                             if (tg->column_map.count(COLUMN_NAME)) {
                                 auto &col = tg->columns[tg->column_map[COLUMN_NAME]];
                                 std::string typeL="";
@@ -1084,7 +1086,6 @@ public:
                 } else {
                     result_ss << "]";
                 }
-
                 // if (count>limit) {
                 //     result_ss << "More=" << (results.size() - limit);
                 // }
