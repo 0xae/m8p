@@ -4,7 +4,7 @@
 #include <cassert>
 #include <sstream>
 #include <fstream>
-#include "TensorGraph.hpp"
+#include "ColumnarTiger_v1.hpp"
 
 // Simple Test Framework
 #define ASSERT_EQ(val1, val2) \
