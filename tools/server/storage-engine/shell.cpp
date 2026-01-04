@@ -6,7 +6,8 @@
 #include <cctype>
 #include <csignal>
 // #include "TensorGraph.hpp"
-#include "ColumnarTiger_v1.hpp"
+// #include "ColumnarTiger_v1.hpp"
+#include "ColumnarTiger.hpp"
 
 // --- READLINE SUPPORT ---
 #if defined(_WIN32) || defined(_WIN64)
