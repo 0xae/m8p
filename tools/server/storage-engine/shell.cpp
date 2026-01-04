@@ -77,6 +77,8 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "COUNT_IF" << Colors::RESET << "(table, group, col, operator, val)\n";
     std::cout << "  " << Colors::GREEN << "SELECT" << Colors::RESET << "(table, group, col, limit, offset)\n";
     std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k) |> project(col1,col2)\n";
+    std::cout << "  " << Colors::GREEN << "CREATE_INDEX" << Colors::RESET << "(table, group, col) \n";
+    std::cout << "  " << Colors::GREEN << "SELECT_FROM_ROWS" << Colors::RESET << "(table, group, col, rows) \n";
     std::cout << "  " << Colors::GREEN << "STATS" << Colors::RESET << "\n";
     std::cout << "  " << Colors::GREEN << "EXIT" << Colors::RESET << "\n\n";
 
