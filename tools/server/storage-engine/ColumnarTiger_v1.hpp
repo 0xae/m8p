@@ -512,7 +512,7 @@ public:
         if (sk_indexes.find(index_name) != sk_indexes.end()) {
             auto& idx = sk_indexes[index_name];
             // std::unordered_map<std::string, IndexData> sk_indexes;
-            if (idx.map.find(val) != idx.map.end()) return idx.map.[val];            
+            if (idx.map.find(val) != idx.map.end()) return idx.map[val];            
         }
         return {};
     }
