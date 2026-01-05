@@ -428,7 +428,7 @@ public:
         // 2. Define Index Scope (Partial Indexing Strategy)
         // Only index the first 70% of rows (as requested)
         // For updates, we will track this limit.
-        const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.7);
+        const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.43);
 
         // 3. Build Index
         IndexData idx_data;
@@ -437,20 +437,13 @@ public:
         RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
 
         for (uint32_t i = 0; i < index_limit; ++i) {
-            // Skip deleted rows
-            if (offsets[i] == DELETED_FLAG) continue;
-
-            // Fetch raw string
             std::string raw_val = std::string(get_ptr<char>(offsets[i]));
-            
-            // Normalize / Tokenize
-            std::string token = normalize_token(raw_val, 200);
-
+            std::string token = normalize_token(raw_val, 1000);
             if (!token.empty()) {
                 idx_data.map[token].push_back(i);
             }
         }
-        
+
         // Track where we stopped
         idx_data.last_indexed_row = index_limit;
 
@@ -459,6 +452,55 @@ public:
         std::cout << "Secondary Index '" << index_name << "' created on " 
                   << index_limit << "/" << col.count << " rows.\n";
     }
+
+void UpdateSecondaryIndex(const std::string& col_name) {
+    const std::string index_name = col_name + "_sk";
+
+    // 1. Validate Column & Index Existence
+    if (column_map.find(col_name) == column_map.end()) {
+        throw std::runtime_error("Column not found: " + col_name);
+    }
+    if (sk_indexes.find(index_name) == sk_indexes.end()) {
+        // Option: Auto-create if missing, or just return
+        return; 
+    }
+
+    // 2. Retrieve Engine State
+    int col_idx = column_map[col_name];
+    ColumnHeader& col = columns[col_idx];
+    IndexData& idx_data = sk_indexes[index_name];
+
+    // 3. Check for work
+    // Use stored watermark, NOT map size
+    if (idx_data.last_indexed_row >= col.count) {
+        return; // Up to date
+    }
+
+    std::cout << "Updating index '" << index_name << "' from row " 
+              << idx_data.last_indexed_row << " to " << col.count << "...\n";
+
+    // 4. Incremental Update Loop
+    RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
+    
+    // Start exactly where we left off
+    for (uint32_t i = idx_data.last_indexed_row; i < col.count; ++i) {
+        if (offsets[i] == DELETED_FLAG) continue;
+
+        std::string raw_val = std::string(get_ptr<char>(offsets[i]));
+        
+        // Apply same normalization logic
+        std::string token = normalize_token(raw_val, 200);
+        
+        // Advanced: Lookup dictionary / stemming here if needed
+        
+        if (!token.empty()) {
+            idx_data.map[token].push_back(i);
+        }
+    }
+
+    // 5. Update Watermark
+    idx_data.last_indexed_row = col.count;
+}
 
     // void CreateSecondaryIndex(const std::string& col_name) {
     //     // 1. Validation
@@ -1139,6 +1181,13 @@ class TGQL {
             ColumnarTiger* tg = t->GetGroup(args[1]);
             tg->CreateSecondaryIndex(args[2]);
             res.msg = "Secondary-Index created on " + args[2];
+        }
+        else if (cmd == "UPDATE_SK_INDEX") {
+            if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            tg->UpdateSecondaryIndex(args[2]);
+            res.msg = "Secondary-Index update on " + args[2];
         }
         else if (cmd == "SELECT_FROM_ROWS") {
              // SELECT_FROM_ROWS(table, group, col, [id1,id2,...])
