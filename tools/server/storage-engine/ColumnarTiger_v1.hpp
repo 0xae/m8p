@@ -511,7 +511,8 @@ public:
         const std::string index_name = col_name+"_sk";
         if (sk_indexes.find(index_name) != sk_indexes.end()) {
             auto& idx = sk_indexes[index_name];
-            if (idx.find(val) != idx.end()) return idx[val];            
+            // std::unordered_map<std::string, IndexData> sk_indexes;
+            if (idx.map.find(val) != idx.map.end()) return idx.map.[val];            
         }
         return {};
     }
