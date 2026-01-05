@@ -508,12 +508,30 @@ public:
 
     std::vector<RowID> LookupSKIndex(const std::string& col_name, const std::string& val) {
         // if (indexes.find(col_name) != indexes.end()) return {}; // Or throw?
-        const std::string index_name = col_name+"_sk";
-        if (sk_indexes.find(index_name) != sk_indexes.end()) {
-            auto& idx = sk_indexes[index_name];
-            // std::unordered_map<std::string, IndexData> sk_indexes;
-            if (idx.map.find(val) != idx.map.end()) return idx.map[val];            
+        // const std::string index_name = col_name+"_sk";
+        // if (sk_indexes.find(index_name) != sk_indexes.end()) {
+        //     auto& idx = sk_indexes[index_name];
+        //     // std::unordered_map<std::string, IndexData> sk_indexes;
+        //     if (idx.map.find(val) != idx.map.end()) return idx.map[val];            
+        // }
+        // return {};
+        auto it_idx = sk_indexes.find(index_name);
+        if (it_idx == sk_indexes.end()) {
+            return {}; // Index doesn't exist
         }
+
+        std::string token = normalize_token(val, 200);
+        if (token.empty()) return {};
+
+        // 3. Lookup in Map
+        // Use iterator from find to avoid double lookup cost
+        const auto& idx_data = it_idx->second; // Access IndexData
+        auto it_ids = idx_data.map.find(token);
+        
+        if (it_ids != idx_data.map.end()) {
+            return it_ids->second;
+        }
+        
         return {};
     }
 
