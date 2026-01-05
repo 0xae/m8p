@@ -809,7 +809,7 @@ public:
 
         ss << "   Indexes: " << indexes.size() << "\n";
         for(const auto& entry : indexes) {
-            ss << "    >> Name: " << entry.first << ", Count: " << entry.second.size() << "\n";
+            ss << "    *> Name: " << entry.first << ", Count: " << entry.second.size() << "\n";
         }
 
         ss << "   SK-Indexes: " << sk_indexes.size() << "\n";
