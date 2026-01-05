@@ -286,9 +286,9 @@ public:
             throw std::runtime_error("Column not found: " + col_name);
         }
 
-        if (HasIndex(col_name)) {
-            return;            
-        }
+        // if (HasIndex(col_name)) {
+        //     return;            
+        // }
 
         int col_idx = column_map[col_name];
         ColumnHeader& col = columns[col_idx];
