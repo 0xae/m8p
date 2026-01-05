@@ -204,6 +204,20 @@ public:
         indexes.clear();
     }
 
+    void ClearIndex(const std::string &col_name) {
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
+        }
+
+        if (HasIndex(col_name)) {
+            return;            
+        }
+
+        if (indexes.count(col_name)) {
+            indexes[col_name].clear();
+        }
+    }
+
     void Save(const std::string& filepath) {
         std::ofstream out(filepath, std::ios::binary);
         if (!out) throw std::runtime_error("Cannot open file for writing: " + filepath);
@@ -281,14 +295,24 @@ public:
     ColType GetColumnType(const std::string& name) { return columns[column_map.at(name)].type; }
 
     // --- Index Management ---
+    void UpdateIndex(const std::string& col_name) {
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
+        }
+
+        if (!HasIndex(col_name)) {
+            return;
+        }
+    }
+
     void CreateIndex(const std::string& col_name) {
         if (column_map.find(col_name) == column_map.end()) {
             throw std::runtime_error("Column not found: " + col_name);
         }
 
-        // if (HasIndex(col_name)) {
-        //     return;            
-        // }
+        if (HasIndex(col_name)) {
+            return;            
+        }
 
         int col_idx = column_map[col_name];
         ColumnHeader& col = columns[col_idx];
@@ -300,11 +324,16 @@ public:
         // Rebuild index
         std::unordered_map<std::string, std::vector<RowID>> idx;
         RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
-        for (uint32_t i = 0; i < col.count; ++i) {
+        const auto index_size = col.count;
+        for (uint32_t i = 0; i<index_size; ++i) {
             // if (offsets[i] == DELETED_FLAG) continue;
             std::string val = std::string(get_ptr<char>(offsets[i]));
+            // tokenize val, remove tokens
+            // stem
+            // lookup dictionary
             idx[val].push_back(i);
         }
+
         indexes[col_name] = idx;
     }
 
@@ -917,7 +946,13 @@ class TGQL {
         }
         
         // --- NEW FEATURES ---
-        
+        else if (cmd == "CLEAR_INDEX") {
+            if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            tg->ClearIndex(args[2]);
+            res.msg = "Index cleared on " + args[2];
+        }
         else if (cmd == "CREATE_INDEX") {
             if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
             BigTable* t = db.GetTable(args[0]);
