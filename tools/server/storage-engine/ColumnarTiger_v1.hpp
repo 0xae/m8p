@@ -120,6 +120,10 @@ std::string normalize_token(const std::string& input, size_t limit = 200) {
     }
     return result;
 }
+struct IndexData {
+    std::unordered_map<std::string, std::vector<RowID>> map;
+    uint32_t last_indexed_row = 0; // High-water mark for incremental updates
+};
 
 // --- ColumnarTiger Engine ---
 class ColumnarTiger {
@@ -136,6 +140,7 @@ private:
     // Map: Column Name -> (Value -> List of RowIDs)
     // Currently optimized for TEXT columns (exact match)
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<RowID>>> indexes;
+    std::unordered_map<std::string, IndexData> sk_indexes;
 
     inline size_t align_forward(size_t ptr, size_t align) {
         return (ptr + align - 1) & ~(align - 1);
@@ -323,6 +328,7 @@ public:
         if (!HasIndex(index_name)) {
             return;
         }
+
         // std::unordered_map<std::string, std::vector<RowID>> &idx = indexes[index_name];
         // if (idx.size()>=col.count) {
         //     return;
@@ -406,9 +412,9 @@ public:
             throw std::runtime_error("Column not found: " + col_name);
         }
 
-        // Check if index already exists (using your suffix convention)
+        // Check if index already exists
         const std::string index_name = col_name + "_sk";
-        if (indexes.find(index_name) != indexes.end()) {
+        if (sk_indexes.find(index_name) != sk_indexes.end()) {
             return; 
         }
 
@@ -421,34 +427,88 @@ public:
 
         // 2. Define Index Scope (Partial Indexing Strategy)
         // Only index the first 70% of rows (as requested)
+        // For updates, we will track this limit.
         const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.7);
 
         // 3. Build Index
-        std::unordered_map<std::string, std::vector<RowID>> idx;
+        IndexData idx_data;
+        idx_data.last_indexed_row = 0;
+        
         RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
 
         for (uint32_t i = 0; i < index_limit; ++i) {
+            // Skip deleted rows
+            if (offsets[i] == DELETED_FLAG) continue;
+
             // Fetch raw string
             std::string raw_val = std::string(get_ptr<char>(offsets[i]));
+            
             // Normalize / Tokenize
             std::string token = normalize_token(raw_val, 200);
-            // Store mapping: Normalized Token -> Row ID
-            // Note: This maps the *processed* content, allowing for fuzzy-ish lookups 
-            // (ignoring case/punctuation) if the search query is also normalized.
 
             if (!token.empty()) {
-                idx[token].push_back(i);
+                idx_data.map[token].push_back(i);
             }
         }
+        
+        // Track where we stopped
+        idx_data.last_indexed_row = index_limit;
 
         // 4. Store Index
-        indexes[index_name] = std::move(idx);
-        std::cout << "Secondary Index '" << index_name 
-                  << "'"
-                  << "[index-size" << index_limit << "]"
-                  <<" created on " 
+        sk_indexes[index_name] = std::move(idx_data);
+        std::cout << "Secondary Index '" << index_name << "' created on " 
                   << index_limit << "/" << col.count << " rows.\n";
     }
+
+    // void CreateSecondaryIndex(const std::string& col_name) {
+    //     // 1. Validation
+    //     if (column_map.find(col_name) == column_map.end()) {
+    //         throw std::runtime_error("Column not found: " + col_name);
+    //     }
+
+    //     // Check if index already exists (using your suffix convention)
+    //     const std::string index_name = col_name + "_sk";
+    //     if (indexes.find(index_name) != indexes.end()) {
+    //         return; 
+    //     }
+
+    //     int col_idx = column_map[col_name];
+    //     ColumnHeader& col = columns[col_idx];
+
+    //     if (col.type != ColType::TEXT) {
+    //         throw std::runtime_error("Secondary Index only supported on TEXT columns currently");
+    //     }
+
+    //     // 2. Define Index Scope (Partial Indexing Strategy)
+    //     // Only index the first 70% of rows (as requested)
+    //     const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.7);
+
+    //     // 3. Build Index
+    //     std::unordered_map<std::string, std::vector<RowID>> idx;
+    //     RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
+
+    //     for (uint32_t i = 0; i < index_limit; ++i) {
+    //         // Fetch raw string
+    //         std::string raw_val = std::string(get_ptr<char>(offsets[i]));
+    //         // Normalize / Tokenize
+    //         std::string token = normalize_token(raw_val, 200);
+    //         // Store mapping: Normalized Token -> Row ID
+    //         // Note: This maps the *processed* content, allowing for fuzzy-ish lookups 
+    //         // (ignoring case/punctuation) if the search query is also normalized.
+
+    //         if (!token.empty()) {
+    //             idx[token].push_back(i);
+    //         }
+    //     }
+
+    //     // 4. Store Index
+    //     indexes[index_name] = std::move(idx);
+    //     std::cout << "Secondary Index '" << index_name 
+    //               << "'"
+    //               << "[index-size" << index_limit << "]"
+    //               <<" created on " 
+    //               << index_limit << "/" << col.count << " rows.\n";
+    // }
 
     bool HasIndex(const std::string& col_name) {
         return indexes.find(col_name) != indexes.end();
