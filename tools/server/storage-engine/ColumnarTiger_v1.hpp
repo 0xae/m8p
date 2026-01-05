@@ -24,6 +24,8 @@
 constexpr size_t ALIGNMENT_BYTES = 64; 
 constexpr uint32_t DELETED_FLAG = 0xFFFFFFFF; 
 
+const size_t MAX_SK_CHUNK_SIZE = 1000;
+
 // --- Types ---
 using RelPtr = uint32_t;
 using RowID = uint32_t;
@@ -374,38 +376,6 @@ public:
         indexes[col_name] = idx;
     }
 
-
-    // void CreateSecondaryIndex(const std::string& col_name) {
-    //     if (column_map.find(col_name) == column_map.end()) {
-    //         throw std::runtime_error("Column not found: " + col_name);
-    //     }
-    //     if (HasIndex(col_name)) {
-    //         return;            
-    //     }
-
-    //     int col_idx = column_map[col_name];
-    //     ColumnHeader& col = columns[col_idx];
-    //     const std::string index_name = col_name + "_sk";
-    //     const auto index_size = col.count * 0.7;
-
-    //     if (col.type != ColType::TEXT) {
-    //         throw std::runtime_error("Secondary Index only supported on TEXT columns currently");
-    //     }
-
-    //     // // Rebuild index
-    //     std::unordered_map<std::string, std::vector<RowID>> idx;
-    //     RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
-    //     for (uint32_t i = 0; i<index_size; ++i) {
-    //         // if (offsets[i] == DELETED_FLAG) continue;
-    //         std::string val = std::string(get_ptr<char>(offsets[i]));
-    //         // tokenize val, remove tokens
-    //         // stem
-    //         // lookup dictionary
-    //         idx[val].push_back(i);
-    //     }
-    //     indexes[index_name] = idx;
-    // }
-
     void CreateSecondaryIndex(const std::string& col_name) {
         // 1. Validation
         if (column_map.find(col_name) == column_map.end()) {
@@ -426,7 +396,7 @@ public:
         }
 
         // 2. Define Index Scope (Partial Indexing Strategy)
-        // Only index the first 70% of rows (as requested)
+        // Only index the first 43% of rows (as requested)
         // For updates, we will track this limit.
         const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.43);
 
@@ -438,7 +408,7 @@ public:
 
         for (uint32_t i = 0; i < index_limit; ++i) {
             std::string raw_val = std::string(get_ptr<char>(offsets[i]));
-            std::string token = normalize_token(raw_val, 1000);
+            std::string token = normalize_token(raw_val, MAX_SK_CHUNK_SIZE);
             if (!token.empty()) {
                 idx_data.map[token].push_back(i);
             }
@@ -453,107 +423,58 @@ public:
                   << index_limit << "/" << col.count << " rows.\n";
     }
 
-void UpdateSecondaryIndex(const std::string& col_name) {
-    const std::string index_name = col_name + "_sk";
+    void UpdateSecondaryIndex(const std::string& col_name) {
+        const std::string index_name = col_name + "_sk";
 
-    // 1. Validate Column & Index Existence
-    if (column_map.find(col_name) == column_map.end()) {
-        throw std::runtime_error("Column not found: " + col_name);
-    }
-    if (sk_indexes.find(index_name) == sk_indexes.end()) {
-        // Option: Auto-create if missing, or just return
-        return; 
-    }
-
-    // 2. Retrieve Engine State
-    int col_idx = column_map[col_name];
-    ColumnHeader& col = columns[col_idx];
-    IndexData& idx_data = sk_indexes[index_name];
-
-    // 3. Check for work
-    // Use stored watermark, NOT map size
-    if (idx_data.last_indexed_row >= col.count) {
-        return; // Up to date
-    }
-
-    std::cout << "Updating index '" << index_name << "' from row " 
-              << idx_data.last_indexed_row << " to " << col.count << "...\n";
-
-    // 4. Incremental Update Loop
-    RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
-    
-    // Start exactly where we left off
-    for (uint32_t i = idx_data.last_indexed_row; i < col.count; ++i) {
-        if (offsets[i] == DELETED_FLAG) continue;
-
-        std::string raw_val = std::string(get_ptr<char>(offsets[i]));
-        
-        // Apply same normalization logic
-        std::string token = normalize_token(raw_val, 200);
-        
-        // Advanced: Lookup dictionary / stemming here if needed
-        
-        if (!token.empty()) {
-            idx_data.map[token].push_back(i);
+        // 1. Validate Column & Index Existence
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
         }
+        if (sk_indexes.find(index_name) == sk_indexes.end()) {
+            // Option: Auto-create if missing, or just return
+            return; 
+        }
+
+        // 2. Retrieve Engine State
+        int col_idx = column_map[col_name];
+        ColumnHeader& col = columns[col_idx];
+        IndexData& idx_data = sk_indexes[index_name];
+
+        // 3. Check for work
+        // Use stored watermark, NOT map size
+        if (idx_data.last_indexed_row >= col.count) {
+            return; // Up to date
+        }
+
+        const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.43);
+
+        std::cout << "Updating index '" << index_name << "' from row " 
+                  << idx_data.last_indexed_row << " to " << col.count << "...\n";
+
+        // 4. Incremental Update Loop
+        RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
+        
+        // Start exactly where we left off
+        for (uint32_t i = idx_data.last_indexed_row; i<index_limit; ++i) {
+            std::string raw_val = std::string(get_ptr<char>(offsets[i]));
+            // Apply same normalization logic
+            std::string token = normalize_token(raw_val, MAX_SK_CHUNK_SIZE);
+            // Advanced: Lookup dictionary / stemming here if needed
+            if (!token.empty()) {
+                idx_data.map[token].push_back(i);
+            }
+        }
+
+        // 5. Update Watermark
+        idx_data.last_indexed_row = col.count;
     }
-
-    // 5. Update Watermark
-    idx_data.last_indexed_row = col.count;
-}
-
-    // void CreateSecondaryIndex(const std::string& col_name) {
-    //     // 1. Validation
-    //     if (column_map.find(col_name) == column_map.end()) {
-    //         throw std::runtime_error("Column not found: " + col_name);
-    //     }
-
-    //     // Check if index already exists (using your suffix convention)
-    //     const std::string index_name = col_name + "_sk";
-    //     if (indexes.find(index_name) != indexes.end()) {
-    //         return; 
-    //     }
-
-    //     int col_idx = column_map[col_name];
-    //     ColumnHeader& col = columns[col_idx];
-
-    //     if (col.type != ColType::TEXT) {
-    //         throw std::runtime_error("Secondary Index only supported on TEXT columns currently");
-    //     }
-
-    //     // 2. Define Index Scope (Partial Indexing Strategy)
-    //     // Only index the first 70% of rows (as requested)
-    //     const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.7);
-
-    //     // 3. Build Index
-    //     std::unordered_map<std::string, std::vector<RowID>> idx;
-    //     RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
-
-    //     for (uint32_t i = 0; i < index_limit; ++i) {
-    //         // Fetch raw string
-    //         std::string raw_val = std::string(get_ptr<char>(offsets[i]));
-    //         // Normalize / Tokenize
-    //         std::string token = normalize_token(raw_val, 200);
-    //         // Store mapping: Normalized Token -> Row ID
-    //         // Note: This maps the *processed* content, allowing for fuzzy-ish lookups 
-    //         // (ignoring case/punctuation) if the search query is also normalized.
-
-    //         if (!token.empty()) {
-    //             idx[token].push_back(i);
-    //         }
-    //     }
-
-    //     // 4. Store Index
-    //     indexes[index_name] = std::move(idx);
-    //     std::cout << "Secondary Index '" << index_name 
-    //               << "'"
-    //               << "[index-size" << index_limit << "]"
-    //               <<" created on " 
-    //               << index_limit << "/" << col.count << " rows.\n";
-    // }
 
     bool HasIndex(const std::string& col_name) {
         return indexes.find(col_name) != indexes.end();
+    }
+
+    bool HasSKIndex(const std::string& col_name) {
+        return sk_indexes.find(col_name) != indexes.end();
     }
 
     // Used by JOIN/FILTER if index exists
