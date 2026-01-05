@@ -83,6 +83,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "UPDATE_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CREATE_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "UPDATE_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
+    std::cout << "  " << Colors::GREEN << "CLEAR_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CLEAR_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "JOIN" << Colors::RESET << "(Req: table, g_a, c_a, g_b, c_b, op, val) \n";
     std::cout << "  " << Colors::GREEN << "SELECT_FROM_ROWS" << Colors::RESET << "(table, group, col, rows) \n";
@@ -114,6 +115,7 @@ void print_help() {
     std::cout << "  CLEAR_INDEX(company, Details, status) \n";
     std::cout << "  CREATE_SK_INDEX(company, Details, status) \n";
     std::cout << "  UPDATE_SK_INDEX(company, Details, status) \n";
+    std::cout << "  CLEAR_SK_INDEX(company, Details, status) \n";
     std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n";
     std::cout << "  SELECT_FROM_ROWS(company_man, Company, name, [3999,5664,7160,9237,10308]);\n";
     std::cout << "  COUNT(\"company_man\", \"Company\", \"name\");\n";

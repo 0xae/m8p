@@ -423,6 +423,23 @@ public:
                   << index_limit << "/" << col.count << " rows.\n";
     }
 
+    void ClearSecondaryIndex(const std::string& col_name) {
+        const std::string index_name = col_name + "_sk";
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
+        }
+
+        if (sk_indexes.find(index_name) == sk_indexes.end()) {
+            // Option: Auto-create if missing, or just return
+            return; 
+        }
+
+        IndexData& idx_data = sk_indexes[index_name];
+
+        idx_data.last_indexed_row=0;
+        idx_data.map.clear();
+    }
+
     void UpdateSecondaryIndex(const std::string& col_name) {
         const std::string index_name = col_name + "_sk";
 
@@ -1108,6 +1125,13 @@ class TGQL {
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
             tg->UpdateSecondaryIndex(args[2]);
+            res.msg = "Secondary-Index update on " + args[2];
+        }
+        else if (cmd == "CLEAR_SK_INDEX") {
+            if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            tg->ClearSecondaryIndex(args[2]);
             res.msg = "Secondary-Index update on " + args[2];
         }
         else if (cmd == "SELECT_FROM_ROWS") {
