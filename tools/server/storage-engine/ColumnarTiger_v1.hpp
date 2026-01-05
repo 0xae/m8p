@@ -466,11 +466,11 @@ public:
         const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.43);
 
         std::cout << "Updating index '" << index_name << "' from row " 
-                  << idx_data.last_indexed_row << " to " << col.count << "...\n";
+                  << idx_data.last_indexed_row << " to " << index_limit << "...\n";
 
         // 4. Incremental Update Loop
         RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
-        
+
         // Start exactly where we left off
         for (uint32_t i = idx_data.last_indexed_row; i<index_limit; ++i) {
             std::string raw_val = std::string(get_ptr<char>(offsets[i]));

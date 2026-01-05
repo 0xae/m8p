@@ -81,7 +81,6 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "SELECT" << Colors::RESET << "(table, group, col, limit, offset)\n";
     std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k) \n";
     std::cout << "  " << Colors::GREEN << "CREATE_INDEX" << Colors::RESET << "(table, group, col) \n";
-    std::cout << "  " << Colors::GREEN << "UPDATE_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CREATE_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "UPDATE_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CLEAR_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
@@ -110,11 +109,12 @@ void print_help() {
     std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) \n";
     std::cout << "  SEARCH(analytics, Global, vector, <vec>, 3) \n";
     std::cout << "  FILTER(company, Details, status, ILIKE, Active, 10) \n";
-    std::cout << "  FILTER_INDEX(company, Details, status, ILIKE, Active, 10) \n";
-    std::cout << "  FILTER_SK_INDEX(company, Details, status, ILIKE, Active, 10) \n";
     std::cout << "  CREATE_INDEX(company, Details, status) \n";
+    std::cout << "  FILTER_INDEX(company, Details, status, ILIKE, Active, 10) \n";
+
     std::cout << "  CREATE_SK_INDEX(company, Details, status) \n";
     std::cout << "  UPDATE_SK_INDEX(company, Details, status) \n";
+    std::cout << "  FILTER_SK_INDEX(company, Details, status, ILIKE, Active, 10) \n";
     std::cout << "  CLEAR_SK_INDEX(company, Details, status) \n";
 
     std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n";
