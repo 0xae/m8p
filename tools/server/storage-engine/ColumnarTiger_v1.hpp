@@ -1252,7 +1252,7 @@ class TGQL {
             }
 
             if (type==ColType::TEXT) {
-                res.msg = std::to_string(tg->GetText(col_name, rowid)->size());
+                res.msg = std::to_string(tg->GetText(col_name, rowid).size());
             } else if (type==ColType::VECTOR_F32) {
                 res.msg = std::to_string(col.vector_dim);
             } else {
