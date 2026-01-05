@@ -1236,11 +1236,16 @@ class TGQL {
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
             std::string col_name = args[2];
+
+            if (tg->column_map.find(col_name) == tg->column_map.end()) {
+                throw std::runtime_error("Column not found: " + col_name);
+            }
+
             RowID rowid = std::stoi(args[3]);
             ColType type = tg->GetColumnType(col_name);
 
-            int idx = column_map.at(col_name);
-            ColumnHeader& col = columns[idx];
+            int idx = tg->column_map.at(col_name);
+            ColumnHeader& col = tg->columns[idx];
 
             if (rowid >= col.count) {
                 throw std::runtime_error("rowid outside valid range");                
