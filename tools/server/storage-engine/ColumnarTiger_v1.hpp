@@ -507,8 +507,8 @@ public:
     }
 
     std::vector<RowID> LookupSKIndex(const std::string& col_name, const std::string& val) {
+        const std::string index_name = col_name+"_sk";
         // if (indexes.find(col_name) != indexes.end()) return {}; // Or throw?
-        // const std::string index_name = col_name+"_sk";
         // if (sk_indexes.find(index_name) != sk_indexes.end()) {
         //     auto& idx = sk_indexes[index_name];
         //     // std::unordered_map<std::string, IndexData> sk_indexes;
