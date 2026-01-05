@@ -491,7 +491,7 @@ public:
     }
 
     bool HasSKIndex(const std::string& col_name) {
-        return sk_indexes.find(col_name) != indexes.end();
+        return sk_indexes.find(col_name) != sk_indexes.end();
     }
 
     // Used by JOIN/FILTER if index exists
