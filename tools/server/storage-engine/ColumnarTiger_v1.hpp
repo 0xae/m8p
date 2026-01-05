@@ -113,7 +113,7 @@ std::string normalize_token(const std::string& input, size_t limit = 200) {
         
         // Skip spaces, newlines, dots, commas
         if (std::isspace(static_cast<unsigned char>(c)) || 
-            c == '.' || c == ',' || c == '\n' || c == '\r') {
+            c == ',' || c == '\n' || c == '\r') {
             continue;
         }
         
@@ -1226,6 +1226,26 @@ class TGQL {
             res.has_rows = true;
             res.context_engine = tg;
             res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+        }
+        else if (cmd == "LEN") {
+            if (args.size() < 4) throw std::runtime_error("Req: table, group, col, index");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            std::string col_name = args[2];
+            RowID rowid = std::stoi(args[3]);
+            ColType type = tg->GetColumnType(col_name);
+
+            if (type == ColType::TEXT) {
+                res.msg = std::to_string(tg->GetText(col_name, rowid)->size());
+            } else if (type == ColType::VECTOR_F32) {
+                int idx = column_map.at(col_name);
+                ColumnHeader& col = columns[idx];
+                res.msg = std::to_string(col.vector_dim);
+            } else {
+                throw std::runtime_error("LEN IS FOR TEXT ONLY");
+            }
+
+            res.context_engine = tg;
         }
         else if (cmd == "COUNT") {
             if (args.size() < 3) throw std::runtime_error("Req: table, group, col");

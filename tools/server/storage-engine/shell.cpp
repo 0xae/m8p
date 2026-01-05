@@ -72,6 +72,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "ADD_ROW" << Colors::RESET << "(table, group, val1...)\n";
     std::cout << "  " << Colors::GREEN << "UPDATE" << Colors::RESET << "(table, group, col, row_id, val)\n";
     std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id)\n";
+    std::cout << "  " << Colors::GREEN << "LEN" << Colors::RESET << "(table, group, col, row_id) -- vector dimension or string size\n";
     std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
     std::cout << "  " << Colors::GREEN << "FILTER_INDEX" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
     std::cout << "  " << Colors::GREEN << "FILTER_SK_INDEX" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
@@ -98,6 +99,7 @@ void print_help() {
     std::cout << "  ADD_ROW(\"Users\", \"Bio\");\n";
     std::cout << "  UPDATE(\"Users\", \"Bio\", \"name\", 0, \"Alice\");\n";
     std::cout << "  GET(\"Users\", \"Bio\", \"name\", 0);\n";
+    std::cout << "  LEN(\"Users\", \"Bio\", \"name\",);\n";
     std::cout << "  FILTER(company, Details, name, contains, \"plc\")\n";
     std::cout << "  FILTER(company, Details, name, =, \"hello\")\n";
     std::cout << "  FILTER(company, Details, number, ilike, \"9283\")\n";
