@@ -102,6 +102,25 @@ inline float l2_sq_simd(const float* a, const float* b, int dim) {
 #endif
 }
 
+std::string normalize_token(const std::string& input, size_t limit = 200) {
+    std::string result;
+    result.reserve(std::min(input.size(), limit));
+
+    for (char c : input) {
+        if (result.size() >= limit) break;
+        
+        // Skip spaces, newlines, dots, commas
+        if (std::isspace(static_cast<unsigned char>(c)) || 
+            c == '.' || c == ',' || c == '\n' || c == '\r') {
+            continue;
+        }
+        
+        // Normalize to lowercase
+        result.push_back(std::tolower(static_cast<unsigned char>(c)));
+    }
+    return result;
+}
+
 // --- ColumnarTiger Engine ---
 class ColumnarTiger {
 private:
@@ -295,14 +314,26 @@ public:
     ColType GetColumnType(const std::string& name) { return columns[column_map.at(name)].type; }
 
     // --- Index Management ---
-    void UpdateIndex(const std::string& col_name) {
+    void UpdateSecondaryIndex(const std::string& col_name) {
+        const std::string index_name = col_name + "_sk";
         if (column_map.find(col_name) == column_map.end()) {
             throw std::runtime_error("Column not found: " + col_name);
         }
 
-        if (!HasIndex(col_name)) {
+        if (!HasIndex(index_name)) {
             return;
         }
+        // std::unordered_map<std::string, std::vector<RowID>> &idx = indexes[index_name];
+        // if (idx.size()>=col.count) {
+        //     return;
+        // }
+        // RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
+        // for (uint32_t i = idx.size(); i<col.count; ++i) {
+        //     std::string val = std::string(get_ptr<char>(offsets[i]));
+        //     std::string token = normalize_token(val, 200);
+        //     idx[val].push_back(token);
+        // }
+        // indexes[index_name] = idx;
     }
 
     void CreateIndex(const std::string& col_name) {
@@ -335,6 +366,88 @@ public:
         }
 
         indexes[col_name] = idx;
+    }
+
+
+    // void CreateSecondaryIndex(const std::string& col_name) {
+    //     if (column_map.find(col_name) == column_map.end()) {
+    //         throw std::runtime_error("Column not found: " + col_name);
+    //     }
+    //     if (HasIndex(col_name)) {
+    //         return;            
+    //     }
+
+    //     int col_idx = column_map[col_name];
+    //     ColumnHeader& col = columns[col_idx];
+    //     const std::string index_name = col_name + "_sk";
+    //     const auto index_size = col.count * 0.7;
+
+    //     if (col.type != ColType::TEXT) {
+    //         throw std::runtime_error("Secondary Index only supported on TEXT columns currently");
+    //     }
+
+    //     // // Rebuild index
+    //     std::unordered_map<std::string, std::vector<RowID>> idx;
+    //     RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
+    //     for (uint32_t i = 0; i<index_size; ++i) {
+    //         // if (offsets[i] == DELETED_FLAG) continue;
+    //         std::string val = std::string(get_ptr<char>(offsets[i]));
+    //         // tokenize val, remove tokens
+    //         // stem
+    //         // lookup dictionary
+    //         idx[val].push_back(i);
+    //     }
+    //     indexes[index_name] = idx;
+    // }
+
+    void CreateSecondaryIndex(const std::string& col_name) {
+        // 1. Validation
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
+        }
+
+        // Check if index already exists (using your suffix convention)
+        const std::string index_name = col_name + "_sk";
+        if (indexes.find(index_name) != indexes.end()) {
+            return; 
+        }
+
+        int col_idx = column_map[col_name];
+        ColumnHeader& col = columns[col_idx];
+
+        if (col.type != ColType::TEXT) {
+            throw std::runtime_error("Secondary Index only supported on TEXT columns currently");
+        }
+
+        // 2. Define Index Scope (Partial Indexing Strategy)
+        // Only index the first 70% of rows (as requested)
+        const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.7);
+
+        // 3. Build Index
+        std::unordered_map<std::string, std::vector<RowID>> idx;
+        RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
+
+        for (uint32_t i = 0; i < index_limit; ++i) {
+            // Fetch raw string
+            std::string raw_val = std::string(get_ptr<char>(offsets[i]));
+            // Normalize / Tokenize
+            std::string token = normalize_token(raw_val, 200);
+            // Store mapping: Normalized Token -> Row ID
+            // Note: This maps the *processed* content, allowing for fuzzy-ish lookups 
+            // (ignoring case/punctuation) if the search query is also normalized.
+
+            if (!token.empty()) {
+                idx[token].push_back(i);
+            }
+        }
+
+        // 4. Store Index
+        indexes[index_name] = std::move(idx);
+        std::cout << "Secondary Index '" << index_name 
+                  << "'"
+                  << "[index-size" << index_limit << "]"
+                  <<" created on " 
+                  << index_limit << "/" << col.count << " rows.\n";
     }
 
     bool HasIndex(const std::string& col_name) {
@@ -959,6 +1072,13 @@ class TGQL {
             ColumnarTiger* tg = t->GetGroup(args[1]);
             tg->CreateIndex(args[2]);
             res.msg = "Index created on " + args[2];
+        }
+        else if (cmd == "CREATE_SK_INDEX") {
+            if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            tg->CreateSecondaryIndex(args[2]);
+            res.msg = "Secondary-Index created on " + args[2];
         }
         else if (cmd == "SELECT_FROM_ROWS") {
              // SELECT_FROM_ROWS(table, group, col, [id1,id2,...])
