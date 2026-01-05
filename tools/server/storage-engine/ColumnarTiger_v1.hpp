@@ -1105,6 +1105,10 @@ class TGQL {
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
             ColType type = tg->GetColumnType(args[2]);
+            RowID rowid = std::stoi(args[3]);
+            // if (rowid >= col.count) {
+            //     throw std::runtime_error("rowid outside valid range");                
+            // }
             if (type == ColType::TEXT) res.msg = tg->GetText(args[2], std::stoi(args[3]));
             else if (type == ColType::INT32) res.msg = std::to_string(tg->GetInt(args[2], std::stoi(args[3])));
             else if (type == ColType::FLOAT32) res.msg = std::to_string(tg->GetFloat(args[2], std::stoi(args[3])));
@@ -1235,11 +1239,16 @@ class TGQL {
             RowID rowid = std::stoi(args[3]);
             ColType type = tg->GetColumnType(col_name);
 
-            if (type == ColType::TEXT) {
+            int idx = column_map.at(col_name);
+            ColumnHeader& col = columns[idx];
+
+            if (rowid >= col.count) {
+                throw std::runtime_error("rowid outside valid range");                
+            }
+
+            if (type==ColType::TEXT) {
                 res.msg = std::to_string(tg->GetText(col_name, rowid)->size());
-            } else if (type == ColType::VECTOR_F32) {
-                int idx = column_map.at(col_name);
-                ColumnHeader& col = columns[idx];
+            } else if (type==ColType::VECTOR_F32) {
                 res.msg = std::to_string(col.vector_dim);
             } else {
                 throw std::runtime_error("LEN IS FOR TEXT ONLY");
