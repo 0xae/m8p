@@ -464,26 +464,33 @@ public:
         }
 
         const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.43);
+        uint32_t chunk_rest = idx_data.last_indexed_row+index_limit;
 
         std::cout << "Updating index '" << index_name << "' from row " 
-                  << idx_data.last_indexed_row << " to " << index_limit << "...\n";
+                  << idx_data.last_indexed_row << " to " << chunk_rest << "...\n";
+
+        if (chunk_rest>=col.count) {
+            return;
+        }
 
         // 4. Incremental Update Loop
         RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
 
         // Start exactly where we left off
-        for (uint32_t i = idx_data.last_indexed_row; i<index_limit; ++i) {
+        uint32_t count_ins = 0;
+        for (uint32_t i = idx_data.last_indexed_row; i<chunk_rest; ++i) {
             std::string raw_val = std::string(get_ptr<char>(offsets[i]));
             // Apply same normalization logic
             std::string token = normalize_token(raw_val, MAX_SK_CHUNK_SIZE);
             // Advanced: Lookup dictionary / stemming here if needed
             if (!token.empty()) {
                 idx_data.map[token].push_back(i);
+                count_ins += 1;
             }
         }
 
         // 5. Update Watermark
-        idx_data.last_indexed_row = col.count;
+        idx_data.last_indexed_row += count_ins;
     }
 
     bool HasIndex(const std::string& col_name) {
