@@ -285,6 +285,7 @@ public:
         if (column_map.find(col_name) == column_map.end()) {
             throw std::runtime_error("Column not found: " + col_name);
         }
+
         if (HasIndex(col_name)) {
             return;            
         }
@@ -300,7 +301,7 @@ public:
         std::unordered_map<std::string, std::vector<RowID>> idx;
         RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
         for (uint32_t i = 0; i < col.count; ++i) {
-            if (offsets[i] == DELETED_FLAG) continue;
+            // if (offsets[i] == DELETED_FLAG) continue;
             std::string val = std::string(get_ptr<char>(offsets[i]));
             idx[val].push_back(i);
         }
@@ -418,8 +419,35 @@ public:
         return results;
     }
 
+    std::vector<RowID> FilterIndex(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit = -1) {
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
+        }
+
+        int col_idx = column_map[col_name];
+        ColumnHeader& col = columns[col_idx];
+        
+        std::string op = str_to_upper(op_raw);
+        std::vector<RowID> matches;
+        matches.reserve(limit > 0 ? limit : 128); 
+
+        if (op == "IN") {
+            throw std::runtime_error("operator IN not supported in FilterIndex");
+        }
+        
+        std::vector<RowID> candidates;
+        if (HasIndex(col_name)) {
+            candidates = LookupIndex(col_name, val_str);
+            if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
+        }
+        return candidates;
+    }
+
     std::vector<RowID> Filter(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit = -1) {
-        if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
+        }
+
         int col_idx = column_map[col_name];
         ColumnHeader& col = columns[col_idx];
         
@@ -950,6 +978,16 @@ class TGQL {
             ColumnarTiger* tg = t->GetGroup(args[1]);
             int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
             res.rows = tg->Filter(args[2], args[3], args[4], limit);
+            res.has_rows = true;
+            res.context_engine = tg;
+            res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+        }
+        else if (cmd == "FILTER_INDEX") {
+            if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
+            res.rows = tg->FilterIndex(args[2], args[3], args[4], limit);
             res.has_rows = true;
             res.context_engine = tg;
             res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
