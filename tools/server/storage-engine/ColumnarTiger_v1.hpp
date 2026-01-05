@@ -496,11 +496,32 @@ public:
 
     // Used by JOIN/FILTER if index exists
     std::vector<RowID> LookupIndex(const std::string& col_name, const std::string& val) {
-        if (indexes.find(col_name) == indexes.end()) return {}; // Or throw?
-        auto& idx = indexes[col_name];
-        if (idx.find(val) != idx.end()) return idx[val];
+        // if (indexes.find(col_name) != indexes.end()) return {}; // Or throw?
+        const std::string index_name = col_name+"_sk";
+        if (indexes.find(col_name) != indexes.end()) {
+            auto& idx = indexes[col_name];
+            if (idx.find(val) != idx.end()) return idx[val];            
+        }
+
         return {};
     }
+
+    std::vector<RowID> LookupSKIndex(const std::string& col_name, const std::string& val) {
+        // if (indexes.find(col_name) != indexes.end()) return {}; // Or throw?
+        const std::string index_name = col_name+"_sk";
+        if (sk_indexes.find(index_name) != sk_indexes.end()) {
+            auto& idx = sk_indexes[index_name];
+            if (idx.find(val) != idx.end()) return idx[val];            
+        }
+        return {};
+    }
+
+    // std::vector<RowID> LookupSK_Index(const std::string& col_name, const std::string& val) {
+    //     if (sk_indexes.find(col_name) == indexes.end()) return {}; // Or throw?
+    //     auto& idx = indexes[col_name];
+    //     if (idx.find(val) != idx.end()) return idx[val];
+    //     return {};
+    // }
 
     void SetInt(const std::string& col_name, RowID row, int32_t val) {
         *get_cell_ptr<int32_t>(column_map.at(col_name), row) = val;
@@ -620,6 +641,33 @@ public:
         std::vector<RowID> candidates;
         if (HasIndex(col_name)) {
             candidates = LookupIndex(col_name, val_str);
+            if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
+        }
+
+        return candidates;
+    }
+
+    std::vector<RowID> FilterSecondaryIndex(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit = -1) {
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
+        }
+
+        int col_idx = column_map[col_name];
+        ColumnHeader& col = columns[col_idx];
+
+        std::string op = str_to_upper(op_raw);
+        std::vector<RowID> matches;
+        matches.reserve(limit > 0 ? limit : 128); 
+
+        if (op == "IN") {
+            throw std::runtime_error("operator IN not supported in FilterSecondaryIndex");
+        }
+
+        const std::string index_name = col_name + "_sk";
+
+        std::vector<RowID> candidates;
+        if (HasSKIndex(index_name)) {
+            candidates = LookupSKIndex(col_name, val_str);
             if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
         }
 
@@ -1200,6 +1248,16 @@ class TGQL {
             ColumnarTiger* tg = t->GetGroup(args[1]);
             int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
             res.rows = tg->FilterIndex(args[2], args[3], args[4], limit);
+            res.has_rows = true;
+            res.context_engine = tg;
+            res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+        }
+        else if (cmd == "FILTER_SK_INDEX") {
+            if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
+            res.rows = tg->FilterSecondaryIndex(args[2], args[3], args[4], limit);
             res.has_rows = true;
             res.context_engine = tg;
             res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";

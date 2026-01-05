@@ -74,6 +74,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id)\n";
     std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
     std::cout << "  " << Colors::GREEN << "FILTER_INDEX" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
+    std::cout << "  " << Colors::GREEN << "FILTER_SK_INDEX" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
     std::cout << "  " << Colors::GREEN << "COUNT" << Colors::RESET << "(table, group, col)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_FILTER" << Colors::RESET << "(table, group, col, operator, val)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_IF" << Colors::RESET << "(table, group, col, operator, val)\n";
@@ -110,12 +111,12 @@ void print_help() {
     std::cout << "  SEARCH(analytics, Global, vector, <vec>, 3) \n";
     std::cout << "  FILTER(company, Details, status, ILIKE, Active, 10) \n";
     std::cout << "  FILTER_INDEX(company, Details, status, ILIKE, Active, 10) \n";
+    std::cout << "  FILTER_SK_INDEX(company, Details, status, ILIKE, Active, 10) \n";
     std::cout << "  CREATE_INDEX(company, Details, status) \n";
-    std::cout << "  UPDATE_INDEX(company, Details, status) \n";
-    std::cout << "  CLEAR_INDEX(company, Details, status) \n";
     std::cout << "  CREATE_SK_INDEX(company, Details, status) \n";
     std::cout << "  UPDATE_SK_INDEX(company, Details, status) \n";
     std::cout << "  CLEAR_SK_INDEX(company, Details, status) \n";
+
     std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n";
     std::cout << "  SELECT_FROM_ROWS(company_man, Company, name, [3999,5664,7160,9237,10308]);\n";
     std::cout << "  COUNT(\"company_man\", \"Company\", \"name\");\n";
