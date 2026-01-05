@@ -319,28 +319,28 @@ public:
     ColType GetColumnType(const std::string& name) { return columns[column_map.at(name)].type; }
 
     // --- Index Management ---
-    void UpdateSecondaryIndex(const std::string& col_name) {
-        const std::string index_name = col_name + "_sk";
-        if (column_map.find(col_name) == column_map.end()) {
-            throw std::runtime_error("Column not found: " + col_name);
-        }
+    // void UpdateSecondaryIndex(const std::string& col_name) {
+    //     const std::string index_name = col_name + "_sk";
+    //     if (column_map.find(col_name) == column_map.end()) {
+    //         throw std::runtime_error("Column not found: " + col_name);
+    //     }
 
-        if (!HasIndex(index_name)) {
-            return;
-        }
+    //     if (!HasIndex(index_name)) {
+    //         return;
+    //     }
 
-        // std::unordered_map<std::string, std::vector<RowID>> &idx = indexes[index_name];
-        // if (idx.size()>=col.count) {
-        //     return;
-        // }
-        // RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
-        // for (uint32_t i = idx.size(); i<col.count; ++i) {
-        //     std::string val = std::string(get_ptr<char>(offsets[i]));
-        //     std::string token = normalize_token(val, 200);
-        //     idx[val].push_back(token);
-        // }
-        // indexes[index_name] = idx;
-    }
+    //     // std::unordered_map<std::string, std::vector<RowID>> &idx = indexes[index_name];
+    //     // if (idx.size()>=col.count) {
+    //     //     return;
+    //     // }
+    //     // RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
+    //     // for (uint32_t i = idx.size(); i<col.count; ++i) {
+    //     //     std::string val = std::string(get_ptr<char>(offsets[i]));
+    //     //     std::string token = normalize_token(val, 200);
+    //     //     idx[val].push_back(token);
+    //     // }
+    //     // indexes[index_name] = idx;
+    // }
 
     void CreateIndex(const std::string& col_name) {
         if (column_map.find(col_name) == column_map.end()) {
