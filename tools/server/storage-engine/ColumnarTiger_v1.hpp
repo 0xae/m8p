@@ -520,7 +520,7 @@ public:
             return {}; // Index doesn't exist
         }
 
-        std::string token = normalize_token(val, 200);
+        std::string token = normalize_token(val, MAX_SK_CHUNK_SIZE);
         if (token.empty()) return {};
 
         // 3. Lookup in Map
