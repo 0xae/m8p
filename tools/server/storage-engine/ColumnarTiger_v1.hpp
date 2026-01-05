@@ -463,7 +463,7 @@ public:
             return; // Up to date
         }
 
-        const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.43);
+        const uint32_t index_limit = static_cast<uint32_t>(col.count * 0.13);
         uint32_t chunk_rest = idx_data.last_indexed_row+index_limit;
 
         std::cout << "Updating index '" << index_name << "' from row " 
