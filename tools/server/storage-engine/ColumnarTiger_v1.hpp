@@ -434,12 +434,13 @@ public:
         if (op == "IN") {
             throw std::runtime_error("operator IN not supported in FilterIndex");
         }
-        
+
         std::vector<RowID> candidates;
         if (HasIndex(col_name)) {
             candidates = LookupIndex(col_name, val_str);
             if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
         }
+
         return candidates;
     }
 
@@ -476,9 +477,9 @@ public:
         if (!is_in_op && (op == "EQ" || op == "=") && HasIndex(col_name)) {
              std::vector<RowID> candidates = LookupIndex(col_name, val_str);
              if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
-             if (candidates.size()>0) {
+             // if (candidates.size()>0) {
                  return candidates;
-             }
+             // }
         }
 
         if (col.type == ColType::INT32) {
