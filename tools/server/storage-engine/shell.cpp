@@ -73,6 +73,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "UPDATE" << Colors::RESET << "(table, group, col, row_id, val)\n";
     std::cout << "  " << Colors::GREEN << "GET" << Colors::RESET << "(table, group, col, row_id)\n";
     std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) |> project(col1,col2)\n";
+    std::cout << "  " << Colors::GREEN << "FILTER_INDEX" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) |> project(col1,col2)\n";
     std::cout << "  " << Colors::GREEN << "COUNT" << Colors::RESET << "(table, group, col)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_FILTER" << Colors::RESET << "(table, group, col, operator, val)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_IF" << Colors::RESET << "(table, group, col, operator, val)\n";
@@ -99,10 +100,11 @@ void print_help() {
     std::cout << "  FILTER(company, Details, assets, =, 0)\n";
     std::cout << "  FILTER(analytics, Global, sales, >, 10, 5)\n";
     std::cout << "  FILTER(analytics, Global, sales, <, 10, 20) -- default\n";
-    std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) |> project(sector) -- default\n";
-    std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) |> project(sector,date) -- default\n";
-    std::cout << "  SEARCH(analytics, Global, vector, <vec>, 3) |> project(sector,date) -- default\n";
-    std::cout << "  FILTER(company, Details, status, ILIKE, Active, 10) |> project(name,status) -- default\n";
+    std::cout << "  FILTER(analytics, Global, sales, >, 10, 5) -- default\n";
+    std::cout << "  FILTER(analytics, Global, sales, >, 10, 5)  -- default\n";
+    std::cout << "  SEARCH(analytics, Global, vector, <vec>, 3)  -- default\n";
+    std::cout << "  FILTER(company, Details, status, ILIKE, Active, 10)  -- default\n";
+    std::cout << "  FILTER_INDEX(company, Details, status, ILIKE, Active, 10)  -- default\n";
     std::cout << "  SELECT(\"Users\", \"Bio\", \"name\", 10, 0);\n";
     std::cout << "  SELECT_FROM_ROWS(company_man, Company, name, [3999,5664,7160,9237,10308]);\n";
     std::cout << "  COUNT(\"company_man\", \"Company\", \"name\");\n";

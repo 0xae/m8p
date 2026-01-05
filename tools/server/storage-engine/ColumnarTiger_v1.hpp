@@ -471,12 +471,14 @@ public:
                  for(const auto& s : raw_list) text_set.insert(s);
              }
         }
-        
+
         // Use Index if available for EQ
         if (!is_in_op && (op == "EQ" || op == "=") && HasIndex(col_name)) {
              std::vector<RowID> candidates = LookupIndex(col_name, val_str);
              if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
-             return candidates;
+             if (candidates.size()>0) {
+                 return candidates;
+             }
         }
 
         if (col.type == ColType::INT32) {
