@@ -738,6 +738,34 @@ public:
         return fuzzy_results;
     }
 
+    // std::unordered_map<std::string, std::string> BuildSerializedIndex(const std::string& col_name, uint32_t limit) {
+    //     if (!HasColumn(col_name)) throw std::runtime_error("Column not found");
+    //     if (GetColumnType(col_name) != ColType::TEXT) throw std::runtime_error("Only TEXT supported for TigerIndex");
+        
+    //     std::unordered_map<std::string, std::vector<RowID>> raw_idx;
+    //     int idx = column_map[col_name];
+    //     RelPtr* offsets = get_ptr<RelPtr>(columns[idx].data_offset);
+    //     uint32_t count = std::min(limit, columns[idx].count);
+        
+    //     for(uint32_t i=0; i<count; ++i) {
+    //          // if (offsets[i] == DELETED_FLAG) continue;
+    //          std::string val = std::string(get_ptr<char>(offsets[i]));
+    //          raw_idx[val].push_back(i);
+    //     }
+        
+    //     std::unordered_map<std::string, std::string> serialized;
+    //     for(auto& p : raw_idx) {
+    //         std::stringstream ss;
+    //         ss << "[";
+    //         for(size_t k=0; k<p.second.size(); ++k) {
+    //             ss << p.second[k] << (k < p.second.size()-1 ? "," : "");
+    //         }
+    //         ss << "]";
+    //         serialized[p.first] = ss.str();
+    //     }
+    //     return serialized;
+    // }
+
     std::unordered_map<std::string, std::vector<RowID>> BuildIndexMap(const std::string& col_name, uint32_t start_row, uint32_t limit_or_end) {
         if (!HasColumn(col_name)) throw std::runtime_error("Column not found");
         if (GetColumnType(col_name) != ColType::TEXT) throw std::runtime_error("Only TEXT supported");
@@ -757,31 +785,36 @@ public:
     }
 
     std::unordered_map<std::string, std::string> BuildSerializedIndex(const std::string& col_name, uint32_t limit) {
-        if (!HasColumn(col_name)) throw std::runtime_error("Column not found");
-        if (GetColumnType(col_name) != ColType::TEXT) throw std::runtime_error("Only TEXT supported for TigerIndex");
-        
-        std::unordered_map<std::string, std::vector<RowID>> raw_idx;
-        int idx = column_map[col_name];
-        RelPtr* offsets = get_ptr<RelPtr>(columns[idx].data_offset);
-        uint32_t count = std::min(limit, columns[idx].count);
-        
-        for(uint32_t i=0; i<count; ++i) {
-             // if (offsets[i] == DELETED_FLAG) continue;
-             std::string val = std::string(get_ptr<char>(offsets[i]));
-             raw_idx[val].push_back(i);
+         // Uses BuildIndexMap with 0 start and limit
+         auto raw = BuildIndexMap(col_name, 0, limit);
+         std::unordered_map<std::string, std::string> serialized;
+         for(auto& p : raw) {
+            serialized[p.first] = SerializeIDs(p.second);
+         }
+         return serialized;
+    }
+
+    static std::string SerializeIDs(const std::vector<RowID>& ids) {
+        std::stringstream ss;
+        ss << "[";
+        for(size_t k=0; k<ids.size(); ++k) {
+            ss << ids[k] << (k < ids.size()-1 ? "," : "");
         }
-        
-        std::unordered_map<std::string, std::string> serialized;
-        for(auto& p : raw_idx) {
-            std::stringstream ss;
-            ss << "[";
-            for(size_t k=0; k<p.second.size(); ++k) {
-                ss << p.second[k] << (k < p.second.size()-1 ? "," : "");
-            }
-            ss << "]";
-            serialized[p.first] = ss.str();
+        ss << "]";
+        return ss.str();
+    }
+    
+    // Helper to deserialize ID list
+    static std::vector<RowID> DeserializeIDs(const std::string& s) {
+        std::vector<RowID> ids;
+        if (s.length() < 2) return ids;
+        std::string inner = s.substr(1, s.length()-2);
+        std::stringstream ss(inner);
+        std::string item;
+        while(std::getline(ss, item, ',')) {
+            if(!item.empty()) ids.push_back(std::stoi(item));
         }
-        return serialized;
+        return ids;
     }
 
     void SetInt(const std::string& col_name, RowID row, int32_t val) {
