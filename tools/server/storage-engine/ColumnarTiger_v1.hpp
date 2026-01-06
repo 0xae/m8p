@@ -561,12 +561,13 @@ public:
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx) {
                 // Check substring match on the key
-                std::cout << "LookupIndex: check: "
-                    << val
-                    << " => "
-                    << pair.first
-                    << "\n" << std::endl;
-                if (pair.first.find(val) != std::string::npos ) {
+                // std::cout << "LookupIndex: check: "
+                //     << val
+                //     << " => "
+                //     << pair.first
+                //     << "\n" << std::endl;
+                if (pair.first.find(val) != std::string::npos 
+                    || str_to_lower(pair.first).find(str_to_lower(val))!= std::string::npos) {
                      // Accumulate all rows that have this matching key
                      fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
                 }
@@ -608,12 +609,11 @@ public:
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx_data.map) {
                 // Check substring match on the key
-                std::cout << "LookupSK: check: "
-                    << token
-                    << " => "
-                    << pair.first
-                    << "\n" << std::endl;
-
+                // std::cout << "LookupSK: check: "
+                //     << token
+                //     << " => "
+                //     << pair.first
+                //     << "\n" << std::endl;
                 if (pair.first.find(token) != std::string::npos 
                     || str_to_lower(pair.first).find(str_to_lower(token))!= std::string::npos)  {
                      // Accumulate all rows that have this matching key
