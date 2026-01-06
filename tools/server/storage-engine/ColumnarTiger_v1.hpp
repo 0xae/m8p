@@ -556,10 +556,12 @@ public:
 
         // 3. Fallback: Scan keys if index cardinality is small (< 10000)
         // This handles "contains" logic on keys without full table scan
-        if (idx.size() < 10000 && (OP=="!="|| OP=="neq" || OP=="contains" || OP=="not_contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+        if ( (OP=="!="|| OP=="neq" || OP=="contains" || OP=="not_contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+            const auto stop = 0.7 * idx.size();
+            uint32_t counter_add = 0;
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx) {
-                if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+                if (counter_add>=stop || (limit > 0 && fuzzy_results.size() >= (size_t)limit)) {
                     break;
                 }
 
@@ -595,6 +597,7 @@ public:
                      }
                 }
 
+                counter_add += 1;
                 // if (OP=="contains" || OP=="like") {
                 //     if (pair.first.find(val) != std::string::npos) {
                 //          // Accumulate all rows that have this matching key
@@ -669,9 +672,11 @@ public:
         //     }
 
         // } 
-        else if (idx_data.map.size() < 100000 && (OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+        // else if (idx_data.map.size() < 100000 && (OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+        else if ((OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+            uint32_t counter_add = 0;
             for (const auto& pair : idx_data.map) {
-                if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+                if (counter_add>=stop || (limit > 0 && fuzzy_results.size() >= (size_t)limit)) {
                     break;
                 }
 
@@ -703,6 +708,7 @@ public:
                      }
                 }
 
+                counter_add += 1;
                 // if (OP=="contains" || OP=="like") {
                 //     if (pair.first.find(token) != std::string::npos) {
                 //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
