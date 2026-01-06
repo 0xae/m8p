@@ -1274,7 +1274,8 @@ public:
          // }
 
          for (auto& p : new_map) {
-             auto existing_rows = idx_engine->LookupIndex("term", p.first, (int)increment);
+            // LookupIndex(const std::string& col_name, const std::string& op, const std::string& val, int limit)
+             auto existing_rows = idx_engine->LookupIndex("term", "=", p.first, (int)increment);
              if (existing_rows.empty()) {
                  // New term
                  RowID r = idx_engine->AddRow();

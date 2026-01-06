@@ -118,6 +118,7 @@ void print_help() {
 
     std::cout << "  CREATE_TG_INDEX(company, Details, status) \n";
     std::cout << "  FILTER_TG_INDEX(company, Details, status) \n";
+    std::cout << "  UPDATE_TG_INDEX(company, Details, status) \n";
     std::cout << "  CREATE_SK_INDEX(company, Details, status) \n";
     std::cout << "  UPDATE_SK_INDEX(company, Details, status) \n";
     std::cout << "  FILTER_SK_INDEX(company, Details, status, ILIKE, Active, 10) \n";
