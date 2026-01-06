@@ -574,7 +574,7 @@ public:
                      if (key.find(val) == std::string::npos) match = true;
                 }
                 else if (OP == "!=" || OP == "NEQ") {
-                     if (key!=val) match = true;
+                     if (key!=val && pair.second.size()>0) match = true;
                 }
                 else if (OP == "starts_with") {
                      if (str_starts_with(key, val)) match = true;
@@ -653,7 +653,7 @@ public:
                     break;
                 }
 
-                if (key!=val) { // TODO: could it be this simple ???
+                if (key!=val && (key!=val && pair.second.size()>0)) { // TODO: could it be this simple ???
                     for(RowID r : pair.second) {
                         if (fuzzy_results.size() >= (size_t)limit) {
                             break;
