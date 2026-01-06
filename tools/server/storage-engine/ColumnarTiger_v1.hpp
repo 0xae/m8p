@@ -372,38 +372,6 @@ public:
     //     // indexes[index_name] = idx;
     // }
 
-    void CreateTigerIndex(const std::string& table, const std::string& group, const std::string& col) {
-         // 1. Get Source
-         BigTable* t = GetTable(table);
-         ColumnarTiger* src = t->GetGroup(group);
-
-         // 2. Build Inverted Map
-         auto index_map = src->BuildSerializedIndex(col);
-
-         // 3. Create System Table (if not exists)
-         BigTable* sys = CreateTable("systems");
-
-         // 4. Create Index Group: idx_{table}_{group}_{col}
-         std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
-         ColumnarTiger* idx_engine = sys->CreateGroup(idx_group_name, 64, "index");
-         
-         // 5. Schema & Populate
-         idx_engine->CreateColumn("term", ColType::TEXT, index_map.size() + 1000);
-         idx_engine->CreateColumn("ids", ColType::TEXT, index_map.size() + 1000);
-         idx_engine->CreateColumn("count", ColType::INT32, index_map.size() + 1000);
-
-         for(auto& p : index_map) {
-             RowID r = idx_engine->AddRow();
-             idx_engine->SetText("term", r, p.first);
-             idx_engine->SetText("ids", r, p.second);
-             // Count parsing heuristic (count commas + 1)
-             int c = 1;
-             for(char ch : p.second) if(ch==',') c++;
-             if(p.second == "[]") c=0;
-             idx_engine->SetInt("count", r, c); 
-         }
-     }
-
     // void CreateTGIndex(const std::string& col_name) {
     //     if (column_map.find(col_name) == column_map.end()) {
     //         throw std::runtime_error("Column not found: " + col_name);
@@ -1148,11 +1116,61 @@ public:
         tables[name] = std::move(table);
         return tables[name].get();
     }
+
     BigTable* GetTable(const std::string& name) {
         if (tables.find(name) == tables.end()) throw std::runtime_error("Table not found");
         return tables.at(name).get();
     }
+
+    void CreateTigerIndex(const std::string& table, const std::string& group, const std::string& col) {
+         // 1. Get Source
+         BigTable* t = GetTable(table);
+         ColumnarTiger* src = t->GetGroup(group);
+
+         // 2. Build Inverted Map
+         auto index_map = src->BuildSerializedIndex(col);
+
+         // 3. Create System Table (if not exists)
+         BigTable* sys = CreateTable("systems");
+
+         // 4. Create Index Group: idx_{table}_{group}_{col}
+         std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
+         ColumnarTiger* idx_engine = sys->CreateGroup(idx_group_name, 64, "index");
+         
+         // 5. Schema & Populate
+         idx_engine->CreateColumn("term", ColType::TEXT, index_map.size() + 1000);
+         idx_engine->CreateColumn("ids", ColType::TEXT, index_map.size() + 1000);
+         idx_engine->CreateColumn("count", ColType::INT32, index_map.size() + 1000);
+
+         for(auto& p : index_map) {
+             RowID r = idx_engine->AddRow();
+             idx_engine->SetText("term", r, p.first);
+             idx_engine->SetText("ids", r, p.second);
+             // Count parsing heuristic (count commas + 1)
+             int c = 1;
+             for(char ch : p.second) if(ch==',') c++;
+             if(p.second == "[]") c=0;
+             idx_engine->SetInt("count", r, c); 
+         }
+     }
+
+    std::string LookupTigerIndex(const std::string& table, const std::string& group, const std::string& col, const std::string& val) {
+        if (tables.find("systems") == tables.end()) return "[]";
+        BigTable* sys = tables["systems"].get();
+        std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
+        
+        try {
+            ColumnarTiger* idx_engine = sys->GetGroup(idx_group_name);
+            auto matches = idx_engine->Filter("term", "EQ", val);
+            if (matches.empty()) return "[]";
+            // Return the serialized list of IDs
+            return idx_engine->GetText("ids", matches[0]);
+        } catch(...) {
+            return "[]";
+        }
+    }
     
+
     // --- JOIN Implementation ---
     // JOIN(table, group_a, col_a, group_b, col_b, op, val)
     // Returns List of RowIDs from Group A that match.
