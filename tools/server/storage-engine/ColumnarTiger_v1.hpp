@@ -1031,11 +1031,14 @@ public:
              // }
         }
 
+        // const uint32_t max_iteration = col.count;
+        const uint32_t max_iteration = 0.7 * col.count;
+
         if (col.type == ColType::INT32) {
             int32_t target = 0;
             if (!is_in_op) target = std::stoi(val_str);
             int32_t* data = get_ptr<int32_t>(col.data_offset);
-            for (uint32_t i = 0; i < col.count; ++i) {
+            for (uint32_t i = 0; i<max_iteration; ++i) {
                 if (limit > 0 && matches.size() >= (size_t)limit) break;
                 bool match = false;
                 if (is_in_op) match = (int_set.find(data[i]) != int_set.end());
@@ -1052,7 +1055,7 @@ public:
             float target = 0.0f;
             if (!is_in_op) target = std::stof(val_str);
             float* data = get_ptr<float>(col.data_offset);
-            for (uint32_t i = 0; i < col.count; ++i) {
+            for (uint32_t i = 0; i<max_iteration; ++i) {
                 if (limit > 0 && matches.size() >= (size_t)limit) break;
                 bool match = false;
                 if (is_in_op) {
@@ -1071,7 +1074,7 @@ public:
         }
         else if (col.type == ColType::TEXT) {
             RelPtr* offsets = get_ptr<RelPtr>(col.data_offset);
-            for (uint32_t i = 0; i < col.count; ++i) {
+            for (uint32_t i = 0; i<max_iteration; ++i) {
                 if (limit > 0 && matches.size() >= (size_t)limit) break;
                 if (offsets[i] == DELETED_FLAG) continue;
                 std::string val = std::string(get_ptr<char>(offsets[i]));
