@@ -1154,7 +1154,9 @@ public:
          }
      }
 
-    std::string LookupTigerIndex(const std::string& table, const std::string& group, const std::string& col, const std::string& val) {
+    // FilterTigerIndex(table_name, group, col_name, op, val, limit)
+    std::string FilterTigerIndex(const std::string& table, const std::string& group, 
+        const std::string& col, const std::string& op, const std::string& val, int limit) {
         if (tables.find("systems") == tables.end()) return "[]";
         BigTable* sys = tables["systems"].get();
         std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
@@ -1162,14 +1164,14 @@ public:
         try {
             ColumnarTiger* idx_engine = sys->GetGroup(idx_group_name);
             auto matches = idx_engine->Filter("term", "EQ", val);
-            if (matches.empty()) return "[]";
-            // Return the serialized list of IDs
+            if (matches.empty()) {
+                return "[]";
+            }
             return idx_engine->GetText("ids", matches[0]);
         } catch(...) {
             return "[]";
         }
     }
-    
 
     // --- JOIN Implementation ---
     // JOIN(table, group_a, col_a, group_b, col_b, op, val)
@@ -1423,11 +1425,20 @@ class TGQL {
         }
         else if (cmd == "CREATE_TG_INDEX") {
             if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
+
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
-            tg->CreateTigerIndex(args[2]);
-            res.msg = "Tiger-Index created on " + args[2];
+            const std::string &table_name = args[0];
+            const std::string &group = args[1];
+            const std::string &col_name = args[2];
+            if (tg->column_map.find(col_name) == tg->column_map.end()) {
+                throw std::runtime_error("Column not found: " + col_name);
+            }
+
+            db.CreateTigerIndex(table_name, group, col_name);
+            res.msg = "Tiger-Index created on " + table_name + "." + group + "."+col_name;
         }
+
         else if (cmd == "UPDATE_SK_INDEX") {
             if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
             BigTable* t = db.GetTable(args[0]);
@@ -1496,7 +1507,7 @@ class TGQL {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
-            int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
+            int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
             res.rows = tg->Filter(args[2], args[3], args[4], limit);
             res.has_rows = res.rows.size()>0;
             res.context_engine = tg;
@@ -1506,7 +1517,7 @@ class TGQL {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
-            int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
+            int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
             res.rows = tg->FilterIndex(args[2], args[3], args[4], limit);
             res.has_rows = res.rows.size() > 0;
             res.context_engine = tg;
@@ -1516,21 +1527,31 @@ class TGQL {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
-            int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
+            int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
             res.rows = tg->FilterSecondaryIndex(args[2], args[3], args[4], limit);
             res.has_rows = res.rows.size() > 0;
             res.context_engine = tg;
             res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
         }
         else if (cmd == "FILTER_TG_INDEX") {
-            if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
+            if (args.size() < 5) {
+                throw std::runtime_error("Req: table, group, col, op, val");
+            }
+
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
-            int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
-            res.rows = tg->FilterSecondaryIndex(args[2], args[3], args[4], limit);
-            res.has_rows = res.rows.size() > 0;
+
+            const std::string &table_name = args[0];
+            const std::string &group = args[1];
+            const std::string &col_name = args[2];
+            const std::string &op = args[3];
+            const std::string &val = args[4];
+
+            int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
+            // res.rows = db.FilterTigerIndex(table_name, group, col_name, op, val, limit);
+            res.has_rows = false;
             res.context_engine = tg;
-            res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+            res.msg = db.FilterTigerIndex(table_name, group, col_name, op, val, limit);
         }
         else if (cmd == "LEN") {
             if (args.size() < 4) throw std::runtime_error("Req: table, group, col, index");
