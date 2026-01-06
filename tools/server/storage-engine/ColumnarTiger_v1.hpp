@@ -372,18 +372,75 @@ public:
     //     // indexes[index_name] = idx;
     // }
 
+    void CreateTigerIndex(const std::string& table, const std::string& group, const std::string& col) {
+         // 1. Get Source
+         BigTable* t = GetTable(table);
+         ColumnarTiger* src = t->GetGroup(group);
+
+         // 2. Build Inverted Map
+         auto index_map = src->BuildSerializedIndex(col);
+
+         // 3. Create System Table (if not exists)
+         BigTable* sys = CreateTable("systems");
+
+         // 4. Create Index Group: idx_{table}_{group}_{col}
+         std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
+         ColumnarTiger* idx_engine = sys->CreateGroup(idx_group_name, 64, "index");
+         
+         // 5. Schema & Populate
+         idx_engine->CreateColumn("term", ColType::TEXT, index_map.size() + 1000);
+         idx_engine->CreateColumn("ids", ColType::TEXT, index_map.size() + 1000);
+         idx_engine->CreateColumn("count", ColType::INT32, index_map.size() + 1000);
+
+         for(auto& p : index_map) {
+             RowID r = idx_engine->AddRow();
+             idx_engine->SetText("term", r, p.first);
+             idx_engine->SetText("ids", r, p.second);
+             // Count parsing heuristic (count commas + 1)
+             int c = 1;
+             for(char ch : p.second) if(ch==',') c++;
+             if(p.second == "[]") c=0;
+             idx_engine->SetInt("count", r, c); 
+         }
+     }
+
+    // void CreateTGIndex(const std::string& col_name) {
+    //     if (column_map.find(col_name) == column_map.end()) {
+    //         throw std::runtime_error("Column not found: " + col_name);
+    //     }
+
+    //     if (HasTGIndex(col_name)) {
+    //         return;
+    //     }
+
+    //     int col_idx = column_map[col_name];
+    //     ColumnHeader& col = columns[col_idx];
+    //     if (col.type != ColType::TEXT) {
+    //         throw std::runtime_error("Index only supported on TEXT columns currently");
+    //     }
+
+    //     // (const std::string& name, ColType type, uint32_t initial_capacity, int dim = 0)
+
+
+    //     const std::string index_name = col_name + "_tgk";
+    //     BigTable* t = CreateTable("systems"); 
+    //     t->CreateGroup("systems", index_name, size_mb, "Index-Data for column " + col_name);
+    //     ColumnarTiger* tg = t->GetGroup(index_name);
+    //     tg->CreateColumn("term", ColType::TEXT, col.capacity);
+    //     tg->CreateColumn("rowid", ColType::TEXT, col.capacity);
+    //     tg->CreateColumn("count", ColType::TEXT, col.capacity);
+    // }
+
     void CreateIndex(const std::string& col_name) {
         if (column_map.find(col_name) == column_map.end()) {
             throw std::runtime_error("Column not found: " + col_name);
         }
-
         if (HasIndex(col_name)) {
             return;            
         }
 
         int col_idx = column_map[col_name];
         ColumnHeader& col = columns[col_idx];
-
         if (col.type != ColType::TEXT) {
             throw std::runtime_error("Index only supported on TEXT columns currently");
         }
@@ -711,6 +768,34 @@ public:
         }
         
         return fuzzy_results;
+    }
+
+    std::unordered_map<std::string, std::string> BuildSerializedIndex(const std::string& col_name) {
+        if (!HasColumn(col_name)) throw std::runtime_error("Column not found");
+        if (GetColumnType(col_name) != ColType::TEXT) throw std::runtime_error("Only TEXT supported for TigerIndex");
+        
+        std::unordered_map<std::string, std::vector<RowID>> raw_idx;
+        int idx = column_map[col_name];
+        RelPtr* offsets = get_ptr<RelPtr>(columns[idx].data_offset);
+        uint32_t count = columns[idx].count;
+        
+        for(uint32_t i=0; i<count; ++i) {
+             // if (offsets[i] == DELETED_FLAG) continue;
+             std::string val = std::string(get_ptr<char>(offsets[i]));
+             raw_idx[val].push_back(i);
+        }
+        
+        std::unordered_map<std::string, std::string> serialized;
+        for(auto& p : raw_idx) {
+            std::stringstream ss;
+            ss << "[";
+            for(size_t k=0; k<p.second.size(); ++k) {
+                ss << p.second[k] << (k < p.second.size()-1 ? "," : "");
+            }
+            ss << "]";
+            serialized[p.first] = ss.str();
+        }
+        return serialized;
     }
 
     void SetInt(const std::string& col_name, RowID row, int32_t val) {

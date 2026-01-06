@@ -76,6 +76,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "FILTER" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
     std::cout << "  " << Colors::GREEN << "FILTER_INDEX" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
     std::cout << "  " << Colors::GREEN << "FILTER_SK_INDEX" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
+    std::cout << "  " << Colors::GREEN << "FILTER_TG_INDEX" << Colors::RESET << "(table, group, col, operator, ovalue, [limit=20]) \n";
     std::cout << "  " << Colors::GREEN << "COUNT" << Colors::RESET << "(table, group, col)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_FILTER" << Colors::RESET << "(table, group, col, operator, val)\n";
     std::cout << "  " << Colors::GREEN << "COUNT_IF" << Colors::RESET << "(table, group, col, operator, val)\n";
@@ -83,6 +84,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "SEARCH" << Colors::RESET << "(table, group, col, vector, top_k) \n";
     std::cout << "  " << Colors::GREEN << "CREATE_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CREATE_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
+    std::cout << "  " << Colors::GREEN << "CREATE_TG_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "UPDATE_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CLEAR_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CLEAR_INDEX" << Colors::RESET << "(table, group, col) \n";
@@ -114,6 +116,8 @@ void print_help() {
     std::cout << "  CREATE_INDEX(company, Details, status) \n";
     std::cout << "  FILTER_INDEX(company, Details, status, ILIKE, Active, 10) \n";
 
+    std::cout << "  CREATE_TG_INDEX(company, Details, status) \n";
+    std::cout << "  FILTER_TG_INDEX(company, Details, status) \n";
     std::cout << "  CREATE_SK_INDEX(company, Details, status) \n";
     std::cout << "  UPDATE_SK_INDEX(company, Details, status) \n";
     std::cout << "  FILTER_SK_INDEX(company, Details, status, ILIKE, Active, 10) \n";
