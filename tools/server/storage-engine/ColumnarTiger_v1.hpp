@@ -1718,24 +1718,24 @@ class TGQL {
             uint32_t total = tg->GetRowCount(col);
             if ((uint32_t)offset >= total) { res.msg = "[]"; return res; }
             int end = std::min((int)total, offset + limit);
-            
             std::stringstream ss;
+
             for (int i = offset; i < end; ++i) {
                 if (type == ColType::TEXT) {
                     const std::string output_buf = tg->GetText(col, i);
                     if (output_buf.size() > MAX_OUTPUT_SIZE) {
-                        ss << output_buf.substr(0, MAX_OUTPUT_SIZE)  << "<...>,";
+                        ss << output_buf.substr(0, MAX_OUTPUT_SIZE)  << "<...>\n";
                     } else {
-                        ss << output_buf  << ",";
+                        ss << output_buf  << "\n";
                     }
                 } else if (type == ColType::INT32) {
-                    ss << tg->GetInt(col, i) << ",";
+                    ss << tg->GetInt(col, i) << "\n";
                 }
                 else if (type == ColType::FLOAT32) {
-                    ss << tg->GetFloat(col, i) << ",";
+                    ss << tg->GetFloat(col, i) << "\n";
                 }
                 else if (type == ColType::VECTOR_F32) {
-                    ss << "<vec>" << ",";
+                    ss << "<vec>" << "\n";
                 }
             }
 
