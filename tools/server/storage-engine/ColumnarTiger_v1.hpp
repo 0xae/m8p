@@ -1720,9 +1720,11 @@ class TGQL {
             // res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
             std::vector<RowID> rows = tg->Filter(args[2], args[3], args[4], limit);
             std::stringstream ss;
+            ss << "[";
             for (RowID rowid : rows) {
-                ss << rowid << "\n";
+                ss << rowid << ",";
             }
+            ss << "]";
             res.msg = ss.str();
         }
         else if (cmd == "FILTER_INDEX") {
@@ -1732,9 +1734,11 @@ class TGQL {
             int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
             std::vector<RowID> rows = tg->FilterIndex(args[2], args[3], args[4], limit);
             std::stringstream ss;
+            ss << "[";
             for (RowID rowid : rows) {
-                ss << rowid << "\n";
+                ss << rowid << ",";
             }
+            ss << "]";
             res.msg = ss.str();
         }
         else if (cmd == "FILTER_SK_INDEX") {
@@ -1744,9 +1748,11 @@ class TGQL {
             int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
             std::vector<RowID> rows = tg->FilterSecondaryIndex(args[2], args[3], args[4], limit);
             std::stringstream ss;
+            ss << "[";
             for (RowID rowid : rows) {
-                ss << rowid << "\n";
+                ss << rowid << ",";
             }
+            ss << "]";
             res.msg = ss.str();
             // res.rows = tg->FilterSecondaryIndex(args[2], args[3], args[4], limit);
             // res.has_rows = res.rows.size() > 0;
@@ -1774,9 +1780,11 @@ class TGQL {
             // res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
             std::vector<RowID> rows = db.FilterTigerIndex(table_name, group, col_name, op, val, limit);
             std::stringstream ss;
+            ss << "[";
             for (RowID rowid : rows) {
-                ss << rowid << "\n";
+                ss << rowid << ",";
             }
+            ss << "]";
             res.msg = ss.str();
         }
         else if (cmd == "LEN") {
@@ -1828,9 +1836,11 @@ class TGQL {
             ColumnarTiger* tg = t->GetGroup(args[1]);
             auto results = tg->VectorSearch(args[2], parse_vector_data(args[3]), std::stoi(args[4]));
             std::stringstream ss;
+            ss << "[";
             for(auto& r : results) {
-                ss << r.id << "\n";
+                ss << r.id << ",";
             }
+            ss << "]";
             res.msg = ss.str();
         }
         else if (cmd == "SAVE") {
