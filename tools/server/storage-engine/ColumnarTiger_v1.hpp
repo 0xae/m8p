@@ -162,6 +162,7 @@ private:
     uint8_t* memory_block;
     size_t capacity_bytes;
     size_t head; 
+    uint32_t version_watermark = 0;
     
     std::unordered_map<std::string, int> column_map; 
     std::vector<ColumnHeader> columns;
@@ -247,16 +248,22 @@ public:
         memory_block = new uint8_t[capacity_bytes]; 
         std::memset(memory_block, 0, capacity_bytes);
         head = 0; 
+        version_watermark = 0;
     }
 
     ~ColumnarTiger() { delete[] memory_block; }
 
     void Reset() {
         head = 0;
+        version_watermark = 0;
         columns.clear();
         column_map.clear();
         indexes.clear();
     }
+
+    // Accessors for watermark (used by indexer)
+    uint32_t GetWatermark() const { return version_watermark; }
+    void SetWatermark(uint32_t wm) { version_watermark = wm; }
 
     void ClearIndex(const std::string &col_name) {
         if (column_map.find(col_name) == column_map.end()) {
@@ -896,6 +903,12 @@ public:
         return columns[column_map.at(col_name)].count;
     }
 
+    size_t GetCapacityBytes() const { return capacity_bytes; }
+    uint32_t GetColumnCapacity(const std::string& col_name) {
+        if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
+        return columns[column_map.at(col_name)].capacity;
+    }
+
     struct SearchResult { RowID id; float score; };
 
     std::vector<SearchResult> VectorSearch(const std::string& col_name, const std::vector<float>& query, int top_k) {
@@ -1180,6 +1193,8 @@ public:
          // 1. Get Source
          BigTable* t = GetTable(table);
          ColumnarTiger* src = t->GetGroup(group);
+         const float MAX_INDEX_SIZE = 0.7;
+         const float START_SCAN_SIZE = 0.4;
 
          // 3. Create System Table (if not exists)
          BigTable* sys = CreateTable("systems");
@@ -1190,16 +1205,28 @@ public:
             return;
          }
 
-         // 2. Build Inverted Map
-         uint32_t limit = 1000;
-         auto index_map = src->BuildSerializedIndex(col, limit);
+         uint32_t total_rows = src->GetRowCount(col);
+         uint32_t scan_limit = (uint32_t)(total_rows * START_SCAN_SIZE);
+
+         auto index_map = src->BuildSerializedIndex(col, scan_limit);
 
          ColumnarTiger* idx_engine = sys->CreateGroup(idx_group_name, 564, "index");
 
+         // Auto-sizing: 90% of source group capacity (converted back to MB)
+         size_t src_mb = src->GetCapacityBytes() / (1024 * 1024);
+         size_t idx_mb = std::max((size_t)164, (size_t)(src_mb * MAX_INDEX_SIZE));
+
          // 5. Schema & Populate
-         idx_engine->CreateColumn("term", ColType::TEXT, index_map.size() + 1000);
-         idx_engine->CreateColumn("ids", ColType::TEXT, index_map.size() + 1000);
-         idx_engine->CreateColumn("count", ColType::INT32, index_map.size() + 1000);
+         // idx_engine->CreateColumn("term", ColType::TEXT, index_map.size() + 1000);
+         // idx_engine->CreateColumn("ids", ColType::TEXT, index_map.size() + 1000);
+         // idx_engine->CreateColumn("count", ColType::INT32, index_map.size() + 1000);
+         uint32_t src_col_cap = src->GetColumnCapacity(col);
+         uint32_t target_cap = (uint32_t)(src_col_cap * MAX_INDEX_SIZE);
+         uint32_t final_cap = std::max(target_cap, (uint32_t)(index_map.size() + 1000));
+
+         idx_engine->CreateColumn("term", ColType::TEXT, final_cap);
+         idx_engine->CreateColumn("ids", ColType::TEXT, final_cap);
+         idx_engine->CreateColumn("count", ColType::INT32, final_cap);
 
          for(auto& p : index_map) {
              RowID r = idx_engine->AddRow();
@@ -1211,7 +1238,65 @@ public:
              if(p.second == "[]") c=0;
              idx_engine->SetInt("count", r, c); 
          }
+
+         idx_engine->SetWatermark(scan_limit);
      }
+
+    void UpdateTigerIndex(const std::string& table, const std::string& group, const std::string& col) {
+         BigTable* sys = GetTable("systems");
+         std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
+         ColumnarTiger* idx_engine = sys->GetGroup(idx_group_name);
+         
+         BigTable* t = GetTable(table);
+         ColumnarTiger* src = t->GetGroup(group);
+         
+         uint32_t start = idx_engine->GetWatermark();
+         uint32_t current_total = src->GetRowCount(col);
+         
+         // Update by 13% of total content, or up to max
+         // 13% logic as requested (simulation of partial update)
+         uint32_t increment = std::max(1u, (uint32_t)(current_total * 0.13));
+         uint32_t end = std::min(current_total, start + increment);
+         
+         if (start >= end) return; // Nothing to update
+         
+         // Build partial map for new rows
+         auto new_map = src->BuildIndexMap(col, start, end);
+         
+         // Merge into index
+         // Since idx_engine stores term -> ids, we need to find existing terms
+         // Optimized: idx_engine supports internal hash index if we call CreateIndex("term")
+         // But for now we might have to scan or rely on idx_engine's Filter.
+         // Let's assume idx_engine has an internal index on "term" for speed?
+         // We can force create it:
+         // if (!idx_engine->HasIndex("term")) {
+         //    idx_engine->CreateIndex("term");
+         // }
+
+         for (auto& p : new_map) {
+             auto existing_rows = idx_engine->LookupIndex("term", p.first, increment);
+             if (existing_rows.empty()) {
+                 // New term
+                 RowID r = idx_engine->AddRow();
+                 idx_engine->SetText("term", r, p.first);
+                 idx_engine->SetText("ids", r, ColumnarTiger::SerializeIDs(p.second));
+                 idx_engine->SetInt("count", r, p.second.size());
+             } else {
+                 // Update existing
+                 RowID r = existing_rows[0];
+                 std::string existing_ids_str = idx_engine->GetText("ids", r);
+                 std::vector<RowID> current_ids = ColumnarTiger::DeserializeIDs(existing_ids_str);
+                 
+                 // Append new IDs
+                 current_ids.insert(current_ids.end(), p.second.begin(), p.second.end());
+                 
+                 idx_engine->SetText("ids", r, ColumnarTiger::SerializeIDs(current_ids));
+                 idx_engine->SetInt("count", r, current_ids.size());
+             }
+         }
+         
+         idx_engine->SetWatermark(end);
+    }
 
     // FilterTigerIndex(table_name, group, col_name, op, val, limit)
     std::vector<RowID> FilterTigerIndex(const std::string& table, const std::string& group, 
