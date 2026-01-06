@@ -537,17 +537,16 @@ public:
         }
 
         auto& idx = indexes[col_name];
+        const std::string& OP=str_to_lower(op);
 
         // 2. Try Exact Match (Fast path)
-        if (idx.find(val) != idx.end()) {
+        if ((OP=="=" || OP=="EQ") && idx.find(val) != idx.end()) {
             return idx[val];
         }
 
-        const std::string& OP=str_to_lower(op);
-
         // 3. Fallback: Scan keys if index cardinality is small (< 10000)
         // This handles "contains" logic on keys without full table scan
-        if (idx.size() < 10000 && (OP=="contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+        if (idx.size() < 10000 && (OP=="contains" || OP=="not_contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx) {
                 if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
@@ -560,6 +559,9 @@ public:
                 // So 'contains' behaves like 'ilike' automatically on the normalized key space.
                 if (OP == "contains" || OP == "like" || OP == "ilike") {
                      if (key.find(val) != std::string::npos) match = true;
+                }
+                else if (OP == "not_contains") {
+                     if (key.find(val) == std::string::npos) match = true;
                 }
                 else if (OP == "starts_with") {
                      if (str_starts_with(key, val)) match = true;
@@ -623,13 +625,36 @@ public:
         if (token.empty()) return {};
 
         const auto& idx_data = it_idx->second; // Access IndexData
-        auto it_ids = idx_data.map.find(token);
 
-        if (it_ids != idx_data.map.end()) {
-            return it_ids->second;
+        if ((OP=="=" || OP=="EQ") ) {
+            auto it_ids = idx_data.map.find(token);
+            if (it_ids != idx_data.map.end()) {
+                return it_ids->second;
+            }
+        }
+        else if (OP=="!=" || OP=="NEQ" ) {
+            for (const auto& pair : idx_data.map) {
+                const std::string& key = pair.first;
+                if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+                    break;
+                }
+
+                if (key!=val) { // TODO: could it be this simple ???
+                    for(RowID r : pair.second) {
+                        if (fuzzy_results.size() >= (size_t)limit) {
+                            break;
+                        }
+
+                        fuzzy_results.push_back(r);
+                        if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+                            break;
+                        }
+                    }
+                }
+            }                
         }
 
-        if (idx_data.map.size() < 100000 && (OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+        if (idx_data.map.size() < 100000 && (OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx_data.map) {
                 if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
@@ -645,6 +670,9 @@ public:
                 }
                 else if (OP == "starts_with") {
                      if (str_starts_with(key, token)) match = true;
+                }
+                else if (OP == "not_contains") {
+                     if (key.find(val) == std::string::npos) match = true;
                 }
                 else if (OP == "ends_with") {
                      if (str_ends_with(key, token)) match = true;
