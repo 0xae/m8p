@@ -86,6 +86,7 @@ void print_help() {
     std::cout << "  " << Colors::GREEN << "CREATE_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CREATE_TG_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "UPDATE_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
+    std::cout << "  " << Colors::GREEN << "UPDATE_TG_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CLEAR_SK_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "CLEAR_INDEX" << Colors::RESET << "(table, group, col) \n";
     std::cout << "  " << Colors::GREEN << "JOIN" << Colors::RESET << "(Req: table, g_a, c_a, g_b, c_b, op, val) \n";

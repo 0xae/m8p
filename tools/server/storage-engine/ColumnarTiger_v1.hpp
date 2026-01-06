@@ -1229,14 +1229,20 @@ public:
          idx_engine->CreateColumn("count", ColType::INT32, final_cap);
 
          for(auto& p : index_map) {
-             RowID r = idx_engine->AddRow();
-             idx_engine->SetText("term", r, p.first);
-             idx_engine->SetText("ids", r, p.second);
-             // Count parsing heuristic (count commas + 1)
-             int c = 1;
-             for(char ch : p.second) if(ch==',') c++;
-             if(p.second == "[]") c=0;
-             idx_engine->SetInt("count", r, c); 
+            const auto content = TGQL::trim(p.first);
+            if (content.size()==0 || p.second.size()==0 || p.second=="[]") {
+                continue;
+            }
+
+            RowID r = idx_engine->AddRow();
+            idx_engine->SetText("term", r, content);
+            idx_engine->SetText("ids", r, p.second);
+
+            // Count parsing heuristic (count commas + 1)
+            int c = 1;
+            for(char ch : p.second) if(ch==',') c++;
+            if(p.second == "[]") c=0;
+            idx_engine->SetInt("count", r, c); 
          }
 
          idx_engine->SetWatermark(scan_limit);
@@ -1278,8 +1284,13 @@ public:
              auto existing_rows = idx_engine->LookupIndex("term", "=", p.first, (int)increment);
              if (existing_rows.empty()) {
                  // New term
+                const auto content = TGQL::trim(p.first);
+                if (content.size()==0 || p.second.size()==0) {
+                    continue;
+                }
+
                  RowID r = idx_engine->AddRow();
-                 idx_engine->SetText("term", r, p.first);
+                 idx_engine->SetText("term", r, content);
                  idx_engine->SetText("ids", r, ColumnarTiger::SerializeIDs(p.second));
                  idx_engine->SetInt("count", r, p.second.size());
              } else {
