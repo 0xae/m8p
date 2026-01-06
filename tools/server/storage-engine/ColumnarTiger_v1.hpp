@@ -546,7 +546,7 @@ public:
 
         // 3. Fallback: Scan keys if index cardinality is small (< 10000)
         // This handles "contains" logic on keys without full table scan
-        if (idx.size() < 10000 && (OP=="contains" || OP=="not_contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+        if (idx.size() < 10000 && (OP=="!=" || OP=="NEQ" || OP=="contains" || OP=="not_contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx) {
                 if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
@@ -572,6 +572,7 @@ public:
                 else if (OP == "ends_with") {
                      if (str_ends_with(key, val)) match = true;
                 }
+
                 if (match) {
                      for(RowID r : pair.second) {
                         if (fuzzy_results.size() >= (size_t)limit) {
@@ -655,7 +656,7 @@ public:
                     }
                 }
             }
-              
+
         } else if (idx_data.map.size() < 100000 && (OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             for (const auto& pair : idx_data.map) {
                 if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
