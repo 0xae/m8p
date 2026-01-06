@@ -1634,8 +1634,11 @@ class TGQL {
             if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
-            tg->UpdateTigerIndex(args[2]);
-            res.msg = "Tiger-Index update on " + args[2];
+            const std::string &table_name = args[0];
+            const std::string &group = args[1];
+            const std::string &col_name = args[2];
+            db.UpdateTigerIndex(table_name, group, col_name);
+            res.msg = "Tiger-Index update on " + col_name;
         }
         else if (cmd == "CLEAR_SK_INDEX") {
             if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
