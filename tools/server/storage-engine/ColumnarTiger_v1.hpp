@@ -1262,7 +1262,7 @@ public:
          
          // Build partial map for new rows
          auto new_map = src->BuildIndexMap(col, start, end);
-         
+
          // Merge into index
          // Since idx_engine stores term -> ids, we need to find existing terms
          // Optimized: idx_engine supports internal hash index if we call CreateIndex("term")
@@ -1300,21 +1300,62 @@ public:
     }
 
     // FilterTigerIndex(table_name, group, col_name, op, val, limit)
+    // std::vector<RowID> FilterTigerIndex(const std::string& table, const std::string& group, 
+    //     const std::string& col, const std::string& op, const std::string& val, int limit) {
+    //     if (tables.find("systems") == tables.end()) {
+    //         return {};
+    //     };
+
+    //     BigTable* sys = tables["systems"].get();
+    //     std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
+    //     if (!sys->GroupExists(idx_group_name)) {
+    //         return {};
+    //     }
+
+    //     ColumnarTiger* idx_engine = sys->GetGroup(idx_group_name);
+    //     auto matches = idx_engine->Filter("term", op, val, limit);
+
+    //     std::vector<RowID> result;
+    //     for (std::vector<RowID>::iterator i = matches.begin(); i != matches.end(); ++i) {
+    //         if (result.size() >= limit) {
+    //             break;
+    //         }
+    //         result.push_bash(std::stoi(idx_engine->GetText("ids", i))); // parse GetText to rowid
+    //     }
+    //     return result;
+    // }
+
     std::vector<RowID> FilterTigerIndex(const std::string& table, const std::string& group, 
         const std::string& col, const std::string& op, const std::string& val, int limit) {
-        if (tables.find("systems") == tables.end()) {
-            return {};
-        };
+        
+        if (tables.find("systems") == tables.end()) return {};
 
         BigTable* sys = tables["systems"].get();
         std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
+        
         if (!sys->GroupExists(idx_group_name)) {
             return {};
         }
 
         ColumnarTiger* idx_engine = sys->GetGroup(idx_group_name);
+        // 1. Find matching terms in the index (e.g. term CONTAINS "tech")
         auto matches = idx_engine->Filter("term", op, val, limit);
-        return matches;
+
+        std::vector<RowID> result;
+        for (auto r : matches) {
+            if (limit > 0 && result.size() >= (size_t)limit) break;
+            
+            // 2. Get the list of IDs for this term
+            std::string serialized = idx_engine->GetText("ids", r);
+            std::vector<RowID> ids = ColumnarTiger::DeserializeIDs(serialized);
+            
+            // 3. Accumulate
+            for(auto id : ids) {
+                result.push_back(id);
+                if (limit > 0 && result.size() >= (size_t)limit) break;
+            }
+        }
+        return result;
     }
 
     // --- JOIN Implementation ---
