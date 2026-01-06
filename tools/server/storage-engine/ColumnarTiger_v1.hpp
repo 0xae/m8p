@@ -547,7 +547,7 @@ public:
 
         // 3. Fallback: Scan keys if index cardinality is small (< 10000)
         // This handles "contains" logic on keys without full table scan
-        if (idx.size() < 10000 && (OP=="contains" || OP=="ilike" || OP=="like")) {
+        if (idx.size() < 10000 && (OP=="contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx) {
                 // Check substring match on the key
@@ -566,6 +566,18 @@ public:
                 else if (OP=="ilike") {
                     if (pair.first.find(val) != std::string::npos 
                         || str_to_lower(pair.first).find(str_to_lower(val))!= std::string::npos) {
+                         // Accumulate all rows that have this matching key
+                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                    }
+                }
+                else if (OP=="starts_with") {
+                    if (str_starts_with(pair.first, val)) {
+                         // Accumulate all rows that have this matching key
+                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                    }
+                }
+                else if (OP=="ends_with") {
+                    if (str_ends_with(pair.first, val)) {
                          // Accumulate all rows that have this matching key
                          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
                     }
@@ -604,30 +616,30 @@ public:
             return it_ids->second;
         }
 
-        if (idx_data.map.size() < 100000 && (OP=="contains"||OP=="ilike"||OP=="like")) {
+        if (idx_data.map.size() < 100000 && (OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx_data.map) {
-                // Check substring match on the key
-                // std::cout << "LookupSK: check: "
-                //     << token
-                //     << " => "
-                //     << pair.first
-                //     << "\n" << std::endl;
-                // if (pair.first.find(token) != std::string::npos 
-                //     || str_to_lower(pair.first).find(str_to_lower(token))!= std::string::npos)  {
-                //      // Accumulate all rows that have this matching key
-                //      fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                // }
-
                 if (OP=="contains" || OP=="like") {
-                    if (pair.first.find(val) != std::string::npos) {
+                    if (pair.first.find(token) != std::string::npos) {
                          // Accumulate all rows that have this matching key
                          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
                     }
                 }
                 else if (OP=="ilike") {
-                    if (pair.first.find(val) != std::string::npos 
-                        || str_to_lower(pair.first).find(str_to_lower(val))!= std::string::npos) {
+                    if (pair.first.find(token) != std::string::npos 
+                        || str_to_lower(pair.first).find(str_to_lower(token))!= std::string::npos) {
+                         // Accumulate all rows that have this matching key
+                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                    }
+                }
+                else if (OP=="starts_with") {
+                    if (str_starts_with(pair.first, token)) {
+                         // Accumulate all rows that have this matching key
+                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                    }
+                }
+                else if (OP=="ends_with") {
+                    if (str_ends_with(pair.first, token)) {
                          // Accumulate all rows that have this matching key
                          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
                     }
