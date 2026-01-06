@@ -581,7 +581,7 @@ public:
 
         // 3. Fallback: Scan keys if index cardinality is small (< 10000)
         // This handles "contains" logic on keys without full table scan
-        if ( (OP=="!="|| OP=="neq" || OP=="contains" || OP=="not_contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+        if ( (OP=="contains" || OP=="not_contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             const auto stop = 0.7 * idx.size();
             uint32_t counter_add = 0;
             std::vector<RowID> fuzzy_results;
@@ -738,14 +738,14 @@ public:
         return fuzzy_results;
     }
 
-    std::unordered_map<std::string, std::string> BuildSerializedIndex(const std::string& col_name) {
+    std::unordered_map<std::string, std::string> BuildSerializedIndex(const std::string& col_name, uint32_t limit) {
         if (!HasColumn(col_name)) throw std::runtime_error("Column not found");
         if (GetColumnType(col_name) != ColType::TEXT) throw std::runtime_error("Only TEXT supported for TigerIndex");
         
         std::unordered_map<std::string, std::vector<RowID>> raw_idx;
         int idx = column_map[col_name];
         RelPtr* offsets = get_ptr<RelPtr>(columns[idx].data_offset);
-        uint32_t count = columns[idx].count;
+        uint32_t count = std::min(limit, columns[idx].count);
         
         for(uint32_t i=0; i<count; ++i) {
              // if (offsets[i] == DELETED_FLAG) continue;
@@ -1130,9 +1130,6 @@ public:
          BigTable* t = GetTable(table);
          ColumnarTiger* src = t->GetGroup(group);
 
-         // 2. Build Inverted Map
-         auto index_map = src->BuildSerializedIndex(col);
-
          // 3. Create System Table (if not exists)
          BigTable* sys = CreateTable("systems");
 
@@ -1142,7 +1139,11 @@ public:
             return;
          }
 
-         ColumnarTiger* idx_engine = sys->CreateGroup(idx_group_name, 64, "index");
+         // 2. Build Inverted Map
+         uint32_t limit = 1000;
+         auto index_map = src->BuildSerializedIndex(col, limit);
+
+         ColumnarTiger* idx_engine = sys->CreateGroup(idx_group_name, 564, "index");
 
          // 5. Schema & Populate
          idx_engine->CreateColumn("term", ColType::TEXT, index_map.size() + 1000);
