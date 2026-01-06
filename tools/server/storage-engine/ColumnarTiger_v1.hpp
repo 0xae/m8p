@@ -564,7 +564,8 @@ public:
                 std::cout << "LookupIndex: check: "
                     << val
                     << " => "
-                    << pair.first;
+                    << pair.first
+                    << "\n" << std::endl;
                 if (pair.first.find(val) != std::string::npos) {
                      // Accumulate all rows that have this matching key
                      fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
@@ -610,7 +611,9 @@ public:
                 std::cout << "LookupSK: check: "
                     << token
                     << " => "
-                    << pair.first;
+                    << pair.first
+                    << "\n" << std::endl;
+
                 if (pair.first.find(token) != std::string::npos) {
                      // Accumulate all rows that have this matching key
                      fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
