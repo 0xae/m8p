@@ -1826,16 +1826,10 @@ class TGQL {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, vec, top_k");
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
-            // auto results = tg->VectorSearch(args[2], parse_vector_data(args[3]), std::stoi(args[4]));
-            // res.context_engine = tg;
-            // res.has_rows = true;
-            // for(auto& r : results) res.rows.push_back(r.id);
-            // res.msg = "Found " + std::to_string(res.rows.size()) + " vectors.";
-
-            std::vector<RowID> rows = tg->VectorSearch(args[2], parse_vector_data(args[3]), std::stoi(args[4]));
+            auto results = tg->VectorSearch(args[2], parse_vector_data(args[3]), std::stoi(args[4]));
             std::stringstream ss;
-            for (RowID rowid : rows) {
-                ss << rowid << "\n";
+            for(auto& r : results) {
+                ss << r.id << "\n";
             }
             res.msg = ss.str();
         }
