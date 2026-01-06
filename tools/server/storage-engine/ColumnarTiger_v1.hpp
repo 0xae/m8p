@@ -1421,6 +1421,13 @@ class TGQL {
             tg->CreateSecondaryIndex(args[2]);
             res.msg = "Secondary-Index created on " + args[2];
         }
+        else if (cmd == "CREATE_TG_INDEX") {
+            if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            tg->CreateTigerIndex(args[2]);
+            res.msg = "Tiger-Index created on " + args[2];
+        }
         else if (cmd == "UPDATE_SK_INDEX") {
             if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
             BigTable* t = db.GetTable(args[0]);
@@ -1506,6 +1513,16 @@ class TGQL {
             res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
         }
         else if (cmd == "FILTER_SK_INDEX") {
+            if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
+            res.rows = tg->FilterSecondaryIndex(args[2], args[3], args[4], limit);
+            res.has_rows = res.rows.size() > 0;
+            res.context_engine = tg;
+            res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+        }
+        else if (cmd == "FILTER_TG_INDEX") {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
