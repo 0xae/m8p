@@ -563,6 +563,9 @@ public:
                 else if (OP == "not_contains") {
                      if (key.find(val) == std::string::npos) match = true;
                 }
+                else if (OP == "!=" || OP == "NEQ") {
+                     if (key!=val) match = true;
+                }
                 else if (OP == "starts_with") {
                      if (str_starts_with(key, val)) match = true;
                 }
@@ -625,14 +628,14 @@ public:
         if (token.empty()) return {};
 
         const auto& idx_data = it_idx->second; // Access IndexData
+        std::vector<RowID> fuzzy_results;
 
         if ((OP=="=" || OP=="EQ") ) {
             auto it_ids = idx_data.map.find(token);
             if (it_ids != idx_data.map.end()) {
                 return it_ids->second;
             }
-        }
-        else if (OP=="!=" || OP=="NEQ" ) {
+        } else if (OP=="!=" || OP=="NEQ" ) {
             for (const auto& pair : idx_data.map) {
                 const std::string& key = pair.first;
                 if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
@@ -651,11 +654,9 @@ public:
                         }
                     }
                 }
-            }                
-        }
-
-        if (idx_data.map.size() < 100000 && (OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
-            std::vector<RowID> fuzzy_results;
+            }
+              
+        } else if (idx_data.map.size() < 100000 && (OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             for (const auto& pair : idx_data.map) {
                 if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
                     break;
@@ -714,7 +715,7 @@ public:
             return fuzzy_results;
         }
         
-        return {};
+        return fuzzy_results;
     }
 
     void SetInt(const std::string& col_name, RowID row, int32_t val) {
