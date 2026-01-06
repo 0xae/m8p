@@ -1093,6 +1093,9 @@ struct BigTable {
         if (groups.find(group_name) == groups.end()) throw std::runtime_error("Group not found: " + group_name);
         return groups.at(group_name)->engine.get();
     }
+    bool GroupExists(const std::string& group_name) {
+        return (groups.find(group_name) != groups.end());
+    }
     void Reset() { for (auto& pair : groups) pair.second->Reset(); }
     std::string GetStats() {
         std::stringstream ss;
@@ -1135,8 +1138,12 @@ public:
 
          // 4. Create Index Group: idx_{table}_{group}_{col}
          std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
+         if (sys->GroupExists(idx_group_name)) {
+            return;
+         }
+
          ColumnarTiger* idx_engine = sys->CreateGroup(idx_group_name, 64, "index");
-         
+
          // 5. Schema & Populate
          idx_engine->CreateColumn("term", ColType::TEXT, index_map.size() + 1000);
          idx_engine->CreateColumn("ids", ColType::TEXT, index_map.size() + 1000);
@@ -1172,7 +1179,6 @@ public:
             //     return "[]";
             // }
             // return idx_engine->GetText("ids", matches[0]);
-
         } catch(...) {
             return {};
         }
