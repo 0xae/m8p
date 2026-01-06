@@ -530,7 +530,7 @@ public:
         return sk_indexes.find(col_name) != sk_indexes.end();
     }
 
-    std::vector<RowID> LookupIndex(const std::string& col_name, const std::string& op, const std::string& val) {
+    std::vector<RowID> LookupIndex(const std::string& col_name, const std::string& op, const std::string& val, int limit) {
         // 1. Validate index exists
         if (indexes.find(col_name) == indexes.end()) {
             return {}; 
@@ -550,38 +550,60 @@ public:
         if (idx.size() < 10000 && (OP=="contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx) {
-                // Check substring match on the key
-                // std::cout << "LookupIndex: check: "
-                //     << val
-                //     << " => "
-                //     << pair.first
-                //     << "\n" << std::endl;
+                if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+                    break;
+                }
 
-                if (OP=="contains" || OP=="like") {
-                    if (pair.first.find(val) != std::string::npos) {
-                         // Accumulate all rows that have this matching key
-                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                    }
+                bool match = false;
+                const std::string& key = pair.first;
+                // Note: Keys in map are already normalized (lowercase, no spaces)
+                // So 'contains' behaves like 'ilike' automatically on the normalized key space.
+                if (OP == "contains" || OP == "like" || OP == "ilike") {
+                     if (key.find(val) != std::string::npos) match = true;
                 }
-                else if (OP=="ilike") {
-                    if (pair.first.find(val) != std::string::npos 
-                        || str_to_lower(pair.first).find(str_to_lower(val))!= std::string::npos) {
-                         // Accumulate all rows that have this matching key
-                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                    }
+                else if (OP == "starts_with") {
+                     if (str_starts_with(key, val)) match = true;
                 }
-                else if (OP=="starts_with") {
-                    if (str_starts_with(pair.first, val)) {
-                         // Accumulate all rows that have this matching key
-                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                    }
+                else if (OP == "ends_with") {
+                     if (str_ends_with(key, val)) match = true;
                 }
-                else if (OP=="ends_with") {
-                    if (str_ends_with(pair.first, val)) {
-                         // Accumulate all rows that have this matching key
-                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                    }
+                if (match) {
+                     for(RowID r : pair.second) {
+                        if (fuzzy_results.size() >= (size_t)limit) {
+                            break;
+                        }
+                        fuzzy_results.push_back(r);
+                        if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+                            break;
+                        }
+                     }
                 }
+
+                // if (OP=="contains" || OP=="like") {
+                //     if (pair.first.find(val) != std::string::npos) {
+                //          // Accumulate all rows that have this matching key
+                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                //     }
+                // }
+                // else if (OP=="ilike") {
+                //     if (pair.first.find(val) != std::string::npos 
+                //         || str_to_lower(pair.first).find(str_to_lower(val))!= std::string::npos) {
+                //          // Accumulate all rows that have this matching key
+                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                //     }
+                // }
+                // else if (OP=="starts_with") {
+                //     if (str_starts_with(pair.first, val)) {
+                //          // Accumulate all rows that have this matching key
+                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                //     }
+                // }
+                // else if (OP=="ends_with") {
+                //     if (str_ends_with(pair.first, val)) {
+                //          // Accumulate all rows that have this matching key
+                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                //     }
+                // }
             }
             return fuzzy_results;
         }
@@ -589,15 +611,8 @@ public:
         return {};
     }
 
-    std::vector<RowID> LookupSKIndex(const std::string& col_name, const std::string& op, const std::string& val) {
+    std::vector<RowID> LookupSKIndex(const std::string& col_name, const std::string& op, const std::string& val, int limit) {
         const std::string index_name = col_name+"_sk";
-        // if (indexes.find(col_name) != indexes.end()) return {}; // Or throw?
-        // if (sk_indexes.find(index_name) != sk_indexes.end()) {
-        //     auto& idx = sk_indexes[index_name];
-        //     // std::unordered_map<std::string, IndexData> sk_indexes;
-        //     if (idx.map.find(val) != idx.map.end()) return idx.map[val];            
-        // }
-        // return {};
 
         auto it_idx = sk_indexes.find(index_name);
         if (it_idx == sk_indexes.end()) {
@@ -607,11 +622,9 @@ public:
         std::string token = normalize_token(val, MAX_SK_CHUNK_SIZE);
         if (token.empty()) return {};
 
-        // 3. Lookup in Map
-        // Use iterator from find to avoid double lookup cost
         const auto& idx_data = it_idx->second; // Access IndexData
         auto it_ids = idx_data.map.find(token);
-        
+
         if (it_ids != idx_data.map.end()) {
             return it_ids->second;
         }
@@ -619,32 +632,56 @@ public:
         if (idx_data.map.size() < 100000 && (OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx_data.map) {
-                if (OP=="contains" || OP=="like") {
-                    if (pair.first.find(token) != std::string::npos) {
-                         // Accumulate all rows that have this matching key
-                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                    }
-                }
-                else if (OP=="ilike") {
-                    if (pair.first.find(token) != std::string::npos 
-                        || str_to_lower(pair.first).find(str_to_lower(token))!= std::string::npos) {
-                         // Accumulate all rows that have this matching key
-                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                    }
-                }
-                else if (OP=="starts_with") {
-                    if (str_starts_with(pair.first, token)) {
-                         // Accumulate all rows that have this matching key
-                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                    }
-                }
-                else if (OP=="ends_with") {
-                    if (str_ends_with(pair.first, token)) {
-                         // Accumulate all rows that have this matching key
-                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                    }
+                if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+                    break;
                 }
 
+                bool match = false;
+                const std::string& key = pair.first;
+                // Note: Keys in map are already normalized (lowercase, no spaces)
+                // So 'contains' behaves like 'ilike' automatically on the normalized key space.
+                if (OP == "contains" || OP == "like" || OP == "ilike") {
+                     if (key.find(token) != std::string::npos) match = true;
+                }
+                else if (OP == "starts_with") {
+                     if (str_starts_with(key, token)) match = true;
+                }
+                else if (OP == "ends_with") {
+                     if (str_ends_with(key, token)) match = true;
+                }
+                if (match) {
+                     for(RowID r : pair.second) {
+                        if (fuzzy_results.size() >= (size_t)limit) {
+                            break;
+                        }
+                        fuzzy_results.push_back(r);
+                        if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+                            break;
+                        }
+                     }
+                }
+
+                // if (OP=="contains" || OP=="like") {
+                //     if (pair.first.find(token) != std::string::npos) {
+                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                //     }
+                // }
+                // else if (OP=="ilike") {
+                //     if (pair.first.find(token) != std::string::npos 
+                //         || str_to_lower(pair.first).find(str_to_lower(token))!= std::string::npos) {
+                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                //     }
+                // }
+                // else if (OP=="starts_with") {
+                //     if (str_starts_with(pair.first, token)) {
+                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                //     }
+                // }
+                // else if (OP=="ends_with") {
+                //     if (str_ends_with(pair.first, token)) {
+                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                //     }
+                // }
             }
             return fuzzy_results;
         }
@@ -751,7 +788,7 @@ public:
         return results;
     }
 
-    std::vector<RowID> FilterIndex(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit = -1) {
+    std::vector<RowID> FilterIndex(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit) {
         if (column_map.find(col_name) == column_map.end()) {
             throw std::runtime_error("Column not found: " + col_name);
         }
@@ -769,7 +806,7 @@ public:
 
         std::vector<RowID> candidates;
         if (HasIndex(col_name)) {
-            candidates = LookupIndex(col_name, op, val_str);
+            candidates = LookupIndex(col_name, op, val_str, limit);
             if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
         }
 
@@ -784,6 +821,10 @@ public:
         int col_idx = column_map[col_name];
         ColumnHeader& col = columns[col_idx];
 
+        if (limit<0) {
+            limit=10;
+        }
+
         std::string op = str_to_upper(op_raw);
         std::vector<RowID> matches;
         matches.reserve(limit > 0 ? limit : 128); 
@@ -796,14 +837,16 @@ public:
 
         std::vector<RowID> candidates;
         if (HasSKIndex(index_name)) {
-            candidates = LookupSKIndex(col_name, op, val_str);
-            if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
+            candidates = LookupSKIndex(col_name, op, val_str, limit);
+            if (limit > 0 && candidates.size() > (size_t)limit) {
+                candidates.resize(limit);
+            }
         }
 
         return candidates;
     }
 
-    std::vector<RowID> Filter(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit = -1) {
+    std::vector<RowID> Filter(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit) {
         if (column_map.find(col_name) == column_map.end()) {
             throw std::runtime_error("Column not found: " + col_name);
         }
@@ -834,7 +877,7 @@ public:
 
         // Use Index if available for EQ
         if (!is_in_op && (op == "EQ" || op == "=") && HasIndex(col_name)) {
-             std::vector<RowID> candidates = LookupIndex(col_name, op, val_str);
+             std::vector<RowID> candidates = LookupIndex(col_name, op, val_str, limit);
              if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
              // if (candidates.size()>0) {
                  return candidates;
@@ -1023,7 +1066,7 @@ public:
             // 3. Find in A
             // Ideal: eng_a->LookupIndex(c_a, join_val) if c_a is indexed
             if (eng_a->HasIndex(c_a)) {
-                auto hits = eng_a->LookupIndex(c_a, "=", join_val);
+                auto hits = eng_a->LookupIndex(c_a, "=", join_val, 100); // TODO: receive limit here
                 results_a.insert(results_a.end(), hits.begin(), hits.end());
             } else {
                 // Scan A (Slow join)
