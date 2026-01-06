@@ -122,6 +122,34 @@ std::string normalize_token(const std::string& input, size_t limit = 200) {
     }
     return result;
 }
+
+std::vector<std::string> split(const std::string& s, char delimiter) {
+    std::vector<std::string> tokens;
+    
+    if (s.empty()) {
+        return tokens;
+    }
+
+    // Optimization: Reserve space to minimize reallocations.
+    // Assuming average token length is small, s.length() / 4 is a heuristic.
+    tokens.reserve(s.length() / 4);
+    
+    size_t start = 0;
+    size_t end = s.find(delimiter);
+    
+    while (end != std::string::npos) {
+        tokens.push_back(s.substr(start, end - start));
+        start = end + 1;
+        end = s.find(delimiter, start);
+    }
+    
+    // Push the remaining part of the string (or empty string if ends with delimiter)
+    tokens.push_back(s.substr(start));
+    
+    return tokens;
+}
+
+
 struct IndexData {
     std::unordered_map<std::string, std::vector<RowID>> map;
     uint32_t last_indexed_row = 0; // High-water mark for incremental updates
@@ -370,6 +398,7 @@ public:
             // tokenize val, remove tokens
             // stem
             // lookup dictionary
+            // tokens =
             idx[val].push_back(i);
         }
 
@@ -502,12 +531,42 @@ public:
     }
 
     // Used by JOIN/FILTER if index exists
+    // std::vector<RowID> LookupIndex(const std::string& col_name, const std::string& val) {
+    //     // if (indexes.find(col_name) != indexes.end()) return {}; // Or throw?
+    //     const std::string index_name = col_name+"_sk";
+    //     if (indexes.find(col_name) != indexes.end()) {
+    //         auto& idx = indexes[col_name];
+    //         if (idx.find(val) != idx.end()) return idx[val];            
+    //     }
+
+    //     return {};
+    // }
+
     std::vector<RowID> LookupIndex(const std::string& col_name, const std::string& val) {
-        // if (indexes.find(col_name) != indexes.end()) return {}; // Or throw?
-        const std::string index_name = col_name+"_sk";
-        if (indexes.find(col_name) != indexes.end()) {
-            auto& idx = indexes[col_name];
-            if (idx.find(val) != idx.end()) return idx[val];            
+        // 1. Validate index exists
+        if (indexes.find(col_name) == indexes.end()) {
+            return {}; 
+        }
+
+        auto& idx = indexes[col_name];
+        
+        // 2. Try Exact Match (Fast path)
+        if (idx.find(val) != idx.end()) {
+            return idx[val];
+        }
+
+        // 3. Fallback: Scan keys if index cardinality is small (< 10000)
+        // This handles "contains" logic on keys without full table scan
+        if (idx.size() < 10000) {
+            std::vector<RowID> fuzzy_results;
+            for (const auto& pair : idx) {
+                // Check substring match on the key
+                if (pair.first.find(val) != std::string::npos) {
+                     // Accumulate all rows that have this matching key
+                     fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                }
+            }
+            return fuzzy_results;
         }
 
         return {};
@@ -538,6 +597,18 @@ public:
         
         if (it_ids != idx_data.map.end()) {
             return it_ids->second;
+        }
+
+        if (idx_data.map.size() < 100000) {
+            std::vector<RowID> fuzzy_results;
+            for (const auto& pair : idx_data.map) {
+                // Check substring match on the key
+                if (pair.first.find(token) != std::string::npos) {
+                     // Accumulate all rows that have this matching key
+                     fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                }
+            }
+            return fuzzy_results;
         }
         
         return {};
