@@ -1413,7 +1413,7 @@ class TGQL {
             ColumnarTiger* tg = t->GetGroup(args[1]);
             int limit = (args.size() > 5) ? std::stoi(args[5]) : -1;
             res.rows = tg->Filter(args[2], args[3], args[4], limit);
-            res.has_rows = true;
+            res.has_rows = res.rows.size()>0;
             res.context_engine = tg;
             res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
         }
