@@ -1500,6 +1500,7 @@ class TGQL {
     static ExecutionResult RunInternal(NativeMetaDB& db, std::string cmd, std::vector<std::string> args) {
         ExecutionResult res;
         // ... [CREATE/ADD/UPDATE/GET logic same as before] ...
+        const MAX_OUTPUT_SIZE = 6000;
         if (cmd == "CREATE_TABLE") {
             if (args.empty()) throw std::runtime_error("CREATE_TABLE requires name");
             db.CreateTable(args[0]);
@@ -1660,10 +1661,16 @@ class TGQL {
         else if (cmd == "JOIN") {
             // JOIN(table, g_a, c_a, g_b, c_b, op, val)
             if (args.size() < 7) throw std::runtime_error("Req: table, g_a, c_a, g_b, c_b, op, val");
+            // std::vector<RowID> rows = db.JoinFilter(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+            // res.rows = rows;
+            // res.has_rows = true;
+            // res.msg = "Join Result: " + std::to_string(rows.size()) + " rows.";
             std::vector<RowID> rows = db.JoinFilter(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
-            res.rows = rows;
-            res.has_rows = true;
-            res.msg = "Join Result: " + std::to_string(rows.size()) + " rows.";
+            std::stringstream ss;
+            for (RowID rowid : rows) {
+                ss << rowid << "\n";
+            }
+            res.msg = ss.str();
         }
         else if (cmd == "SELECT") {
             // Existing SELECT logic...
@@ -1676,15 +1683,29 @@ class TGQL {
             
             ColType type = tg->GetColumnType(col);
             uint32_t total = tg->GetRowCount(col);
-            if ((uint32_t)offset >= total) { res.msg = "Offset out of bounds"; return res; }
+            if ((uint32_t)offset >= total) { res.msg = "[]"; return res; }
             int end = std::min((int)total, offset + limit);
             
             std::stringstream ss;
             for (int i = offset; i < end; ++i) {
-                if (type == ColType::TEXT) ss << tg->GetText(col, i) << "\n";
-                else if (type == ColType::INT32) ss << tg->GetInt(col, i) << "\n";
-                else if (type == ColType::FLOAT32) ss << tg->GetFloat(col, i) << "\n";
+                if (type == ColType::TEXT) {
+                    const std::string output_buf = tg->GetText(col, i);
+                    if (output_buf.size() > MAX_OUTPUT_SIZE) {
+                        ss << output_buf.substr(0, MAX_OUTPUT_SIZE)  << "<...>\n";
+                    } else {
+                        ss << output_buf  << "\n";
+                    }
+                } else if (type == ColType::INT32) {
+                    ss << tg->GetInt(col, i) << "\n";
+                }
+                else if (type == ColType::FLOAT32) {
+                    ss << tg->GetFloat(col, i) << "\n";
+                }
+                else if (type == ColType::VECTOR_F32) {
+                    ss << "<vec>" << "\n";
+                }
             }
+
             res.msg = ss.str();
         }
         // ... (FILTER, SEARCH, etc from previous) ...
@@ -1693,30 +1714,44 @@ class TGQL {
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
             int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
-            res.rows = tg->Filter(args[2], args[3], args[4], limit);
-            res.has_rows = res.rows.size()>0;
-            res.context_engine = tg;
-            res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+            // res.rows = tg->Filter(args[2], args[3], args[4], limit);
+            // res.has_rows = res.rows.size()>0;
+            // res.context_engine = tg;
+            // res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+            std::vector<RowID> rows = tg->Filter(args[2], args[3], args[4], limit);
+            std::stringstream ss;
+            for (RowID rowid : rows) {
+                ss << rowid << "\n";
+            }
+            res.msg = ss.str();
         }
         else if (cmd == "FILTER_INDEX") {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
             int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
-            res.rows = tg->FilterIndex(args[2], args[3], args[4], limit);
-            res.has_rows = res.rows.size() > 0;
-            res.context_engine = tg;
-            res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+            std::vector<RowID> rows = tg->FilterIndex(args[2], args[3], args[4], limit);
+            std::stringstream ss;
+            for (RowID rowid : rows) {
+                ss << rowid << "\n";
+            }
+            res.msg = ss.str();
         }
         else if (cmd == "FILTER_SK_INDEX") {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, op, val");
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
             int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
-            res.rows = tg->FilterSecondaryIndex(args[2], args[3], args[4], limit);
-            res.has_rows = res.rows.size() > 0;
-            res.context_engine = tg;
-            res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+            std::vector<RowID> rows = tg->FilterSecondaryIndex(args[2], args[3], args[4], limit);
+            std::stringstream ss;
+            for (RowID rowid : rows) {
+                ss << rowid << "\n";
+            }
+            res.msg = ss.str();
+            // res.rows = tg->FilterSecondaryIndex(args[2], args[3], args[4], limit);
+            // res.has_rows = res.rows.size() > 0;
+            // res.context_engine = tg;
+            // res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
         }
         else if (cmd == "FILTER_TG_INDEX") {
             if (args.size() < 5) {
@@ -1733,10 +1768,16 @@ class TGQL {
             const std::string &val = args[4];
 
             int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
-            res.rows = db.FilterTigerIndex(table_name, group, col_name, op, val, limit);
-            res.has_rows = res.rows.size()>0;
-            res.context_engine = tg;
-            res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+            // res.rows = db.FilterTigerIndex(table_name, group, col_name, op, val, limit);
+            // res.has_rows = res.rows.size()>0;
+            // res.context_engine = tg;
+            // res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
+            std::vector<RowID> rows = db.FilterTigerIndex(table_name, group, col_name, op, val, limit);
+            std::stringstream ss;
+            for (RowID rowid : rows) {
+                ss << rowid << "\n";
+            }
+            res.msg = ss.str();
         }
         else if (cmd == "LEN") {
             if (args.size() < 4) throw std::runtime_error("Req: table, group, col, index");
@@ -1785,11 +1826,18 @@ class TGQL {
             if (args.size() < 5) throw std::runtime_error("Req: table, group, col, vec, top_k");
             BigTable* t = db.GetTable(args[0]);
             ColumnarTiger* tg = t->GetGroup(args[1]);
-            auto results = tg->VectorSearch(args[2], parse_vector_data(args[3]), std::stoi(args[4]));
-            res.context_engine = tg;
-            res.has_rows = true;
-            for(auto& r : results) res.rows.push_back(r.id);
-            res.msg = "Found " + std::to_string(res.rows.size()) + " vectors.";
+            // auto results = tg->VectorSearch(args[2], parse_vector_data(args[3]), std::stoi(args[4]));
+            // res.context_engine = tg;
+            // res.has_rows = true;
+            // for(auto& r : results) res.rows.push_back(r.id);
+            // res.msg = "Found " + std::to_string(res.rows.size()) + " vectors.";
+
+            std::vector<RowID> rows = tg->VectorSearch(args[2], parse_vector_data(args[3]), std::stoi(args[4]));
+            std::stringstream ss;
+            for (RowID rowid : rows) {
+                ss << rowid << "\n";
+            }
+            res.msg = ss.str();
         }
         else if (cmd == "SAVE") {
             if (args.size() < 1) throw std::runtime_error("Req: path");
