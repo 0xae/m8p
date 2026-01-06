@@ -104,6 +104,21 @@ inline float l2_sq_simd(const float* a, const float* b, int dim) {
 #endif
 }
 
+// // ... [Parsing Helpers same as before] ...
+// static std::string trim(const std::string& str) {
+//     size_t first = str.find_first_not_of(' ');
+//     if (std::string::npos == first) return str;
+//     size_t last = str.find_last_not_of(' ');
+//     return str.substr(first, (last - first + 1));
+// }
+
+std::string trim(const std::string& str) {
+    size_t first = str.find_first_not_of(' ');
+    if (std::string::npos == first) return str;
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
+
 std::string normalize_token(const std::string& input, size_t limit = 200) {
     std::string result;
     result.reserve(std::min(input.size(), limit));
@@ -1195,13 +1210,6 @@ public:
         return tables.at(name).get();
     }
 
-    std::string trim(const std::string& str) {
-        size_t first = str.find_first_not_of(' ');
-        if (std::string::npos == first) return str;
-        size_t last = str.find_last_not_of(' ');
-        return str.substr(first, (last - first + 1));
-    }
-
     void CreateTigerIndex(const std::string& table, const std::string& group, const std::string& col) {
          // 1. Get Source
          BigTable* t = GetTable(table);
@@ -1472,13 +1480,6 @@ struct ExecutionResult {
 };
 
 class TGQL {
-    // ... [Parsing Helpers same as before] ...
-    static std::string trim(const std::string& str) {
-        size_t first = str.find_first_not_of(' ');
-        if (std::string::npos == first) return str;
-        size_t last = str.find_last_not_of(' ');
-        return str.substr(first, (last - first + 1));
-    }
     static std::vector<std::string> parse_arguments(const std::string& args_str) {
         std::vector<std::string> args;
         std::string current;
