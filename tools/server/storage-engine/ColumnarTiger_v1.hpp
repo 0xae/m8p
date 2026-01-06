@@ -1170,18 +1170,13 @@ public:
 
         BigTable* sys = tables["systems"].get();
         std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
-        
-        try {
-            ColumnarTiger* idx_engine = sys->GetGroup(idx_group_name);
-            auto matches = idx_engine->Filter("term", op, val, limit);
-            return matches;
-            // if (matches.empty()) {
-            //     return "[]";
-            // }
-            // return idx_engine->GetText("ids", matches[0]);
-        } catch(...) {
+        if (!sys->GroupExists(idx_group_name)) {
             return {};
         }
+
+        ColumnarTiger* idx_engine = sys->GetGroup(idx_group_name);
+        auto matches = idx_engine->Filter("term", op, val, limit);
+        return matches;
     }
 
     // --- JOIN Implementation ---
