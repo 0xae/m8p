@@ -572,9 +572,9 @@ public:
                 if (OP == "contains" || OP == "like" || OP == "ilike") {
                      if (key.find(val) != std::string::npos) match = true;
                 }
-                else if (OP == "not_contains") {
-                     if (key.find(val) == std::string::npos) match = true;
-                }
+                // else if (OP == "not_contains") {
+                //      if (key.find(val) == std::string::npos) match = true;
+                // }
                 // else if (OP == "!=" || OP == "NEQ") {
                 //      if (key!=val && pair.second.size()>0) match = true;
                 // }
@@ -598,31 +598,6 @@ public:
                 }
 
                 counter_add += 1;
-                // if (OP=="contains" || OP=="like") {
-                //     if (pair.first.find(val) != std::string::npos) {
-                //          // Accumulate all rows that have this matching key
-                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                //     }
-                // }
-                // else if (OP=="ilike") {
-                //     if (pair.first.find(val) != std::string::npos 
-                //         || str_to_lower(pair.first).find(str_to_lower(val))!= std::string::npos) {
-                //          // Accumulate all rows that have this matching key
-                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                //     }
-                // }
-                // else if (OP=="starts_with") {
-                //     if (str_starts_with(pair.first, val)) {
-                //          // Accumulate all rows that have this matching key
-                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                //     }
-                // }
-                // else if (OP=="ends_with") {
-                //     if (str_ends_with(pair.first, val)) {
-                //          // Accumulate all rows that have this matching key
-                //          fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
-                //     }
-                // }
             }
             return fuzzy_results;
         }
@@ -691,9 +666,9 @@ public:
                 else if (OP == "starts_with") {
                      if (str_starts_with(key, token)) match = true;
                 }
-                else if (OP == "not_contains") {
-                     if (key.find(val) == std::string::npos) match = true;
-                }
+                // else if (OP == "not_contains") {
+                //      if (key.find(val) == std::string::npos) match = true;
+                // }
                 else if (OP == "ends_with") {
                      if (str_ends_with(key, token)) match = true;
                 }
