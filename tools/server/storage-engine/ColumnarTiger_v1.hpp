@@ -776,7 +776,7 @@ public:
     std::unordered_map<std::string, std::vector<RowID>> BuildIndexMap(const std::string& col_name, uint32_t start_row, uint32_t limit_or_end) {
         if (!HasColumn(col_name)) throw std::runtime_error("Column not found");
         if (GetColumnType(col_name) != ColType::TEXT) throw std::runtime_error("Only TEXT supported");
-        
+
         std::unordered_map<std::string, std::vector<RowID>> raw_idx;
         int idx = column_map[col_name];
         RelPtr* offsets = get_ptr<RelPtr>(columns[idx].data_offset);
@@ -784,7 +784,7 @@ public:
         uint32_t actual_end = std::min(count, start_row + limit_or_end);
         
         for(uint32_t i=start_row; i<actual_end; ++i) {
-             if (offsets[i] == DELETED_FLAG) continue;
+             // if (offsets[i] == DELETED_FLAG) continue;
              std::string val = std::string(get_ptr<char>(offsets[i]));
              raw_idx[val].push_back(i);
         }
