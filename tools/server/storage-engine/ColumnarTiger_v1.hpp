@@ -776,7 +776,7 @@ public:
     std::unordered_map<std::string, std::vector<RowID>> BuildIndexMap(const std::string& col_name, uint32_t start_row, uint32_t limit_or_end) {
         if (!HasColumn(col_name)) throw std::runtime_error("Column not found");
         if (GetColumnType(col_name) != ColType::TEXT) throw std::runtime_error("Only TEXT supported");
-
+        
         std::unordered_map<std::string, std::vector<RowID>> raw_idx;
         int idx = column_map[col_name];
         RelPtr* offsets = get_ptr<RelPtr>(columns[idx].data_offset);
@@ -1187,6 +1187,13 @@ public:
     BigTable* GetTable(const std::string& name) {
         if (tables.find(name) == tables.end()) throw std::runtime_error("Table not found");
         return tables.at(name).get();
+    }
+
+    std::string trim(const std::string& str) {
+        size_t first = str.find_first_not_of(' ');
+        if (std::string::npos == first) return str;
+        size_t last = str.find_last_not_of(' ');
+        return str.substr(first, (last - first + 1));
     }
 
     void CreateTigerIndex(const std::string& table, const std::string& group, const std::string& col) {
