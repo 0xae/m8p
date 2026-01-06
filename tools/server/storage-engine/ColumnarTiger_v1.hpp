@@ -786,6 +786,9 @@ public:
         for(uint32_t i=start_row; i<actual_end; ++i) {
              // if (offsets[i] == DELETED_FLAG) continue;
              std::string val = std::string(get_ptr<char>(offsets[i]));
+             if (trim(val)=="") {
+                continue;
+             }
              raw_idx[val].push_back(i);
         }
         return raw_idx;
