@@ -549,7 +549,7 @@ public:
         }
 
         auto& idx = indexes[col_name];
-        
+
         // 2. Try Exact Match (Fast path)
         if (idx.find(val) != idx.end()) {
             return idx[val];
@@ -566,7 +566,7 @@ public:
                     << " => "
                     << pair.first
                     << "\n" << std::endl;
-                if (pair.first.find(val) != std::string::npos) {
+                if (pair.first.find(val) != std::string::npos ) {
                      // Accumulate all rows that have this matching key
                      fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
                 }
@@ -614,7 +614,10 @@ public:
                     << pair.first
                     << "\n" << std::endl;
 
-                if (pair.first.find(token) != std::string::npos) {
+                if (pair.first.find(token) != std::string::npos 
+                    || str_to_lower(pair.first).find(str_to_lower(token))!= std::string::npos
+                    || normalize_token(pair.first).find(token)!= std::string::npos
+                    )  {
                      // Accumulate all rows that have this matching key
                      fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
                 }
