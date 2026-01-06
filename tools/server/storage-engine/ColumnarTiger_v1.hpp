@@ -1344,11 +1344,9 @@ public:
         std::vector<RowID> result;
         for (auto r : matches) {
             if (limit > 0 && result.size() >= (size_t)limit) break;
-            
             // 2. Get the list of IDs for this term
             std::string serialized = idx_engine->GetText("ids", r);
             std::vector<RowID> ids = ColumnarTiger::DeserializeIDs(serialized);
-            
             // 3. Accumulate
             for(auto id : ids) {
                 result.push_back(id);
@@ -1631,6 +1629,13 @@ class TGQL {
             ColumnarTiger* tg = t->GetGroup(args[1]);
             tg->UpdateSecondaryIndex(args[2]);
             res.msg = "Secondary-Index update on " + args[2];
+        }
+        else if (cmd == "UPDATE_TG_INDEX") {
+            if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
+            BigTable* t = db.GetTable(args[0]);
+            ColumnarTiger* tg = t->GetGroup(args[1]);
+            tg->UpdateTigerIndex(args[2]);
+            res.msg = "Tiger-Index update on " + args[2];
         }
         else if (cmd == "CLEAR_SK_INDEX") {
             if (args.size() < 3) throw std::runtime_error("Req: table, group, col");
