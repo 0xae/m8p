@@ -547,7 +547,7 @@ public:
 
         // 3. Fallback: Scan keys if index cardinality is small (< 10000)
         // This handles "contains" logic on keys without full table scan
-        if (idx.size() < 10000 && (OP=="contains" || OP=="ilike" ||O P=="like")) {
+        if (idx.size() < 10000 && (OP=="contains" || OP=="ilike" || OP=="like")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx) {
                 // Check substring match on the key
