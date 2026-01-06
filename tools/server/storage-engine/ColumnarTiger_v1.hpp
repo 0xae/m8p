@@ -1724,18 +1724,18 @@ class TGQL {
                 if (type == ColType::TEXT) {
                     const std::string output_buf = tg->GetText(col, i);
                     if (output_buf.size() > MAX_OUTPUT_SIZE) {
-                        ss << output_buf.substr(0, MAX_OUTPUT_SIZE)  << "<...>\n";
+                        ss << output_buf.substr(0, MAX_OUTPUT_SIZE)  << "<...>,";
                     } else {
-                        ss << output_buf  << "\n";
+                        ss << output_buf  << ",";
                     }
                 } else if (type == ColType::INT32) {
-                    ss << tg->GetInt(col, i) << "\n";
+                    ss << tg->GetInt(col, i) << ",";
                 }
                 else if (type == ColType::FLOAT32) {
-                    ss << tg->GetFloat(col, i) << "\n";
+                    ss << tg->GetFloat(col, i) << ",";
                 }
                 else if (type == ColType::VECTOR_F32) {
-                    ss << "<vec>" << "\n";
+                    ss << "<vec>" << ",";
                 }
             }
 
