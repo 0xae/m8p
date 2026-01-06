@@ -530,19 +530,7 @@ public:
         return sk_indexes.find(col_name) != sk_indexes.end();
     }
 
-    // Used by JOIN/FILTER if index exists
-    // std::vector<RowID> LookupIndex(const std::string& col_name, const std::string& val) {
-    //     // if (indexes.find(col_name) != indexes.end()) return {}; // Or throw?
-    //     const std::string index_name = col_name+"_sk";
-    //     if (indexes.find(col_name) != indexes.end()) {
-    //         auto& idx = indexes[col_name];
-    //         if (idx.find(val) != idx.end()) return idx[val];            
-    //     }
-
-    //     return {};
-    // }
-
-    std::vector<RowID> LookupIndex(const std::string& col_name, const std::string& val) {
+    std::vector<RowID> LookupIndex(const std::string& col_name, const std::string& op, const std::string& val) {
         // 1. Validate index exists
         if (indexes.find(col_name) == indexes.end()) {
             return {}; 
@@ -555,9 +543,11 @@ public:
             return idx[val];
         }
 
+        const std::string& OP=str_to_lower(op);
+
         // 3. Fallback: Scan keys if index cardinality is small (< 10000)
         // This handles "contains" logic on keys without full table scan
-        if (idx.size() < 10000) {
+        if (idx.size() < 10000 && (OP=="contains" || OP=="ilike" ||O P=="like")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx) {
                 // Check substring match on the key
@@ -566,10 +556,19 @@ public:
                 //     << " => "
                 //     << pair.first
                 //     << "\n" << std::endl;
-                if (pair.first.find(val) != std::string::npos 
-                    || str_to_lower(pair.first).find(str_to_lower(val))!= std::string::npos) {
-                     // Accumulate all rows that have this matching key
-                     fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+
+                if (OP=="contains" || OP=="like") {
+                    if (pair.first.find(val) != std::string::npos) {
+                         // Accumulate all rows that have this matching key
+                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                    }
+                }
+                else if (OP=="ilike") {
+                    if (pair.first.find(val) != std::string::npos 
+                        || str_to_lower(pair.first).find(str_to_lower(val))!= std::string::npos) {
+                         // Accumulate all rows that have this matching key
+                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                    }
                 }
             }
             return fuzzy_results;
@@ -578,7 +577,7 @@ public:
         return {};
     }
 
-    std::vector<RowID> LookupSKIndex(const std::string& col_name, const std::string& val) {
+    std::vector<RowID> LookupSKIndex(const std::string& col_name, const std::string& op, const std::string& val) {
         const std::string index_name = col_name+"_sk";
         // if (indexes.find(col_name) != indexes.end()) return {}; // Or throw?
         // if (sk_indexes.find(index_name) != sk_indexes.end()) {
@@ -592,7 +591,7 @@ public:
         if (it_idx == sk_indexes.end()) {
             return {}; // Index doesn't exist
         }
-
+        const std::string& OP=str_to_lower(op);
         std::string token = normalize_token(val, MAX_SK_CHUNK_SIZE);
         if (token.empty()) return {};
 
@@ -605,7 +604,7 @@ public:
             return it_ids->second;
         }
 
-        if (idx_data.map.size() < 100000) {
+        if (idx_data.map.size() < 100000 && (OP=="contains"||OP=="ilike"||OP=="like")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx_data.map) {
                 // Check substring match on the key
@@ -614,11 +613,26 @@ public:
                 //     << " => "
                 //     << pair.first
                 //     << "\n" << std::endl;
-                if (pair.first.find(token) != std::string::npos 
-                    || str_to_lower(pair.first).find(str_to_lower(token))!= std::string::npos)  {
-                     // Accumulate all rows that have this matching key
-                     fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                // if (pair.first.find(token) != std::string::npos 
+                //     || str_to_lower(pair.first).find(str_to_lower(token))!= std::string::npos)  {
+                //      // Accumulate all rows that have this matching key
+                //      fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                // }
+
+                if (OP=="contains" || OP=="like") {
+                    if (pair.first.find(val) != std::string::npos) {
+                         // Accumulate all rows that have this matching key
+                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                    }
                 }
+                else if (OP=="ilike") {
+                    if (pair.first.find(val) != std::string::npos 
+                        || str_to_lower(pair.first).find(str_to_lower(val))!= std::string::npos) {
+                         // Accumulate all rows that have this matching key
+                         fuzzy_results.insert(fuzzy_results.end(), pair.second.begin(), pair.second.end());
+                    }
+                }
+
             }
             return fuzzy_results;
         }
@@ -743,7 +757,7 @@ public:
 
         std::vector<RowID> candidates;
         if (HasIndex(col_name)) {
-            candidates = LookupIndex(col_name, val_str);
+            candidates = LookupIndex(col_name, op, val_str);
             if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
         }
 
@@ -770,7 +784,7 @@ public:
 
         std::vector<RowID> candidates;
         if (HasSKIndex(index_name)) {
-            candidates = LookupSKIndex(col_name, val_str);
+            candidates = LookupSKIndex(col_name, op, val_str);
             if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
         }
 
@@ -808,7 +822,7 @@ public:
 
         // Use Index if available for EQ
         if (!is_in_op && (op == "EQ" || op == "=") && HasIndex(col_name)) {
-             std::vector<RowID> candidates = LookupIndex(col_name, val_str);
+             std::vector<RowID> candidates = LookupIndex(col_name, op, val_str);
              if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
              // if (candidates.size()>0) {
                  return candidates;
@@ -997,7 +1011,7 @@ public:
             // 3. Find in A
             // Ideal: eng_a->LookupIndex(c_a, join_val) if c_a is indexed
             if (eng_a->HasIndex(c_a)) {
-                auto hits = eng_a->LookupIndex(c_a, join_val);
+                auto hits = eng_a->LookupIndex(c_a, "=", join_val);
                 results_a.insert(results_a.end(), hits.begin(), hits.end());
             } else {
                 // Scan A (Slow join)
