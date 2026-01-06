@@ -1229,7 +1229,7 @@ public:
          idx_engine->CreateColumn("count", ColType::INT32, final_cap);
 
          for(auto& p : index_map) {
-            const auto content = TGQL::trim(p.first);
+            const auto content = trim(p.first);
             if (content.size()==0 || p.second.size()==0 || p.second=="[]") {
                 continue;
             }
@@ -1284,7 +1284,7 @@ public:
              auto existing_rows = idx_engine->LookupIndex("term", "=", p.first, (int)increment);
              if (existing_rows.empty()) {
                  // New term
-                const auto content = TGQL::trim(p.first);
+                const auto content = trim(p.first);
                 if (content.size()==0 || p.second.size()==0) {
                     continue;
                 }
