@@ -573,9 +573,9 @@ public:
                 else if (OP == "not_contains") {
                      if (key.find(val) == std::string::npos) match = true;
                 }
-                else if (OP == "!=" || OP == "NEQ") {
-                     if (key!=val && pair.second.size()>0) match = true;
-                }
+                // else if (OP == "!=" || OP == "NEQ") {
+                //      if (key!=val && pair.second.size()>0) match = true;
+                // }
                 else if (OP == "starts_with") {
                      if (str_starts_with(key, val)) match = true;
                 }
@@ -646,28 +646,30 @@ public:
             if (it_ids != idx_data.map.end()) {
                 return it_ids->second;
             }
-        } else if (OP=="!=" || OP=="NEQ" ) {
-            for (const auto& pair : idx_data.map) {
-                const std::string& key = pair.first;
-                if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
-                    break;
-                }
+        }
+        // else if (OP=="!=" || OP=="NEQ" ) {
+        //     for (const auto& pair : idx_data.map) {
+        //         const std::string& key = pair.first;
+        //         if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+        //             break;
+        //         }
 
-                if (key!=val && (key!=val && pair.second.size()>0)) { // TODO: could it be this simple ???
-                    for(RowID r : pair.second) {
-                        if (fuzzy_results.size() >= (size_t)limit) {
-                            break;
-                        }
+        //         if (key!=val && (key!=val && pair.second.size()>0)) { // TODO: could it be this simple ???
+        //             for(RowID r : pair.second) {
+        //                 if (fuzzy_results.size() >= (size_t)limit) {
+        //                     break;
+        //                 }
 
-                        fuzzy_results.push_back(r);
-                        if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
-                            break;
-                        }
-                    }
-                }
-            }
+        //                 fuzzy_results.push_back(r);
+        //                 if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
+        //                     break;
+        //                 }
+        //             }
+        //         }
+        //     }
 
-        } else if (idx_data.map.size() < 100000 && (OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+        // } 
+        else if (idx_data.map.size() < 100000 && (OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             for (const auto& pair : idx_data.map) {
                 if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
                     break;
