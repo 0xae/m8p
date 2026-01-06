@@ -1155,21 +1155,26 @@ public:
      }
 
     // FilterTigerIndex(table_name, group, col_name, op, val, limit)
-    std::string FilterTigerIndex(const std::string& table, const std::string& group, 
+    std::vector<RowID> FilterTigerIndex(const std::string& table, const std::string& group, 
         const std::string& col, const std::string& op, const std::string& val, int limit) {
-        if (tables.find("systems") == tables.end()) return "[]";
+        if (tables.find("systems") == tables.end()) {
+            return {};
+        };
+
         BigTable* sys = tables["systems"].get();
         std::string idx_group_name = "idx_" + table + "_" + group + "_" + col;
         
         try {
             ColumnarTiger* idx_engine = sys->GetGroup(idx_group_name);
-            auto matches = idx_engine->Filter("term", "EQ", val);
-            if (matches.empty()) {
-                return "[]";
-            }
-            return idx_engine->GetText("ids", matches[0]);
+            auto matches = idx_engine->Filter("term", op, val, limit);
+            return matches;
+            // if (matches.empty()) {
+            //     return "[]";
+            // }
+            // return idx_engine->GetText("ids", matches[0]);
+
         } catch(...) {
-            return "[]";
+            return {};
         }
     }
 
@@ -1548,10 +1553,10 @@ class TGQL {
             const std::string &val = args[4];
 
             int limit = (args.size() > 5) ? std::stoi(args[5]) : 10;
-            // res.rows = db.FilterTigerIndex(table_name, group, col_name, op, val, limit);
-            res.has_rows = false;
+            res.rows = db.FilterTigerIndex(table_name, group, col_name, op, val, limit);
+            res.has_rows = res.rows.size()>0;
             res.context_engine = tg;
-            res.msg = db.FilterTigerIndex(table_name, group, col_name, op, val, limit);
+            res.msg = "Found " + std::to_string(res.rows.size()) + " matches.";
         }
         else if (cmd == "LEN") {
             if (args.size() < 4) throw std::runtime_error("Req: table, group, col, index");
