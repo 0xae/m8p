@@ -1500,7 +1500,7 @@ class TGQL {
     static ExecutionResult RunInternal(NativeMetaDB& db, std::string cmd, std::vector<std::string> args) {
         ExecutionResult res;
         // ... [CREATE/ADD/UPDATE/GET logic same as before] ...
-        const MAX_OUTPUT_SIZE = 6000;
+        const int MAX_OUTPUT_SIZE = 6000;
         if (cmd == "CREATE_TABLE") {
             if (args.empty()) throw std::runtime_error("CREATE_TABLE requires name");
             db.CreateTable(args[0]);
