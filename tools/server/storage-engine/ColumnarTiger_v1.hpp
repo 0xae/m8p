@@ -675,6 +675,7 @@ public:
         // else if (idx_data.map.size() < 100000 && (OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
         else if ((OP=="not_contains"||OP=="contains"||OP=="ilike"||OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             uint32_t counter_add = 0;
+            const auto stop = 0.7 * idx_data.map.size();
             for (const auto& pair : idx_data.map) {
                 if (counter_add>=stop || (limit > 0 && fuzzy_results.size() >= (size_t)limit)) {
                     break;
