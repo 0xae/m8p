@@ -807,7 +807,9 @@ public:
         std::vector<RowID> candidates;
         if (HasIndex(col_name)) {
             candidates = LookupIndex(col_name, op, val_str, limit);
-            if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
+            if (limit > 0 && candidates.size() > (size_t)limit) {
+                candidates.resize(limit);
+            }
         }
 
         return candidates;
@@ -846,7 +848,7 @@ public:
         return candidates;
     }
 
-    std::vector<RowID> Filter(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit) {
+    std::vector<RowID> Filter(const std::string& col_name, const std::string& op_raw, const std::string& val_str, int limit=10) {
         if (column_map.find(col_name) == column_map.end()) {
             throw std::runtime_error("Column not found: " + col_name);
         }
