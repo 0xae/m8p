@@ -878,7 +878,8 @@ public:
         }
 
         // Use Index if available for EQ
-        if (!is_in_op && (op == "EQ" || op == "=") && HasIndex(col_name)) {
+        // if (!is_in_op && (op == "EQ" || op == "=") && HasIndex(col_name)) {
+        if (!is_in_op && HasIndex(col_name)) {
              std::vector<RowID> candidates = LookupIndex(col_name, op, val_str, limit);
              if (limit > 0 && candidates.size() > (size_t)limit) candidates.resize(limit);
              // if (candidates.size()>0) {
@@ -948,7 +949,9 @@ public:
     }
 
     uint32_t Count(const std::string& col_name) {
-        if (column_map.find(col_name) == column_map.end()) throw std::runtime_error("Column not found: " + col_name);
+        if (column_map.find(col_name) == column_map.end()) {
+            throw std::runtime_error("Column not found: " + col_name);
+        }
         return columns[column_map.at(col_name)].count;
     }
 
