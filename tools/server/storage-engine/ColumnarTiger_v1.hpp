@@ -540,13 +540,23 @@ public:
         const std::string& OP=str_to_lower(op);
 
         // 2. Try Exact Match (Fast path)
-        if ((OP=="=" || OP=="EQ") && idx.find(val) != idx.end()) {
-            return idx[val];
+        // if ((OP=="=" || OP=="eq") && idx.find(val) != idx.end()) {
+        //     return idx[val];
+        // }
+        if (OP == "eq" || OP == "=") {
+            auto it_ids = idx.find(val);
+            if (it_ids != idx.end()) {
+                if (limit > 0 && it_ids->second.size() > (size_t)limit) {
+                    return std::vector<RowID>(it_ids->second.begin(), it_ids->second.begin() + limit);
+                }
+                return it_ids->second;
+            }
+            return {};
         }
 
         // 3. Fallback: Scan keys if index cardinality is small (< 10000)
         // This handles "contains" logic on keys without full table scan
-        if (idx.size() < 10000 && (OP=="!=" || OP=="NEQ" || OP=="contains" || OP=="not_contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
+        if (idx.size() < 10000 && (OP=="!="|| OP=="neq" || OP=="contains" || OP=="not_contains" || OP=="ilike" || OP=="like"||OP=="starts_with"||OP=="ends_with")) {
             std::vector<RowID> fuzzy_results;
             for (const auto& pair : idx) {
                 if (limit > 0 && fuzzy_results.size() >= (size_t)limit) {
